@@ -275,6 +275,91 @@ function DocumentEditor({
 }
 
 /* ------------------------------------------------------------------ */
+/* Read-only document detail modal                                     */
+/* ------------------------------------------------------------------ */
+
+function DocumentViewer({
+  row,
+  onClose,
+  onEdit,
+  onDelete,
+}: {
+  row: Record<string, unknown>;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm"
+        onClick={onClose}
+        aria-label="Close"
+      />
+      <div className="cl-panel-solid relative z-10 flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl shadow-2xl">
+        <div className="flex items-center justify-between border-b border-white/8 px-6 py-4">
+          <h2 className="text-lg font-bold text-white">
+            📄 {String(row.name || row.title || row.handle || row.id)}
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-md px-2.5 py-1 text-[11px] font-medium text-brand-300 transition hover:bg-brand-500/15"
+            >
+              ✏️ Edit
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-md px-2.5 py-1 text-[11px] font-medium text-rose-400 transition hover:bg-rose-500/15"
+            >
+              🗑️ Delete
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-2 py-1 text-sm text-white/50 hover:bg-white/8 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <dl className="space-y-3">
+            {Object.entries(row).map(([key, val]) => (
+              <div key={key}>
+                <dt className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">
+                  {key}
+                </dt>
+                {typeof val === "object" && val !== null ? (
+                  <dd>
+                    <pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-white/5 p-3 font-mono text-[11px] leading-relaxed text-white/70">
+                      {JSON.stringify(val, null, 2)}
+                    </pre>
+                  </dd>
+                ) : (
+                  <dd className="mt-0.5 break-words text-xs text-white/80">
+                    {val === null || val === undefined || val === ""
+                      ? "—"
+                      : typeof val === "boolean"
+                        ? val
+                          ? "✅ true"
+                          : "❌ false"
+                        : String(val)}
+                  </dd>
+                )}
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Confirm delete modal                                                */
 /* ------------------------------------------------------------------ */
 
@@ -351,22 +436,27 @@ function DocCard({
   columns,
   onEdit,
   onDelete,
+  onView,
   formatCell,
 }: {
   row: Record<string, unknown>;
   columns: string[];
   onEdit: () => void;
   onDelete: () => void;
+  onView: () => void;
   formatCell: (val: unknown) => string;
 }) {
   return (
-    <div className="cl-panel group flex flex-col gap-2 p-4 transition hover:border-white/15">
+    <div
+      onClick={onView}
+      className="cl-panel group flex cursor-pointer flex-col gap-2 p-4 transition hover:border-white/15"
+    >
       {/* ID badge */}
       <div className="flex items-center justify-between">
         <code className="rounded bg-white/6 px-2 py-0.5 text-[10px] text-white/40">
           {row.id as string}
         </code>
-        <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+        <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
             onClick={onEdit}
@@ -417,6 +507,7 @@ export default function AdminCollectionPage() {
   const [search, setSearch] = useState("");
   const [editDoc, setEditDoc] = useState<Record<string, unknown> | null | "new">(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewDoc, setViewDoc] = useState<Record<string, unknown> | null>(null);
   const [viewType, setViewType] = useState<"table" | "cards">("table");
 
   // Redirect if unknown collection
@@ -561,6 +652,7 @@ export default function AdminCollectionPage() {
               columns={columns}
               onEdit={() => setEditDoc(row)}
               onDelete={() => setDeleteId(row.id)}
+              onView={() => setViewDoc(row as Record<string, unknown>)}
               formatCell={formatCell}
             />
           ))}
@@ -589,7 +681,8 @@ export default function AdminCollectionPage() {
                 {filtered.map((row) => (
                   <tr
                     key={row.id}
-                    className="border-b border-white/5 transition hover:bg-white/3"
+                    onClick={() => setViewDoc(row as Record<string, unknown>)}
+                    className="cursor-pointer border-b border-white/5 transition hover:bg-white/3"
                   >
                     {columns.map((col) => (
                       <td
@@ -599,8 +692,8 @@ export default function AdminCollectionPage() {
                         {formatCell((row as Record<string, unknown>)[col])}
                       </td>
                     ))}
-                    <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-1.5">
+                        <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={() => setEditDoc(row)}
@@ -657,6 +750,22 @@ export default function AdminCollectionPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Document viewer modal */}
+      {viewDoc !== null && (
+        <DocumentViewer
+          row={viewDoc}
+          onClose={() => setViewDoc(null)}
+          onEdit={() => {
+            setEditDoc(viewDoc);
+            setViewDoc(null);
+          }}
+          onDelete={() => {
+            setDeleteId(viewDoc.id as string);
+            setViewDoc(null);
+          }}
+        />
       )}
 
       {/* Editor modal */}
