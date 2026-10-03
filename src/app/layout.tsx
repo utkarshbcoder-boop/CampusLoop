@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PremiumScene } from "@/components/PremiumScene";
+import { AuthProvider } from "@/components/AuthProvider";
 import { getDataProvider } from "@/lib/db";
 import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
 import { CampusLoopProvider } from "@/lib/store";
@@ -69,16 +70,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           Skip to content
         </a>
-        <CampusLoopProvider>
-          {currentProfile ? (
-            <SiteHeader currentProfile={currentProfile} profiles={profiles} colleges={colleges} />
-          ) : null}
-          <main id="main">
-            <PremiumScene compact />
-            {children}
-          </main>
-          <SiteFooter colleges={colleges} />
-        </CampusLoopProvider>
+        <AuthProvider>
+          <CampusLoopProvider>
+            {currentProfile ? (
+              <SiteHeader currentProfile={currentProfile} profiles={profiles} colleges={colleges} />
+            ) : null}
+            <main id="main">
+              <PremiumScene compact />
+              {children}
+            </main>
+            <SiteFooter colleges={colleges} />
+          </CampusLoopProvider>
+        </AuthProvider>
       </body>
     </html>
   );

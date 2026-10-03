@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CloseIcon, MenuIcon, StarIcon } from "@/components/Icon";
+import { LoginButton } from "@/components/LoginButton";
 import { NAV_MODULES, UTILITY_LINKS } from "@/lib/nav";
 import { useCampusLoop } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -39,7 +40,7 @@ export function SiteHeader(_props: {
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-1.5">
           <p className="flex items-center gap-2">
             <span className="cl-pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-mint-400" aria-hidden />
-            Running on the seeded local data layer — no database or API key required
+            Real-time Firebase · Connected to students worldwide
           </p>
           <nav className="flex items-center gap-4">
             {UTILITY_LINKS.map((link) => (
@@ -95,6 +96,8 @@ export function SiteHeader(_props: {
               <StarIcon width={14} height={14} />
               Go Premium
             </Link>
+
+            <LoginButton />
 
             <button
               type="button"

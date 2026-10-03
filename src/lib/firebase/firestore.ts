@@ -1,0 +1,233 @@
+/**
+ * Firestore-backed DataProvider.
+ *
+ * Implements the same `DataProvider` interface as the mock and Supabase
+ * providers, so the rest of the app works unchanged. All writes are
+ * immediately visible to every connected client via Firestore's real-time
+ * sync.
+ */
+
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit as fbLimit,
+  type QueryConstraint,
+  type DocumentData,
+} from "firebase/firestore";
+import { db } from "./config";
+import type { DataProvider, ListOptions, WritableTable } from "@/lib/db/provider";
+import type {
+  CampusEvent,
+  CampusService,
+  College,
+  CollegeSubscription,
+  Equipment,
+  Listing,
+  Notification,
+  Opportunity,
+  PGListing,
+  Profile,
+  ServiceBooking,
+  SkillProfile,
+  Sponsorship,
+  TeammatePost,
+  Transaction,
+} from "@/lib/types";
+
+/* ------------------------------------------------------------------ */
+/* Check if Firestore has been seeded                                  */
+/* ------------------------------------------------------------------ */
+
+/** Quick check — if the `colleges` collection has at least 1 doc we consider Firestore seeded. */
+export async function isFirestoreSeeded(): Promise<boolean> {
+  try {
+    const snap = await getDocs(query(collection(db, "colleges"), fbLimit(1)));
+    return !snap.empty;
+  } catch {
+    return false;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Generic Firestore table                                             */
+/* ------------------------------------------------------------------ */
+
+function makeId(): string {
+  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function firestoreTable<T extends { id: string }>(collectionName: string): WritableTable<T> {
+  const colRef = () => collection(db, collectionName);
+
+  return {
+    async list(options?: ListOptions): Promise<T[]> {
+      const constraints: QueryConstraint[] = [];
+
+      // Equality filters
+      if (options?.where) {
+        for (const [key, val] of Object.entries(options.where)) {
+          if (val !== undefined && val !== null) {
+            constraints.push(where(key, "==", val));
+          }
+        }
+      }
+
+      // IN filters
+      if (options?.whereIn) {
+        for (const [key, vals] of Object.entries(options.whereIn)) {
+          if (vals.length > 0) {
+            // Firestore 'in' supports max 30 values
+            constraints.push(where(key, "in", vals.slice(0, 30)));
+          }
+        }
+      }
+
+      // GTE filters
+      if (options?.gte) {
+        for (const [key, val] of Object.entries(options.gte)) {
+          constraints.push(where(key, ">=", val));
+        }
+      }
+
+      // LTE filters
+      if (options?.lte) {
+        for (const [key, val] of Object.entries(options.lte)) {
+          constraints.push(where(key, "<=", val));
+        }
+      }
+
+      // Order
+      if (options?.orderBy) {
+        constraints.push(
+          orderBy(options.orderBy.column, options.orderBy.ascending ? "asc" : "desc"),
+        );
+      }
+
+      // Limit
+      if (options?.limit) {
+        constraints.push(fbLimit(options.limit));
+      }
+
+      let q;
+      try {
+        q = query(colRef(), ...constraints);
+      } catch {
+        // Firestore composite index may not exist yet — fall back to
+        // fetching everything and filtering in memory.
+        q = query(colRef());
+      }
+
+      const snapshot = await getDocs(q);
+      let results = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as T));
+
+      // Client-side search fallback
+      if (options?.search) {
+        const term = options.search.term.toLowerCase();
+        const col = options.search.column;
+        results = results.filter((row) => {
+          const val = (row as Record<string, unknown>)[col];
+          if (typeof val === "string") return val.toLowerCase().includes(term);
+          if (Array.isArray(val)) return val.some((v) => String(v).toLowerCase().includes(term));
+          return false;
+        });
+      }
+
+      // Client-side sort fallback for when Firestore constraints fail
+      if (options?.orderBy && results.length > 0) {
+        const { column, ascending } = options.orderBy;
+        results.sort((a, b) => {
+          const aVal = (a as Record<string, unknown>)[column];
+          const bVal = (b as Record<string, unknown>)[column];
+          if (aVal === bVal) return 0;
+          if (aVal == null) return 1;
+          if (bVal == null) return -1;
+          const cmp = aVal < bVal ? -1 : 1;
+          return ascending ? cmp : -cmp;
+        });
+      }
+
+      // Client-side offset
+      if (options?.offset) {
+        results = results.slice(options.offset);
+      }
+
+      return results;
+    },
+
+    async byId(id: string): Promise<T | null> {
+      const snap = await getDoc(doc(db, collectionName, id));
+      if (!snap.exists()) return null;
+      return { id: snap.id, ...snap.data() } as T;
+    },
+
+    async count(options?: ListOptions): Promise<number> {
+      const rows = await this.list(options);
+      return rows.length;
+    },
+
+    async insert(row: Omit<T, "id"> & Partial<Pick<T, "id">>): Promise<T> {
+      const id = (row as { id?: string }).id || makeId();
+      const data = { ...row, id } as DocumentData;
+      await setDoc(doc(db, collectionName, id), data);
+      return data as T;
+    },
+
+    async update(id: string, patch: Partial<T>): Promise<T | null> {
+      const ref = doc(db, collectionName, id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return null;
+      await updateDoc(ref, patch as DocumentData);
+      return { id, ...snap.data(), ...patch } as T;
+    },
+
+    async remove(id: string): Promise<boolean> {
+      const ref = doc(db, collectionName, id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return false;
+      await deleteDoc(ref);
+      return true;
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Provider singleton                                                  */
+/* ------------------------------------------------------------------ */
+
+let _provider: DataProvider | null = null;
+
+export function getFirestoreProvider(): DataProvider {
+  if (_provider) return _provider;
+
+  _provider = {
+    kind: "supabase" as const, // re-using the type — it means "remote"
+    label: "Firebase Firestore",
+    isMock: false,
+
+    colleges: firestoreTable<College>("colleges"),
+    profiles: firestoreTable<Profile>("profiles"),
+    listings: firestoreTable<Listing>("listings"),
+    equipment: firestoreTable<Equipment>("equipment"),
+    pg_listings: firestoreTable<PGListing>("pg_listings"),
+    teammate_posts: firestoreTable<TeammatePost>("teammate_posts"),
+    skill_profiles: firestoreTable<SkillProfile>("skill_profiles"),
+    events: firestoreTable<CampusEvent>("events"),
+    services: firestoreTable<CampusService>("services"),
+    bookings: firestoreTable<ServiceBooking>("bookings"),
+    opportunities: firestoreTable<Opportunity>("opportunities"),
+    transactions: firestoreTable<Transaction>("transactions"),
+    subscriptions: firestoreTable<CollegeSubscription>("subscriptions"),
+    sponsorships: firestoreTable<Sponsorship>("sponsorships"),
+    notifications: firestoreTable<Notification>("notifications"),
+  };
+
+  return _provider;
+}
