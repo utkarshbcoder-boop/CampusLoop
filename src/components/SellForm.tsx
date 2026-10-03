@@ -69,7 +69,11 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
           <button
             key={opt.value}
             type="button"
-            onClick={() => setKind(opt.value)}
+            onClick={() => {
+              setKind(opt.value);
+              window.history.replaceState(null, "", `/sell?type=${opt.value === "book" ? "book" : "device"}`);
+              window.dispatchEvent(new Event("selltype"));
+            }}
             className={cn("cl-btn justify-center", kind === opt.value ? "cl-btn-primary" : "cl-btn-ghost")}
           >
             {opt.icon}

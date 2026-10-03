@@ -32,6 +32,23 @@ export function SiteHeader(_props: {
   }, [open]);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const [sellType, setSellType] = useState<string | null>(null);
+
+  useEffect(() => {
+    const update = () => {
+      if (pathname.startsWith("/sell")) {
+        setSellType(new URLSearchParams(window.location.search).get("type"));
+      } else {
+        setSellType(null);
+      }
+    };
+    update();
+    window.addEventListener("selltype", update);
+    return () => window.removeEventListener("selltype", update);
+  }, [pathname]);
+
+  const isSellBook = sellType === "book" || (pathname.startsWith("/sell") && sellType !== "device");
+  const isSellDevice = sellType === "device";
 
   return (
     <>
@@ -91,13 +108,19 @@ export function SiteHeader(_props: {
           <div className="ml-auto flex items-center gap-2">
             <Link
               href="/sell?type=book"
-              className="cl-btn cl-btn-ghost hidden gap-1.5 sm:inline-flex"
+              className={cn(
+                "cl-btn hidden gap-1.5 sm:inline-flex",
+                isSellBook ? "cl-btn-primary" : "cl-btn-ghost",
+              )}
             >
               Sell Books
             </Link>
             <Link
               href="/sell?type=device"
-              className="cl-btn cl-btn-ghost hidden gap-1.5 sm:inline-flex"
+              className={cn(
+                "cl-btn hidden gap-1.5 sm:inline-flex",
+                isSellDevice ? "cl-btn-primary" : "cl-btn-ghost",
+              )}
             >
               Sell Device
             </Link>
@@ -165,10 +188,16 @@ export function SiteHeader(_props: {
             </div>
             <div className="cl-divider my-4" />
             <div className="grid gap-2">
-              <Link href="/sell?type=book" className="cl-btn cl-btn-primary justify-start">
+              <Link
+                href="/sell?type=book"
+                className={cn("cl-btn justify-start", isSellBook ? "cl-btn-primary" : "cl-btn-ghost")}
+              >
                 📚 Sell Books
               </Link>
-              <Link href="/sell?type=device" className="cl-btn cl-btn-primary justify-start">
+              <Link
+                href="/sell?type=device"
+                className={cn("cl-btn justify-start", isSellDevice ? "cl-btn-primary" : "cl-btn-ghost")}
+              >
                 💻 Sell 2nd Hand Device
               </Link>
             </div>
