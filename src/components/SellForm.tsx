@@ -19,15 +19,16 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("good");
+  const [address, setAddress] = useState("");
   const [done, setDone] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !price) return;
+    if (!title.trim() || !price || !address.trim()) return;
     setDone(true);
     pushToast({
       title: kind === "book" ? "Book listed" : "Device listed",
-      body: `"${title.trim()}" for ${rupees(Number(price))} is now live on CampusLoop. Students on your campus can buy it with escrow-backed handover. Demo mode — no real listing was created.`,
+      body: `"${title.trim()}" for ${rupees(Number(price))} at ${address.trim()} is now live on CampusLoop. Students on your campus can buy it with escrow-backed handover. Demo mode — no real listing was created.`,
       tone: "success",
     });
   };
@@ -37,8 +38,8 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
       <div className="cl-panel cl-panel-solid flex flex-col gap-3 p-6">
         <p className="text-base font-semibold text-mint-400">Your listing is live</p>
         <p className="text-sm leading-relaxed text-white/60">
-          &quot;{title}&quot; · {rupees(Number(price))} · {CONDITIONS.find((c) => c.value === condition)?.label}. It will
-          appear in the {kind === "book" ? "Books" : "Equipment"} feed within a few minutes.
+          &quot;{title}&quot; · {rupees(Number(price))} · {CONDITIONS.find((c) => c.value === condition)?.label} ·{" "}
+          {address}. It will appear in the {kind === "book" ? "Books" : "Equipment"} feed within a few minutes.
         </p>
         <button
           type="button"
@@ -47,6 +48,7 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
             setDone(false);
             setTitle("");
             setPrice("");
+            setAddress("");
           }}
         >
           List another item
@@ -109,6 +111,18 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
           </select>
         </label>
       </div>
+      <label className="flex flex-col gap-1.5">
+        <span className="text-[11px] tracking-wider text-white/40 uppercase">
+          {kind === "book" ? "Book shop address" : "Device shop address"}
+        </span>
+        <input
+          className="cl-input"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="e.g. Shop 12, Main Market, Block C, Hostel Gate"
+          required
+        />
+      </label>
       <button type="submit" className="cl-btn cl-btn-primary justify-center">
         {kind === "book" ? "Sell my books" : "Sell my device"}
       </button>
