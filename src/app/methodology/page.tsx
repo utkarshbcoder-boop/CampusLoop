@@ -6,7 +6,7 @@ import { ALL_DOMAINS, DOMAIN_META, DOMAIN_WEIGHTS } from "@/lib/matching/weights
 import { MATCH_ENGINE_VERSION, runMatch, summarise } from "@/lib/matching/engine";
 import { getColleges, getCurrentProfile, loadMatchContext, defaultPreferences } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Matching Methodology",

@@ -6,7 +6,7 @@ import { rupeesShort, titleCase, formatDate } from "@/lib/format";
 import { collegeSubscriptions, sponsorships, platformStats, transactions } from "@/lib/data/business";
 import { getColleges } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "CampusLoop for Colleges",

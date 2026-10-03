@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { BookIcon, BoltIcon, FilterIcon } from "@/components/Icon";
 import { ActiveFilters, FilterBar, type FilterDef } from "@/components/FilterBar";
@@ -8,7 +8,7 @@ import { rupees } from "@/lib/format";
 import { BOOK_SUBJECTS } from "@/lib/data/taxonomy";
 import { getColleges, getListings, parseListingFilters, type SearchParams } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Used Books Marketplace",

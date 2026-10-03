@@ -18,7 +18,7 @@ import {
   type SearchParams,
 } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "AI Match Lab",

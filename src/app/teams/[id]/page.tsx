@@ -11,7 +11,7 @@ import { scoreTeammatePost } from "@/lib/matching/engine";
 import { getColleges, getCurrentProfile, getTeammatePost, getTeammatePosts } from "@/lib/queries";
 import { getDataProvider } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

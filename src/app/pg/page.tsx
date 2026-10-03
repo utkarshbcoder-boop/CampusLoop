@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { HomeIcon, SparkIcon } from "@/components/Icon";
 import { ActiveFilters, FilterBar, type FilterDef } from "@/components/FilterBar";
@@ -7,7 +7,7 @@ import { EmptyState, PageHeader, Section } from "@/components/ui";
 import { rupees } from "@/lib/format";
 import { getColleges, getPGListings, parsePGFilters, type SearchParams } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "PG & Roommate Finder",

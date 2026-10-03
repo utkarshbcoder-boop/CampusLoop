@@ -8,7 +8,7 @@ import { CheckIcon, ClockIcon, PinIcon, ShieldIcon } from "@/components/Icon";
 import { rupees, titleCase } from "@/lib/format";
 import { getColleges, getServices, getService } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

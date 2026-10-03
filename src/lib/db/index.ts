@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { getMockProvider } from "./mock";
 import type { DataProvider } from "./provider";
 
@@ -21,25 +22,34 @@ export function supabaseEnabled(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
+let _provider: DataProvider | null = null;
+const isSeededCached = unstable_cache(
+  async (): Promise<boolean> => {
+    const { isFirestoreSeeded } = await import("@/lib/firebase/firestore");
+    return isFirestoreSeeded();
+  },
+  ["firestore-seeded"],
+  { revalidate: 60 },
+);
+
 export async function getDataProvider(): Promise<DataProvider> {
+  if (_provider) return _provider;
   if (firebaseEnabled()) {
-    const { getFirestoreProvider, isFirestoreSeeded } = await import("@/lib/firebase/firestore");
-    // If Firestore hasn't been seeded yet, fall back to mock data so the
-    // site works out of the box. Once you seed via /admin/seed, Firestore
-    // data takes over.
-    const seeded = await isFirestoreSeeded();
+    const { getFirestoreProvider } = await import("@/lib/firebase/firestore");
+    const seeded = await isSeededCached();
     if (seeded) {
-      return getFirestoreProvider();
+      _provider = getFirestoreProvider();
+      return _provider;
     }
-    // Firestore is empty — use mock data for server rendering
     return getMockProvider();
   }
   if (supabaseEnabled()) {
-    // Imported lazily so the SDK never loads on the default zero-config path.
     const { getSupabaseProvider } = await import("./supabase");
-    return getSupabaseProvider();
+    _provider = getSupabaseProvider();
+    return _provider;
   }
-  return getMockProvider();
+  _provider = getMockProvider();
+  return _provider;
 }
 
 export * from "./provider";

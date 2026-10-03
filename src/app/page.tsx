@@ -22,7 +22,7 @@ import { ALL_DOMAINS, DOMAIN_META, DOMAIN_WEIGHTS } from "@/lib/matching/weights
 import { NAV_MODULES } from "@/lib/nav";
 import { defaultPreferences, getColleges, getCurrentProfile, loadMatchContext } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 /** Live counts so the landing page never drifts from the seeded dataset. */
 async function moduleCounts() {

@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ActiveFilters, FilterBar, type FilterDef } from "@/components/FilterBar";
 import { EmptyState, PageHeader, Section, Stat, Thumbnail } from "@/components/ui";
@@ -7,7 +7,7 @@ import { daysUntil, formatDate, inrToLpa, rupees, titleCase } from "@/lib/format
 import { getColleges, getCurrentProfile, getOpportunities, parseOpportunityFilters, type SearchParams } from "@/lib/queries";
 import type { Opportunity, Profile } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Internships, Hackathons & Scholarships",

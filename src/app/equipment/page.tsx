@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { LaptopIcon, WrenchIcon } from "@/components/Icon";
 import { ActiveFilters, FilterBar, type FilterDef } from "@/components/FilterBar";
@@ -8,7 +8,7 @@ import { rupees } from "@/lib/format";
 import { getColleges, getEquipment, parseEquipmentFilters, type SearchParams } from "@/lib/queries";
 import { getDataProvider } from "@/lib/db";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Equipment Rental",

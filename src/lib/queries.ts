@@ -48,14 +48,11 @@ export function spList(value: string | string[] | undefined): string[] {
 /* ------------------------------------------------------------------ */
 
 export async function getCurrentProfile(): Promise<Profile> {
-  const { cookies } = await import("next/headers");
-  const jar = await cookies();
-  const requested = jar.get("cl_profile")?.value ?? DEFAULT_PROFILE_ID;
   const provider = await getDataProvider();
-  const fromDb = await provider.profiles.byId(requested);
+  const fromDb = await provider.profiles.byId(DEFAULT_PROFILE_ID);
   const base =
     fromDb ??
-    profileById(requested) ??
+    profileById(DEFAULT_PROFILE_ID) ??
     (await provider.profiles.list())[0];
   if (!base) throw new Error("No profiles found. Run the seed script or check your data provider.");
 
@@ -70,32 +67,7 @@ export async function getCurrentProfile(): Promise<Profile> {
     }
     return out as unknown as Profile;
   };
-  const cleanBase = clean(base);
-
-  const meRaw = jar.get("cl_me")?.value;
-  if (meRaw) {
-    try {
-      const me = JSON.parse(meRaw) as Partial<Profile>;
-      return {
-        ...cleanBase,
-        name: typeof me.name === "string" && me.name ? me.name : base.name,
-        college_id:
-          typeof me.college_id === "string" && me.college_id ? me.college_id : base.college_id,
-        year_of_study:
-          typeof me.year_of_study === "number" ? me.year_of_study : base.year_of_study,
-        credits: typeof me.credits === "number" ? me.credits : base.credits,
-        rating: typeof me.rating === "number" ? me.rating : base.rating,
-        skills: Array.isArray(me.skills) ? (me.skills as string[]) : base.skills,
-        initials:
-          typeof me.name === "string" && me.name
-            ? me.name.split(/\s+/).map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase()
-            : base.initials,
-      };
-    } catch {
-      return cleanBase;
-    }
-  }
-  return cleanBase;
+  return clean(base);
 }
 
 export async function getColleges(): Promise<College[]> {

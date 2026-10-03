@@ -10,7 +10,7 @@ import { skillLabel } from "@/lib/data/taxonomy";
 import { scoreEvent } from "@/lib/matching/engine";
 import { getColleges, getCurrentProfile, getEvent, getEvents } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

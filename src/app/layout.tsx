@@ -54,12 +54,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const provider = await getDataProvider();
   const [colleges, profiles] = await Promise.all([provider.colleges.list(), provider.profiles.list()]);
 
-  // The demo user is a cookie so the choice survives a refresh and every
-  // server-rendered page re-scopes to it.
-  const { cookies } = await import("next/headers");
-  const jar = await cookies();
-  const requested = jar.get("cl_profile")?.value ?? DEFAULT_PROFILE_ID;
-  const currentProfile = profileById(requested) ?? profiles[0] ?? profileById(DEFAULT_PROFILE_ID);
+  const currentProfile = profileById(DEFAULT_PROFILE_ID) ?? profiles[0] ?? null;
 
   return (
     <html lang="en-IN" suppressHydrationWarning>

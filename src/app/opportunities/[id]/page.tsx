@@ -8,7 +8,7 @@ import { daysUntil, formatDate, inrToLpa, rupees, titleCase } from "@/lib/format
 import { getColleges, getCurrentProfile, getOpportunities, getOpportunity } from "@/lib/queries";
 import type { Opportunity } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
