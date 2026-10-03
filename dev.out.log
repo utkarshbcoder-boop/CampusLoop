@@ -1,0 +1,23 @@
+
+> campusloop@1.0.0 dev
+> next dev
+
+   ▲ Next.js 15.5.27
+   - Local:        http://localhost:3000
+   - Network:      http://172.16.0.2:3000
+
+ ✓ Starting...
+ ✓ Ready in 4.6s
+ ○ Compiling / ...
+ ✓ Compiled / in 1952ms (693 modules)
+ GET / 200 in 5320ms
+ GET / 200 in 1031ms
+ ✓ Compiled in 827ms (707 modules)
+ ✓ Compiled in 274ms (707 modules)
+ ✓ Compiled in 350ms (707 modules)
+ ✓ Compiled in 200ms (246 modules)
+ ✓ Compiled in 143ms (246 modules)
+ ✓ Compiled in 136ms (246 modules)
+ ✓ Compiled in 264ms (693 modules)
+ ✓ Compiled in 452ms (707 modules)
+ ✓ Compiled in 122ms (246 modules)
