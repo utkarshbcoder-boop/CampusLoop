@@ -125,8 +125,56 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
         q = query(colRef());
       }
 
-      const snapshot = await getDocs(q);
+      let snapshot;
+      let usedFallback = false;
+      try {
+        snapshot = await getDocs(q);
+      } catch {
+        // Missing composite index etc. — fetch the whole collection and
+        // apply every filter/sort client-side below.
+        snapshot = await getDocs(query(colRef()));
+        usedFallback = true;
+      }
+
       let results = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as T));
+
+      if (usedFallback) {
+        if (options?.where) {
+          for (const [key, val] of Object.entries(options.where)) {
+            if (val !== undefined && val !== null) {
+              results = results.filter(
+                (row) => (row as Record<string, unknown>)[key] === val,
+              );
+            }
+          }
+        }
+        if (options?.whereIn) {
+          for (const [key, vals] of Object.entries(options.whereIn)) {
+            if (vals.length > 0) {
+              results = results.filter((row) =>
+                vals.includes((row as Record<string, unknown>)[key] as string),
+              );
+            }
+          }
+        }
+        if (options?.gte) {
+          for (const [key, val] of Object.entries(options.gte)) {
+            results = results.filter(
+              (row) => ((row as Record<string, unknown>)[key] as number) >= val,
+            );
+          }
+        }
+        if (options?.lte) {
+          for (const [key, val] of Object.entries(options.lte)) {
+            results = results.filter(
+              (row) => ((row as Record<string, unknown>)[key] as number) <= val,
+            );
+          }
+        }
+        if (options?.limit) {
+          results = results.slice(0, options.limit);
+        }
+      }
 
       // Client-side search fallback
       if (options?.search) {

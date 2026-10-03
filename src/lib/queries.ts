@@ -59,12 +59,25 @@ export async function getCurrentProfile(): Promise<Profile> {
     (await provider.profiles.list())[0];
   if (!base) throw new Error("No profiles found. Run the seed script or check your data provider.");
 
+  // Strip Firestore Timestamp objects (created by serverTimestamp()) down
+  // to plain ISO strings — Client Components can't receive Timestamps.
+  const clean = (p: Profile): Profile => {
+    const out = { ...p } as Record<string, unknown>;
+    for (const [k, v] of Object.entries(out)) {
+      if (v && typeof v === "object" && "seconds" in (v as Record<string, unknown>)) {
+        out[k] = new Date((v as { seconds: number }).seconds * 1000).toISOString();
+      }
+    }
+    return out as unknown as Profile;
+  };
+  const cleanBase = clean(base);
+
   const meRaw = jar.get("cl_me")?.value;
   if (meRaw) {
     try {
       const me = JSON.parse(meRaw) as Partial<Profile>;
       return {
-        ...base,
+        ...cleanBase,
         name: typeof me.name === "string" && me.name ? me.name : base.name,
         college_id:
           typeof me.college_id === "string" && me.college_id ? me.college_id : base.college_id,
@@ -79,10 +92,10 @@ export async function getCurrentProfile(): Promise<Profile> {
             : base.initials,
       };
     } catch {
-      return base;
+      return cleanBase;
     }
   }
-  return base;
+  return cleanBase;
 }
 
 export async function getColleges(): Promise<College[]> {

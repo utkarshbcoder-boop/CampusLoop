@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { onAuthChange, isAdmin } from "@/lib/firebase/auth";
 import { db } from "@/lib/firebase/config";
 
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               photo_url: u.photoURL || "",
               handle: (u.email || "").split("@")[0],
               college_id: "",
-              created_at: serverTimestamp(),
+              created_at: new Date().toISOString(),
             });
           }
         } catch (e) {
