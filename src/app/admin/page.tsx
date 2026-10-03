@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useCollection } from "@/lib/firebase/hooks";
 import { useAuth } from "@/components/AuthProvider";
 import type { College } from "@/lib/types";
@@ -67,10 +66,8 @@ export default function AdminDashboard() {
   const { data: listings } = useCollection("listings");
   const { data: equipment } = useCollection("equipment");
   const { data: pgListings } = useCollection("pg_listings");
-  const { data: teammatePosts } = useCollection("teammate_posts");
 
   const totalStudents = colleges.reduce((sum, c) => sum + c.campusloop_students, 0);
-  const totalDocs = profiles.length + listings.length + equipment.length + pgListings.length + teammatePosts.length;
 
   return (
     <div>
