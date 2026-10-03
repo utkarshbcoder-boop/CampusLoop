@@ -23,6 +23,7 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { db } from "./config";
+import { unstable_cache } from "next/cache";
 import type { DataProvider, ListOptions, WritableTable } from "@/lib/db/provider";
 import type {
   CampusEvent,
@@ -67,8 +68,29 @@ function makeId(): string {
 function firestoreTable<T extends { id: string }>(collectionName: string): WritableTable<T> {
   const colRef = () => collection(db, collectionName);
 
-  return {
-    async list(options?: ListOptions): Promise<T[]> {
+  // Wrap the live-Firestore fetchers in Next's data cache so repeat
+  // requests within 60s are served from cache instead of hitting
+  // Firestore over the network every time.
+  const cachedList = unstable_cache(
+    async (optionsKey: string) => {
+      const options = optionsKey ? (JSON.parse(optionsKey) as ListOptions) : undefined;
+      return listUncached(options);
+    },
+    [collectionName, "list"],
+    { revalidate: 60 },
+  );
+
+  const cachedById = unstable_cache(
+    async (id: string) => {
+      const snap = await getDoc(doc(db, collectionName, id));
+      if (!snap.exists()) return null;
+      return { id: snap.id, ...snap.data() } as T;
+    },
+    [collectionName, "byId"],
+    { revalidate: 60 },
+  );
+
+  async function listUncached(options?: ListOptions): Promise<T[]> {
       const constraints: QueryConstraint[] = [];
 
       // Equality filters
@@ -208,16 +230,19 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
       }
 
       return results;
+  }
+
+  return {
+    list(options?: ListOptions): Promise<T[]> {
+      return cachedList(JSON.stringify(options ?? null));
     },
 
-    async byId(id: string): Promise<T | null> {
-      const snap = await getDoc(doc(db, collectionName, id));
-      if (!snap.exists()) return null;
-      return { id: snap.id, ...snap.data() } as T;
+    byId(id: string): Promise<T | null> {
+      return cachedById(id);
     },
 
     async count(options?: ListOptions): Promise<number> {
-      const rows = await this.list(options);
+      const rows = await cachedList(JSON.stringify(options ?? null));
       return rows.length;
     },
 
