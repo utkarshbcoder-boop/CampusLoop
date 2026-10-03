@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookIcon, LaptopIcon } from "@/components/Icon";
+import { BookIcon, HomeIcon, LaptopIcon } from "@/components/Icon";
 import { rupees } from "@/lib/format";
 import { useCampusLoop } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -13,9 +13,9 @@ const CONDITIONS = [
   { value: "heavy_notes", label: "Heavy notes / well used" },
 ];
 
-export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
+export function SellForm({ initialKind }: { initialKind: "book" | "device" | "home" }) {
   const { pushToast } = useCampusLoop();
-  const [kind, setKind] = useState<"book" | "device">(initialKind);
+  const [kind, setKind] = useState<"book" | "device" | "home">(initialKind);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("good");
@@ -27,7 +27,7 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
     if (!title.trim() || !price || !address.trim()) return;
     setDone(true);
     pushToast({
-      title: kind === "book" ? "Book listed" : "Device listed",
+      title: kind === "book" ? "Book listed" : kind === "device" ? "Device listed" : "Home listed",
       body: `"${title.trim()}" for ${rupees(Number(price))} at ${address.trim()} is now live on CampusLoop. Students on your campus can buy it with escrow-backed handover. Demo mode — no real listing was created.`,
       tone: "success",
     });
@@ -39,7 +39,8 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
         <p className="text-base font-semibold text-mint-400">Your listing is live</p>
         <p className="text-sm leading-relaxed text-white/60">
           &quot;{title}&quot; · {rupees(Number(price))} · {CONDITIONS.find((c) => c.value === condition)?.label} ·{" "}
-          {address}. It will appear in the {kind === "book" ? "Books" : "Equipment"} feed within a few minutes.
+          {address}. It will appear in the {kind === "book" ? "Books" : kind === "device" ? "Equipment" : "Homes"} feed
+          within a few minutes.
         </p>
         <button
           type="button"
@@ -59,11 +60,12 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
 
   return (
     <form onSubmit={submit} className="cl-panel cl-panel-solid flex flex-col gap-4 p-6">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {(
           [
             { value: "book", label: "Books", icon: <BookIcon width={15} height={15} /> },
             { value: "device", label: "2nd hand device", icon: <LaptopIcon width={15} height={15} /> },
+            { value: "home", label: "Home / room", icon: <HomeIcon width={15} height={15} /> },
           ] as const
         ).map((opt) => (
           <button
@@ -71,7 +73,7 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
             type="button"
             onClick={() => {
               setKind(opt.value);
-              window.history.replaceState(null, "", `/sell?type=${opt.value === "book" ? "book" : "device"}`);
+              window.history.replaceState(null, "", `/sell?type=${opt.value}`);
               window.dispatchEvent(new Event("selltype"));
             }}
             className={cn("cl-btn justify-center", kind === opt.value ? "cl-btn-primary" : "cl-btn-ghost")}
@@ -87,7 +89,7 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
           className="cl-input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={kind === "book" ? "e.g. Cormen — Introduction to Algorithms" : "e.g. Dell Latitude 5420, 16GB RAM"}
+              placeholder={kind === "book" ? "e.g. Cormen — Introduction to Algorithms" : kind === "device" ? "e.g. Dell Latitude 5420, 16GB RAM" : "e.g. 2 BHK for rent in Koramangala"}
           required
         />
       </label>
@@ -117,7 +119,7 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
       </div>
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">
-          {kind === "book" ? "Book shop address" : "Device shop address"}
+          {kind === "book" ? "Book shop address" : kind === "device" ? "Device shop address" : "Home address / shop address"}
         </span>
         <input
           className="cl-input"
@@ -128,7 +130,7 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" }) {
         />
       </label>
       <button type="submit" className="cl-btn cl-btn-primary justify-center">
-        {kind === "book" ? "Sell my books" : "Sell my device"}
+        {kind === "book" ? "Sell my books" : kind === "device" ? "Sell my device" : "Sell / list my home"}
       </button>
       <p className="text-xs text-white/40">CampusLoop takes no listing fee — we earn a small commission only when it sells.</p>
     </form>

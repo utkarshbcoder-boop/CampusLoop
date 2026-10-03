@@ -46,6 +46,15 @@ export const NAV_MODULES: NavModule[] = [
     action: "List a room",
   },
   {
+    href: "/homes",
+    label: "Homes & Rooms",
+    short: "Homes",
+    emoji: "🏘️",
+    blurb: "Rent a room, PG or 1–4 BHK near campus, or buy a home.",
+    hook: "A PG bed or a 2 BHK near your college, rent or buy.",
+    action: "List a home",
+  },
+  {
     href: "/teams",
     label: "Project Teammates",
     short: "Teammates",

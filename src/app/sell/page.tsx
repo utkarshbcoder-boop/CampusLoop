@@ -13,7 +13,7 @@ export default async function SellPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const initialKind = params.type === "device" ? "device" : "book";
+  const initialKind = params.type === "device" ? "device" : params.type === "home" ? "home" : "book";
 
   return (
     <>
