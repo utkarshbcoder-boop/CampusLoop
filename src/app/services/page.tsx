@@ -8,7 +8,7 @@ import { rupees } from "@/lib/format";
 import { getBookingsFor, getColleges, getCurrentProfile, getServices, parseServiceFilters } from "@/lib/queries";
 import type { SearchParams } from "@/lib/queries";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Verified Campus Services",

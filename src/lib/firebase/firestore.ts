@@ -77,7 +77,7 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
       return listUncached(options);
     },
     [collectionName, "list"],
-    { revalidate: 60 },
+    { revalidate: 3600 },
   );
 
   const cachedById = unstable_cache(
@@ -87,7 +87,7 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
       return { id: snap.id, ...snap.data() } as T;
     },
     [collectionName, "byId"],
-    { revalidate: 60 },
+    { revalidate: 3600 },
   );
 
   async function listUncached(options?: ListOptions): Promise<T[]> {

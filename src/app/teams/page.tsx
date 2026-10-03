@@ -8,7 +8,7 @@ import { rupeesShort } from "@/lib/format";
 import { getColleges, getTeammatePosts, getCurrentProfile, parseTeamFilters, type SearchParams } from "@/lib/queries";
 import { getDataProvider } from "@/lib/db";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Project Teammates",

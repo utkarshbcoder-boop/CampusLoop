@@ -9,7 +9,7 @@ import { rupees, titleCase } from "@/lib/format";
 import { getColleges, getEquipment, getEquipmentItem } from "@/lib/queries";
 import { getDataProvider } from "@/lib/db";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

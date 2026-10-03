@@ -7,7 +7,7 @@ import { daysUntil, formatDate, inrToLpa, rupees, titleCase } from "@/lib/format
 import { getColleges, getCurrentProfile, getOpportunities, parseOpportunityFilters, type SearchParams } from "@/lib/queries";
 import type { Opportunity, Profile } from "@/lib/types";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Internships, Hackathons & Scholarships",

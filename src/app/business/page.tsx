@@ -11,7 +11,7 @@ import {
   transactions,
 } from "@/lib/data/business";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Business Model",

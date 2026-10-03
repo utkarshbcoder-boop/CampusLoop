@@ -6,7 +6,7 @@ import { EmptyState, PageHeader, Section } from "@/components/ui";
 import { formatDate, rupees } from "@/lib/format";
 import { getColleges, getCurrentProfile, getEvents, parseEventFilters, type SearchParams } from "@/lib/queries";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "College Events",

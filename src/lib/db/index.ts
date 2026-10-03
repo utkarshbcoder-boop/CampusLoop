@@ -29,7 +29,7 @@ const isSeededCached = unstable_cache(
     return isFirestoreSeeded();
   },
   ["firestore-seeded"],
-  { revalidate: 60 },
+  { revalidate: 3600 },
 );
 
 export async function getDataProvider(): Promise<DataProvider> {

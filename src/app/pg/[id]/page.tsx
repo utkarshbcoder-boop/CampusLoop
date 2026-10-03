@@ -8,7 +8,7 @@ import { Callout, KeyValue, Section, TagList } from "@/components/ui";
 import { relativeDay, rupees, titleCase } from "@/lib/format";
 import { getColleges, getCurrentProfile, getPGListing, getPGListings } from "@/lib/queries";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

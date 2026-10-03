@@ -9,7 +9,7 @@ import { getDataProvider } from "@/lib/db";
 import { SKILLS, skillsByDomain } from "@/lib/data/taxonomy";
 import { skillLabel } from "@/lib/data/taxonomy";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Skills Exchange",

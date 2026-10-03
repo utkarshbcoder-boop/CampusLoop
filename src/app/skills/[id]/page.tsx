@@ -12,7 +12,7 @@ import { scoreSkillProfile } from "@/lib/matching/engine";
 import { getColleges, getCurrentProfile, getSkillProfile, getSkillProfiles } from "@/lib/queries";
 import { getDataProvider } from "@/lib/db";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

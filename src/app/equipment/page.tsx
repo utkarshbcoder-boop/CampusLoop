@@ -8,7 +8,7 @@ import { rupees } from "@/lib/format";
 import { getColleges, getEquipment, parseEquipmentFilters, type SearchParams } from "@/lib/queries";
 import { getDataProvider } from "@/lib/db";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Equipment Rental",
