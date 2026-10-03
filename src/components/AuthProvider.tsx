@@ -8,7 +8,9 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { onAuthChange, isAdmin } from "@/lib/firebase/auth";
+import { db } from "@/lib/firebase/config";
 
 interface AuthState {
   user: User | null;
@@ -27,9 +29,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthChange((u) => {
+    const unsub = onAuthChange(async (u) => {
       setUser(u);
       setLoading(false);
+      if (u) {
+        try {
+          const ref = doc(db, "profiles", u.uid);
+          const snap = await getDoc(ref);
+          if (!snap.exists()) {
+            await setDoc(ref, {
+              id: u.uid,
+              name: u.displayName || "",
+              email: u.email || "",
+              photo_url: u.photoURL || "",
+              handle: (u.email || "").split("@")[0],
+              college_id: "",
+              created_at: serverTimestamp(),
+            });
+          }
+        } catch (e) {
+          console.error("Failed to create profile:", e);
+        }
+      }
     });
     return unsub;
   }, []);
