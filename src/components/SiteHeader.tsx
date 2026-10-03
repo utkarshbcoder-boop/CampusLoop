@@ -90,6 +90,19 @@ export function SiteHeader(_props: {
 
           <div className="ml-auto flex items-center gap-2">
             <Link
+              href="/sell?type=book"
+              className="cl-btn cl-btn-ghost hidden gap-1.5 sm:inline-flex"
+            >
+              Sell Books
+            </Link>
+            <Link
+              href="/sell?type=device"
+              className="cl-btn cl-btn-ghost hidden gap-1.5 sm:inline-flex"
+            >
+              Sell Device
+            </Link>
+
+            <Link
               href="/premium"
               className={cn("cl-btn hidden md:inline-flex gap-1.5", isActive("/premium") ? "cl-btn-flare" : "cl-btn-ghost")}
             >
@@ -149,6 +162,15 @@ export function SiteHeader(_props: {
                   </span>
                 </Link>
               ))}
+            </div>
+            <div className="cl-divider my-4" />
+            <div className="grid gap-2">
+              <Link href="/sell?type=book" className="cl-btn cl-btn-primary justify-start">
+                📚 Sell Books
+              </Link>
+              <Link href="/sell?type=device" className="cl-btn cl-btn-primary justify-start">
+                💻 Sell 2nd Hand Device
+              </Link>
             </div>
             <div className="cl-divider my-4" />
             <div className="grid gap-2">

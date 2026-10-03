@@ -161,10 +161,10 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
               </p>
             </div>
           </div>
-          <button type="button" className="cl-btn cl-btn-primary shrink-0">
+          <Link href="/sell?type=book" className="cl-btn cl-btn-primary shrink-0">
             <BookIcon width={15} height={15} />
             Sell my books
-          </button>
+          </Link>
         </div>
       </Section>
     </>

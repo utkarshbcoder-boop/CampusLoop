@@ -127,6 +127,22 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Pr
         )}
 
         <div className="mt-10 grid gap-4 lg:grid-cols-2">
+          <div className="cl-panel flex items-center justify-between gap-3 p-5 lg:col-span-2">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 text-brand-300" aria-hidden>
+                <LaptopIcon width={20} height={20} />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-white">Done with the device itself?</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/55">
+                  Skip renting out — sell it outright to a student on your campus.
+                </p>
+              </div>
+            </div>
+            <Link href="/sell?type=device" className="cl-btn cl-btn-primary shrink-0">
+              Sell my device
+            </Link>
+          </div>
           <div className="cl-panel flex items-start gap-3 p-5">
             <span className="mt-0.5 text-brand-300" aria-hidden>
               <LaptopIcon width={20} height={20} />
