@@ -883,7 +883,7 @@ export function runMatch(domain: MatchDomain, ctx: MatchContext): MatchResult<un
         .map((p) => scoreTeammatePost(ctx.profile, p, ctx.colleges));
     case "roommate":
       return ctx.pgListings
-        .filter((p) => ctx.prefs.college_id === "all" || p.college_id === ctx.profile.college_id)
+        .filter((p) => ctx.prefs.college_id === "all" || p.college_id === ctx.prefs.college_id)
         .map((p) => scorePGListing(ctx.profile, p, ctx.prefs));
     case "skills":
       return ctx.skillProfiles

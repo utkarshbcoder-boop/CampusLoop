@@ -475,7 +475,7 @@ export function parsePreferences(params: SearchParams, base: MatchPreferences): 
 
 export function defaultPreferences(profile: Profile): MatchPreferences {
   return {
-    college_id: profile.college_id,
+    college_id: "all",
     skills: profile.skills,
     interests: profile.interests,
     budget_min: profile.budget_min,
