@@ -18,7 +18,6 @@ import { GhostLink, PrimaryLink, Section, SectionHeading, Stat, Thumbnail } from
 import { platformStats } from "@/lib/data/business";
 import { compactNumber, rupeesShort } from "@/lib/format";
 import { MATCH_ENGINE_VERSION, runMatch, summarise } from "@/lib/matching/engine";
-import { ALL_DOMAINS, DOMAIN_META, DOMAIN_WEIGHTS } from "@/lib/matching/weights";
 import { NAV_MODULES } from "@/lib/nav";
 import { defaultPreferences, getColleges, getCurrentProfile, loadMatchContext } from "@/lib/queries";
 
@@ -331,50 +330,6 @@ export default async function LandingPage() {
       </Section>
 
       {/* ------------------------------------------------------------- */}
-      {/* Match engine                                                  */}
-      {/* ------------------------------------------------------------- */}
-      <Section id="engine" className="border-t border-white/8">
-        <SectionHeading
-          eyebrow="The AI match engine"
-          title="A matching engine that shows its working. Or it is just a black box."
-          description="CampusLoop runs a deterministic weighted-signal engine. Every match is a weighted sum of normalised signals — skill complement, budget overlap, commute, availability, reputation — and the UI always shows the breakdown. Optional LLM enrichment rewrites the explanation in plain English, but it never decides the score. That is the difference between a recommendation and a guess."
-          action={
-            <PrimaryLink href="/methodology" className="text-sm">
-              Read the methodology
-              <ArrowRightIcon width={15} height={15} />
-            </PrimaryLink>
-          }
-        />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ALL_DOMAINS.map((domain) => {
-            const meta = DOMAIN_META[domain];
-            const topSignals = Object.entries(DOMAIN_WEIGHTS[domain])
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 4);
-            return (
-              <article key={domain} className="cl-panel flex flex-col p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-white">{meta.title}</h3>
-                  <span className="text-lg" aria-hidden>
-                    {meta.emoji}
-                  </span>
-                </div>
-                <p className="mt-2 flex-1 text-xs leading-relaxed text-white/55">{meta.blurb}</p>
-                <ul className="mt-4 flex flex-wrap gap-1.5 border-t border-white/8 pt-3">
-                  {topSignals.map(([key, weight]) => (
-                    <li key={key} className="cl-chip">
-                      {signalsByKey(domain)[key]?.label ?? key}{" "}
-                      <span className="text-white/30">{Math.round(weight * 100)}%</span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            );
-          })}
-        </div>
-      </Section>
-
-      {/* ------------------------------------------------------------- */}
       {/* Trust                                                         */}
       {/* ------------------------------------------------------------- */}
       <Section className="border-t border-white/8">
@@ -570,9 +525,4 @@ export default async function LandingPage() {
       </Section>
     </>
   );
-}
-
-/** Signal labels come straight from the engine's own metadata. */
-function signalsByKey(domain: (typeof ALL_DOMAINS)[number]): Record<string, { label: string }> {
-  return Object.fromEntries(DOMAIN_META[domain].signals.map((s) => [s.key, { label: s.label }]));
 }
