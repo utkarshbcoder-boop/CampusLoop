@@ -10,6 +10,8 @@ import {
   signInWithPopup,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   type User,
 } from "firebase/auth";
 import { auth } from "./config";
@@ -29,6 +31,21 @@ export async function signInWithGoogle(): Promise<User> {
   provider.setCustomParameters({ prompt: "select_account" });
   const result = await signInWithPopup(auth, provider);
   return result.user;
+}
+
+/** Sign in, or create the account if the email is new. */
+export async function signInWithEmail(email: string, password: string): Promise<User> {
+  try {
+    const r = await signInWithEmailAndPassword(auth, email, password);
+    return r.user;
+  } catch (e) {
+    const code = (e as { code?: string }).code;
+    if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
+      const r = await createUserWithEmailAndPassword(auth, email, password);
+      return r.user;
+    }
+    throw e;
+  }
 }
 
 /** Sign out the current user. */

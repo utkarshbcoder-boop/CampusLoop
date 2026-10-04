@@ -1,22 +1,43 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { LoginPanel } from "@/components/LoginPanel";
 
 export function FirstVisitGate() {
-  const router = useRouter();
   const pathname = usePathname();
+  const { user } = useAuth();
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
     if (pathname === "/login") return;
-    try {
-      if (!localStorage.getItem("campusloop_visited")) {
-        router.replace("/login");
-      }
-    } catch {
-      router.replace("/login");
+    if (user) {
+      try {
+        localStorage.setItem("campusloop_visited", "1");
+      } catch {}
+      setShow(false);
+      return;
     }
-  }, [pathname, router]);
+    try {
+      setShow(!localStorage.getItem("campusloop_visited"));
+    } catch {
+      setShow(true);
+    }
+  }, [pathname, user]);
 
-  return null;
+  if (!show || pathname === "/login") return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-ink-950/95 px-4 backdrop-blur-sm">
+      <LoginPanel
+        onGuest={() => {
+          try {
+            localStorage.setItem("campusloop_visited", "1");
+          } catch {}
+          setShow(false);
+        }}
+      />
+    </div>
+  );
 }
