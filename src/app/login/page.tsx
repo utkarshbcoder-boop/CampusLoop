@@ -12,8 +12,8 @@ export default function LoginPage() {
   useEffect(() => {
     if (!loading && user) {
       try {
-        if (!localStorage.getItem("campusloop_visited") && !sessionStorage.getItem("campusloop_visited")) {
-          sessionStorage.setItem("campusloop_visited", "1");
+        if (!localStorage.getItem("campusloop_keep") && !sessionStorage.getItem("campusloop_session")) {
+          sessionStorage.setItem("campusloop_session", "1");
         }
       } catch {}
       router.replace("/");
@@ -26,7 +26,7 @@ export default function LoginPage() {
       <LoginPanel
         onGuest={() => {
           try {
-            sessionStorage.setItem("campusloop_visited", "1");
+            sessionStorage.setItem("campusloop_session", "1");
           } catch {}
           router.replace("/");
         }}

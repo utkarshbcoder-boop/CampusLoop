@@ -13,9 +13,9 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
   const markVisited = () => {
     try {
       if (keepMe) {
-        localStorage.setItem("campusloop_visited", "1");
+        localStorage.setItem("campusloop_keep", "1");
       } else {
-        sessionStorage.setItem("campusloop_visited", "1");
+        sessionStorage.setItem("campusloop_session", "1");
       }
     } catch {}
   };

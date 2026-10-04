@@ -56,7 +56,9 @@ export async function signInWithEmail(email: string, password: string, keepLogge
 /** Sign out the current user. */
 export async function signOutUser(): Promise<void> {
   try {
+    localStorage.removeItem("campusloop_keep");
     localStorage.removeItem("campusloop_visited");
+    sessionStorage.removeItem("campusloop_session");
     sessionStorage.removeItem("campusloop_visited");
   } catch {}
   await firebaseSignOut(auth);

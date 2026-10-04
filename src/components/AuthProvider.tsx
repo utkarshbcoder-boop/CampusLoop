@@ -9,7 +9,7 @@ import {
 } from "react";
 import type { User } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { onAuthChange, isAdmin } from "@/lib/firebase/auth";
+import { onAuthChange, isAdmin, signOutUser } from "@/lib/firebase/auth";
 import { db } from "@/lib/firebase/config";
 
 interface AuthState {
@@ -29,6 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // One-time migration: sessions kept under the old flag bypass the
+    // per-session login requirement, so sign those users out once.
+    try {
+      if (localStorage.getItem("campusloop_visited")) {
+        localStorage.removeItem("campusloop_visited");
+        sessionStorage.removeItem("campusloop_visited");
+        signOutUser().catch(() => {});
+      }
+    } catch {}
+
     const unsub = onAuthChange(async (u) => {
       setUser(u);
       setLoading(false);
