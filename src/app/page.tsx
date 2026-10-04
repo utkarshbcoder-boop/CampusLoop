@@ -13,7 +13,7 @@ import {
   StarIcon,
   TargetIcon,
 } from "@/components/Icon";
-import { EquipmentCard, EventCard, ListingCard, ServiceCard, TeammateCard } from "@/components/cards";
+import { EquipmentCard, ListingCard, ServiceCard } from "@/components/cards";
 import { GhostLink, PrimaryLink, Section, SectionHeading, Stat } from "@/components/ui";
 import { platformStats } from "@/lib/data/business";
 import { compactNumber, rupeesShort } from "@/lib/format";
@@ -29,10 +29,7 @@ async function moduleCounts() {
     ctx,
     books: ctx.listings.length,
     equipment: ctx.equipment.length,
-    pg: ctx.pgListings.length,
-    teams: ctx.teammatePosts.length,
-    skills: ctx.skillProfiles.length,
-    events: ctx.events.length,
+    homes: ctx.pgListings.length,
     services: ctx.services.length,
     students: ctx.profiles.length,
   };
@@ -40,9 +37,9 @@ async function moduleCounts() {
 
 export default async function LandingPage() {
   const colleges = await getColleges();
-  const { ctx, books, equipment, pg, teams, skills, events, services, students } = await moduleCounts();
+  const { ctx, books, equipment, homes, services, students } = await moduleCounts();
 
-  const counts: Record<string, number> = { books, equipment, pg, teams, skills, events, services };
+  const counts: Record<string, number> = { books, equipment, homes, services };
   const painPoints = [
     {
       emoji: "📱",
@@ -106,7 +103,7 @@ export default async function LandingPage() {
               <p className="mt-6 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
                 Nine modules that usually need nine different apps: used books, equipment rental, PG and roommate matching,
                 project teammates, a skills exchange, events, verified services and internships. One login, one campus, one
-                trusted feed — ranked by a match engine that shows its working.
+                trusted feed.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -114,7 +111,7 @@ export default async function LandingPage() {
                   <SparkIcon width={16} height={16} />
                   Browse the marketplace
                 </PrimaryLink>
-                <GhostLink href="/teams" className="px-5 py-3 text-sm">
+                <GhostLink href="/homes" className="px-5 py-3 text-sm">
                   Explore teammates
                   <ArrowRightIcon width={16} height={16} />
                 </GhostLink>
@@ -206,7 +203,7 @@ export default async function LandingPage() {
         <SectionHeading
           eyebrow="Real listings, right now"
           title="This is not a mockup. Every card below comes from the seeded data layer."
-          description={`${books} books, ${equipment} pieces of equipment, ${teams} team posts, ${events} events and ${services} services are live in the database right now — with filters, sorting and detail pages wired to the same provider.`}
+          description={`${books} books, ${equipment} pieces of equipment and ${services} services are live in the database right now — with filters, sorting and detail pages wired to the same provider.`}
           action={
             <GhostLink href="/books" className="text-sm">
               Browse everything
@@ -216,12 +213,10 @@ export default async function LandingPage() {
         />
         <div className="grid gap-4 lg:grid-cols-3">
           <ListingCard listing={ctx.listings[0]} colleges={colleges} />
-          <TeammateCard post={ctx.teammatePosts[0]} colleges={colleges} />
           <ServiceCard service={ctx.services[0]} colleges={colleges} />
+          <EquipmentCard item={ctx.equipment[0]} colleges={colleges} owner={ctx.profiles[1]} />
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          <EquipmentCard item={ctx.equipment[0]} colleges={colleges} owner={ctx.profiles[1]} />
-          <EventCard event={[...ctx.events].sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0]} colleges={colleges} />
           <div className="cl-panel flex flex-col justify-between gap-4 p-5">
             <div>
               <span className="cl-chip cl-chip-flare">Marketplace health</span>

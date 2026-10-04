@@ -1,5 +1,5 @@
 /**
- * Navigation metadata for the nine product modules.
+ * Navigation metadata for the product modules.
  *
  * Lives in a plain module (not a `"use client"` component) so both the client
  * header and the server footer can import it.
@@ -37,15 +37,6 @@ export const NAV_MODULES: NavModule[] = [
     action: "List equipment",
   },
   {
-    href: "/pg",
-    label: "PG & Roommate Finder",
-    short: "PG & Rooms",
-    emoji: "🏠",
-    blurb: "Verified rooms near campus, matched on budget, commute and lifestyle.",
-    hook: "Matched on budget, commute and sleep schedule — not just photos.",
-    action: "List a room",
-  },
-  {
     href: "/homes",
     label: "Homes & Rooms",
     short: "Homes",
@@ -55,33 +46,6 @@ export const NAV_MODULES: NavModule[] = [
     action: "List a home",
   },
   {
-    href: "/teams",
-    label: "Project Teammates",
-    short: "Teammates",
-    emoji: "🧑‍💻",
-    blurb: "Skill-based matching so the hackathon team actually ships.",
-    hook: "Find the backend person your hackathon team is missing.",
-    action: "Post a team",
-  },
-  {
-    href: "/skills",
-    label: "Skills Exchange",
-    short: "Skills",
-    emoji: "🎯",
-    blurb: "Time banking: teach what you know, learn what you need, pay in credits.",
-    hook: "Trade an hour of Excel for an hour of React. Credits, not cash.",
-    action: "Offer a skill",
-  },
-  {
-    href: "/events",
-    label: "College Events",
-    short: "Events",
-    emoji: "🎤",
-    blurb: "Every fest, workshop and placement drive on one feed, ranked for you.",
-    hook: "TechFest, hackathons and placement drives — one feed, ranked for you.",
-    action: "Submit an event",
-  },
-  {
     href: "/services",
     label: "Verified Services",
     short: "Services",
@@ -89,15 +53,6 @@ export const NAV_MODULES: NavModule[] = [
     blurb: "Plumbers, electricians, laundry and printing — verified and bookable by slot.",
     hook: "A verified carpenter, booked for a 4pm slot, paid after the job.",
     action: "Register as a provider",
-  },
-  {
-    href: "/opportunities",
-    label: "Internships & More",
-    short: "Opportunities",
-    emoji: "💼",
-    blurb: "Internships, hackathons, scholarships and part-time work, filtered to your CGPA.",
-    hook: "Only the internships you actually qualify for.",
-    action: "Post an opening",
   },
 ];
 

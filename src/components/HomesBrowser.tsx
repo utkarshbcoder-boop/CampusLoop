@@ -86,7 +86,7 @@ export function HomesBrowser({ homes }: { homes: Home[] }) {
                   {rupees(h.price)}
                   {h.mode === "rent" ? <span className="text-xs font-normal text-white/45">/mo</span> : null}
                 </p>
-                <Link href={h.mode === "rent" ? "/pg" : "/sell"} className="cl-btn cl-btn-ghost px-3 py-1.5 text-xs">
+                <Link href={h.mode === "rent" ? "/homes" : "/sell"} className="cl-btn cl-btn-ghost px-3 py-1.5 text-xs">
                   {h.mode === "rent" ? "Contact" : "Make offer"}
                 </Link>
               </div>
