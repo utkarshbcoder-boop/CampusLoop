@@ -105,6 +105,7 @@ export const UTILITY_LINKS = [
   { href: "/match-lab", label: "AI Match Lab", emoji: "🤖" },
   { href: "/college", label: "For Colleges", emoji: "🏛️" },
   { href: "/premium", label: "Premium", emoji: "⭐" },
+  { href: "/settings", label: "Settings", emoji: "⚙️" },
 ];
 
 export function moduleByHref(href: string): NavModule | undefined {

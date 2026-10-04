@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { PremiumScene } from "@/components/PremiumScene";
 import { AuthProvider } from "@/components/AuthProvider";
 import { FirstVisitGate } from "@/components/FirstVisitGate";
+
 import { getDataProvider } from "@/lib/db";
 import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
 import { CampusLoopProvider } from "@/lib/store";
@@ -59,6 +60,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en-IN" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem('theme')==='light')document.documentElement.classList.add('light')}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-dvh antialiased">
         <a
           href="#main"

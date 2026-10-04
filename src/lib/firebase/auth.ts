@@ -18,6 +18,7 @@ import {
   browserSessionPersistence,
   type User,
 } from "firebase/auth";
+import { deleteUser } from "firebase/auth";
 import { auth } from "./config";
 
 /** The one and only admin email. */
@@ -53,6 +54,23 @@ export async function signUpWithEmail(name: string, email: string, password: str
     await updateProfile(r.user, { displayName: name.trim() });
   }
   return r.user;
+}
+
+import { doc, deleteDoc } from "firebase/firestore";
+import { db } from "./config";
+
+/** Permanently delete the signed-in user's account and profile. */
+export async function deleteCurrentAccount(): Promise<void> {
+  const u = auth.currentUser;
+  if (!u) throw new Error("No signed-in user");
+  try {
+    await deleteDoc(doc(db, "profiles", u.uid));
+  } catch {}
+  try {
+    localStorage.removeItem("campusloop_keep");
+    sessionStorage.removeItem("campusloop_session");
+  } catch {}
+  await deleteUser(u);
 }
 
 /** Sign out the current user. */

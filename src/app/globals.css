@@ -312,6 +312,54 @@
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Light theme                                                          */
+/* ------------------------------------------------------------------ */
+html.light {
+  color-scheme: light;
+}
+
+html.light body {
+  background-color: #f4f5fb;
+  color: #1b1c2e;
+  background-image:
+    radial-gradient(1100px 620px at 12% -8%, rgba(99, 102, 241, 0.08), transparent 60%),
+    radial-gradient(900px 540px at 92% 4%, rgba(244, 63, 94, 0.05), transparent 62%);
+}
+
+html.light .text-white {
+  color: #171826 !important;
+}
+
+html.light [class*="text-white/"] {
+  color: #45465a !important;
+}
+
+html.light .cl-panel {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border-color: rgba(20, 20, 40, 0.08) !important;
+}
+
+html.light .cl-panel-solid {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(20, 20, 40, 0.08) !important;
+}
+
+html.light header,
+html.light .bg-ink-900\/70 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+html.light input,
+html.light textarea {
+  color: #1b1c2e !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+html.light input::placeholder {
+  color: rgba(27, 28, 46, 0.4) !important;
+}
+
 /* Respect reduced-motion for every animation in the app. */
 @media (prefers-reduced-motion: reduce) {
   *,

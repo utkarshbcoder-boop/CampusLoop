@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CloseIcon, MenuIcon, StarIcon } from "@/components/Icon";
 import { LoginButton } from "@/components/LoginButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { NAV_MODULES, UTILITY_LINKS } from "@/lib/nav";
 import { useCampusLoop } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -133,6 +134,7 @@ export function SiteHeader(_props: {
               Go Premium
             </Link>
 
+            <ThemeToggle />
             <LoginButton />
 
             <button
