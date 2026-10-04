@@ -164,8 +164,8 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
                   </div>
                 </div>
               </div>
-              <Link href="/match-lab?domain=teammate" className="cl-btn cl-btn-ghost mt-4 w-full justify-center">
-                Tune your skill profile
+              <Link href="/teams" className="cl-btn cl-btn-ghost mt-4 w-full justify-center">
+                Back to team posts
               </Link>
             </div>
 

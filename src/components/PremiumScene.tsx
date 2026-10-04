@@ -101,8 +101,8 @@ export function PremiumScene({ compact = false }: { compact?: boolean }) {
                   <Link href="/college" className="cl-btn cl-btn-primary px-6 py-3 text-sm">
                     Get Premium
                   </Link>
-                  <Link href="/match-lab" className="cl-btn cl-btn-ghost px-6 py-3 text-sm">
-                    Try Match Lab
+                  <Link href="/business" className="cl-btn cl-btn-ghost px-6 py-3 text-sm">
+                    See unit economics
                   </Link>
                 </div>
               </div>

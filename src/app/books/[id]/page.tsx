@@ -234,8 +234,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               verified students on {college?.short_name}
             </p>
           </div>
-          <Link href={`/match-lab?domain=items`} className="cl-btn cl-btn-primary shrink-0">
-            Score this against my budget
+          <Link href="/books" className="cl-btn cl-btn-primary shrink-0">
+            Back to books
             <ArrowRightIcon width={15} height={15} />
           </Link>
         </div>

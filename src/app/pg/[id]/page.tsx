@@ -202,9 +202,9 @@ export default async function PGDetailPage({ params }: { params: Promise<{ id: s
                   </span>
                 </li>
               </ul>
-              <Link href="/match-lab?domain=roommate" className="cl-btn cl-btn-ghost mt-4 w-full justify-center">
+              <Link href="/pg" className="cl-btn cl-btn-ghost mt-4 w-full justify-center">
                 <UsersIcon width={15} height={15} />
-                See ranked roommate candidates
+                Back to PG listings
               </Link>
             </div>
 

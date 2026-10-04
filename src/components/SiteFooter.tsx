@@ -45,8 +45,8 @@ export function SiteFooter({ colleges }: { colleges: College[] }) {
             <h3 className="text-xs font-semibold tracking-wider text-white/45 uppercase">Platform</h3>
             <ul className="mt-4 flex flex-col gap-2.5">
               <li>
-                <Link href="/match-lab" className="text-sm text-white/55 transition hover:text-white">
-                  AI Match Lab
+                <Link href="/settings" className="text-sm text-white/55 transition hover:text-white">
+                  Settings
                 </Link>
               </li>
               <li>
@@ -62,11 +62,6 @@ export function SiteFooter({ colleges }: { colleges: College[] }) {
               <li>
                 <Link href="/business" className="text-sm text-white/55 transition hover:text-white">
                   Business model &amp; unit economics
-                </Link>
-              </li>
-              <li>
-                <Link href="/methodology" className="text-sm text-white/55 transition hover:text-white">
-                  Matching methodology
                 </Link>
               </li>
             </ul>

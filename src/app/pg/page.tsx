@@ -111,9 +111,9 @@ export default async function PGPage({ searchParams }: { searchParams: Promise<S
             Rooms are ranked by how well they fit a student looking for a place near{" "}
             {colleges[0]?.short_name}. Distance is measured gate-to-gate.
           </p>
-          <Link href="/match-lab?domain=roommate" className="cl-btn cl-btn-primary">
+          <Link href="/homes" className="cl-btn cl-btn-primary">
             <SparkIcon width={15} height={15} />
-            Score me a roommate instead
+            See homes and rooms
           </Link>
         </div>
 

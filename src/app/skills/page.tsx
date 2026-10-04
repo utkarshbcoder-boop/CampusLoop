@@ -100,9 +100,9 @@ export default async function SkillsPage({ searchParams }: { searchParams: Promi
           <p className="text-xs text-white/40">
             You have <span className="font-semibold text-flare-300">{profile.credits} credits</span> to spend.
           </p>
-          <Link href="/match-lab?domain=skills" className="cl-btn cl-btn-primary">
+          <Link href="/teams" className="cl-btn cl-btn-primary">
             <SparkIcon width={15} height={15} />
-            Match my skills both ways
+            Find teammates with my skills
           </Link>
         </div>
 

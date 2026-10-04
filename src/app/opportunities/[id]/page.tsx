@@ -225,8 +225,8 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 <AwardIcon width={18} height={18} className="mt-0.5 shrink-0 text-brand-300" />
                 <p className="text-xs leading-relaxed text-white/55">
                   Building the skill this opening asks for takes longer than the deadline.{" "}
-                  <Link href="/match-lab" className="text-brand-300">
-                    Run it through the Match Lab
+                  <Link href="/opportunities" className="text-brand-300">
+                    Back to opportunities
                   </Link>{" "}
                   to see how close you already are.
                 </p>

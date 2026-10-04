@@ -109,9 +109,9 @@ export default async function TeamsPage({ searchParams }: { searchParams: Promis
             Showing posts for {colleges.find((c) => c.id === profile.college_id)?.short_name} first — same-campus teams
             meet in five minutes.
           </p>
-          <Link href="/match-lab?domain=teammate" className="cl-btn cl-btn-primary">
+          <Link href="/skills" className="cl-btn cl-btn-primary">
             <SparkIcon width={15} height={15} />
-            Rank these against my skills
+            Exchange skills with teammates
           </Link>
         </div>
 

@@ -14,12 +14,11 @@ import {
   TargetIcon,
 } from "@/components/Icon";
 import { EquipmentCard, EventCard, ListingCard, ServiceCard, TeammateCard } from "@/components/cards";
-import { GhostLink, PrimaryLink, Section, SectionHeading, Stat, Thumbnail } from "@/components/ui";
+import { GhostLink, PrimaryLink, Section, SectionHeading, Stat } from "@/components/ui";
 import { platformStats } from "@/lib/data/business";
 import { compactNumber, rupeesShort } from "@/lib/format";
-import { MATCH_ENGINE_VERSION, runMatch, summarise } from "@/lib/matching/engine";
 import { NAV_MODULES } from "@/lib/nav";
-import { defaultPreferences, getColleges, getCurrentProfile, loadMatchContext } from "@/lib/queries";
+import { getColleges, loadMatchContext } from "@/lib/queries";
 
 export const revalidate = 3600;
 
@@ -40,20 +39,8 @@ async function moduleCounts() {
 }
 
 export default async function LandingPage() {
-  const [profile, colleges] = await Promise.all([getCurrentProfile(), getColleges()]);
+  const colleges = await getColleges();
   const { ctx, books, equipment, pg, teams, skills, events, services, students } = await moduleCounts();
-  const college = colleges.find((c) => c.id === profile.college_id);
-
-  // A real, deterministic match for the signed-in student — the hero shows the
-  // engine's actual output rather than a mock score.
-  const roommateMatches = runMatch("roommate", {
-    profile,
-    prefs: defaultPreferences(profile),
-    ...ctx,
-  });
-  const topMatch = roommateMatches[0];
-  const summary = summarise("roommate", roommateMatches);
-  const strongCount = roommateMatches.filter((m) => m.score >= 70).length;
 
   const counts: Record<string, number> = { books, equipment, pg, teams, skills, events, services };
   const painPoints = [
@@ -102,7 +89,7 @@ export default async function LandingPage() {
           aria-hidden
         />
         <div className="relative mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-24">
-          <div className="grid gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div>
             <div>
               <span className="cl-chip cl-chip-brand mb-5 inline-flex items-center gap-1.5">
                 <span className="cl-pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-mint-400" aria-hidden />
@@ -123,12 +110,12 @@ export default async function LandingPage() {
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <PrimaryLink href="/match-lab" className="px-5 py-3 text-sm">
+                <PrimaryLink href="/books" className="px-5 py-3 text-sm">
                   <SparkIcon width={16} height={16} />
-                  Open the AI Match Lab
+                  Browse the marketplace
                 </PrimaryLink>
-                <GhostLink href="/books" className="px-5 py-3 text-sm">
-                  Explore the marketplace
+                <GhostLink href="/teams" className="px-5 py-3 text-sm">
+                  Explore teammates
                   <ArrowRightIcon width={16} height={16} />
                 </GhostLink>
               </div>
@@ -148,73 +135,6 @@ export default async function LandingPage() {
               </dl>
             </div>
 
-            {/* Live match preview — actual engine output for the demo user */}
-            <div className="cl-panel cl-panel-solid relative overflow-hidden p-5 shadow-2xl sm:p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">
-                    Roommate matches · {summary.total_candidates} candidates
-                  </p>
-                  <p className="mt-0.5 text-sm font-semibold text-white">
-                    Scored for {profile.name.split(" ")[0]} at {college?.short_name}
-                  </p>
-                </div>
-                <span className="cl-chip cl-chip-brand">engine v{MATCH_ENGINE_VERSION}</span>
-              </div>
-
-              {topMatch ? (
-                <>
-                  <div className="mt-5 flex items-start gap-3 rounded-xl border border-white/8 bg-white/3 p-4">
-                    <Thumbnail hue={224} emoji="🛏️" size="md" label="Roommate" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-base font-bold text-white">{topMatch.title}</p>
-                      <p className="mt-0.5 text-xs text-white/45">{topMatch.subtitle}</p>
-                      <p className="mt-2 text-xs leading-relaxed text-white/70">{topMatch.headline}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-4xl leading-none font-black text-white">{topMatch.score}</p>
-                      <p className="mt-1 text-[10px] text-white/40 uppercase">score</p>
-                    </div>
-                  </div>
-
-                  <p className="mt-4 mb-2 text-[10px] font-semibold tracking-wider text-white/40 uppercase">
-                    Why this score
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {topMatch.breakdown.slice(0, 4).map((b) => (
-                      <div key={b.key}>
-                        <div className="flex items-baseline justify-between text-[11px]">
-                          <span className="text-white/70">{b.label}</span>
-                          <span className="text-white/45">
-                            {b.normalized}/100 · weight {(b.weight * 100).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-white/8">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-brand-500 to-fuchsia-400"
-                            style={{ width: `${Math.max(2, b.normalized)}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-5 flex flex-wrap items-center gap-2">
-                    <PrimaryLink href="/match-lab" className="px-4 py-2 text-xs">
-                      Tune the preferences
-                    </PrimaryLink>
-                    <span className="text-[11px] leading-relaxed text-white/40">
-                      No black box. {strongCount} strong of {summary.total_candidates}, averaging{" "}
-                      {summary.average_score}.
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <p className="mt-6 text-sm text-white/50">
-                  No roommate candidates in the seed data yet — switch profile from the header to explore.
-                </p>
-              )}
-            </div>
           </div>
         </div>
       </section>
@@ -502,9 +422,9 @@ export default async function LandingPage() {
               student — same engine, different inputs, different ranking. No API key, no database, no setup.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <PrimaryLink href="/match-lab" className="px-5 py-3 text-sm">
-                Try the Match Lab
-              </PrimaryLink>
+               <PrimaryLink href="/books" className="px-5 py-3 text-sm">
+                 Browse used books
+               </PrimaryLink>
               <GhostLink href="/premium" className="px-5 py-3 text-sm">
                 See Premium
               </GhostLink>

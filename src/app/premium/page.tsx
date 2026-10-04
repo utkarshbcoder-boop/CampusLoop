@@ -184,8 +184,8 @@ export default function PremiumPage() {
           <p className="mt-3 text-xs text-white/45">
             Premium turns this list into a plan: which of these are priced highest on your campus right now, and what the
             skill exchange can teach you for one credit.{" "}
-            <Link href="/match-lab?domain=skills" className="text-brand-300">
-              See the skill match engine
+            <Link href="/skills" className="text-brand-300">
+              Browse the skills exchange
             </Link>
             .
           </p>
