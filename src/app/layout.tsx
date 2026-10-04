@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PremiumScene } from "@/components/PremiumScene";
 import { AuthProvider } from "@/components/AuthProvider";
+import { FirstVisitGate } from "@/components/FirstVisitGate";
 import { getDataProvider } from "@/lib/db";
 import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
 import { CampusLoopProvider } from "@/lib/store";
@@ -67,6 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </a>
         <AuthProvider>
           <CampusLoopProvider>
+            <FirstVisitGate />
             {currentProfile ? (
               <SiteHeader currentProfile={currentProfile} profiles={profiles} colleges={colleges} />
             ) : null}
