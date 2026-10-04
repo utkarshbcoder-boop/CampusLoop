@@ -8,6 +8,17 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keepMe, setKeepMe] = useState(false);
+
+  const markVisited = () => {
+    try {
+      if (keepMe) {
+        localStorage.setItem("campusloop_visited", "1");
+      } else {
+        sessionStorage.setItem("campusloop_visited", "1");
+      }
+    } catch {}
+  };
 
   const submit = async () => {
     setError(null);
@@ -17,7 +28,8 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
     }
     setBusy(true);
     try {
-      await signInWithEmail(email, password);
+      await signInWithEmail(email, password, keepMe);
+      markVisited();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign-in failed. Try again.");
     } finally {
@@ -48,6 +60,15 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
           onKeyDown={(e) => e.key === "Enter" && submit()}
           className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition focus:border-brand-400/60"
         />
+        <label className="mt-1 flex items-center gap-2 text-xs text-white/55 select-none cursor-pointer">
+          <input
+            type="checkbox"
+            checked={keepMe}
+            onChange={(e) => setKeepMe(e.target.checked)}
+            className="h-3.5 w-3.5 accent-brand-500"
+          />
+          Keep me logged in
+        </label>
         <button
           type="button"
           disabled={busy}
@@ -70,7 +91,8 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
           setBusy(true);
           setError(null);
           try {
-            await signInWithGoogle();
+            await signInWithGoogle(keepMe);
+            markVisited();
           } catch (e) {
             setError("Google sign-in failed. Try again.");
             console.error(e);

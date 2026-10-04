@@ -14,13 +14,15 @@ export function FirstVisitGate() {
     if (pathname === "/login") return;
     if (user) {
       try {
-        localStorage.setItem("campusloop_visited", "1");
+        if (!localStorage.getItem("campusloop_visited") && !sessionStorage.getItem("campusloop_visited")) {
+          sessionStorage.setItem("campusloop_visited", "1");
+        }
       } catch {}
       setShow(false);
       return;
     }
     try {
-      setShow(!localStorage.getItem("campusloop_visited"));
+      setShow(!localStorage.getItem("campusloop_visited") && !sessionStorage.getItem("campusloop_visited"));
     } catch {
       setShow(true);
     }
@@ -33,7 +35,7 @@ export function FirstVisitGate() {
       <LoginPanel
         onGuest={() => {
           try {
-            localStorage.setItem("campusloop_visited", "1");
+            sessionStorage.setItem("campusloop_visited", "1");
           } catch {}
           setShow(false);
         }}

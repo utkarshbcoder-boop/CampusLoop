@@ -12,7 +12,9 @@ export default function LoginPage() {
   useEffect(() => {
     if (!loading && user) {
       try {
-        localStorage.setItem("campusloop_visited", "1");
+        if (!localStorage.getItem("campusloop_visited") && !sessionStorage.getItem("campusloop_visited")) {
+          sessionStorage.setItem("campusloop_visited", "1");
+        }
       } catch {}
       router.replace("/");
     }
@@ -24,7 +26,7 @@ export default function LoginPage() {
       <LoginPanel
         onGuest={() => {
           try {
-            localStorage.setItem("campusloop_visited", "1");
+            sessionStorage.setItem("campusloop_visited", "1");
           } catch {}
           router.replace("/");
         }}

@@ -12,6 +12,9 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
   type User,
 } from "firebase/auth";
 import { auth } from "./config";
@@ -26,7 +29,8 @@ export function isAdmin(user: User | null): boolean {
 }
 
 /** Sign in with Google popup. */
-export async function signInWithGoogle(): Promise<User> {
+export async function signInWithGoogle(keepLoggedIn = false): Promise<User> {
+  await setPersistence(auth, keepLoggedIn ? browserLocalPersistence : browserSessionPersistence);
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
   const result = await signInWithPopup(auth, provider);
@@ -34,7 +38,8 @@ export async function signInWithGoogle(): Promise<User> {
 }
 
 /** Sign in, or create the account if the email is new. */
-export async function signInWithEmail(email: string, password: string): Promise<User> {
+export async function signInWithEmail(email: string, password: string, keepLoggedIn = false): Promise<User> {
+  await setPersistence(auth, keepLoggedIn ? browserLocalPersistence : browserSessionPersistence);
   try {
     const r = await signInWithEmailAndPassword(auth, email, password);
     return r.user;
@@ -50,6 +55,10 @@ export async function signInWithEmail(email: string, password: string): Promise<
 
 /** Sign out the current user. */
 export async function signOutUser(): Promise<void> {
+  try {
+    localStorage.removeItem("campusloop_visited");
+    sessionStorage.removeItem("campusloop_visited");
+  } catch {}
   await firebaseSignOut(auth);
 }
 
