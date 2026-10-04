@@ -336,13 +336,35 @@ html.light [class*="text-white/"] {
 }
 
 html.light .cl-panel {
-  background: rgba(255, 255, 255, 0.75) !important;
-  border-color: rgba(20, 20, 40, 0.08) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(20, 20, 40, 0.1) !important;
+  box-shadow: 0 12px 32px -18px rgba(30, 27, 75, 0.25) !important;
 }
 
 html.light .cl-panel-solid {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border-color: rgba(20, 20, 40, 0.08) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(20, 20, 40, 0.1) !important;
+  box-shadow: 0 16px 40px -20px rgba(30, 27, 75, 0.3) !important;
+}
+
+html.light .cl-btn-ghost {
+  background: rgba(30, 27, 75, 0.05);
+  border-color: rgba(30, 27, 75, 0.15);
+  color: #2b2c44;
+}
+html.light .cl-btn-ghost:hover:not(:disabled) {
+  background: rgba(30, 27, 75, 0.1);
+  border-color: rgba(30, 27, 75, 0.28);
+}
+
+html.light .cl-chip {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #4f46e5;
+}
+
+html.light .cl-btn-primary {
+  color: #fff !important;
 }
 
 html.light header,
