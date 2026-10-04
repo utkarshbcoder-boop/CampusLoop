@@ -358,9 +358,43 @@ html.light .cl-btn-ghost:hover:not(:disabled) {
 }
 
 html.light .cl-chip {
-  background: rgba(99, 102, 241, 0.08);
-  border-color: rgba(99, 102, 241, 0.25);
-  color: #4f46e5;
+  border-color: rgba(79, 70, 229, 0.35) !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #4338ca !important;
+  font-weight: 600;
+}
+
+html.light .cl-chip-brand {
+  color: #4338ca !important;
+}
+
+html.light .cl-chip-flare {
+  border-color: rgba(217, 119, 6, 0.4) !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309 !important;
+}
+
+html.light .cl-chip-mint {
+  border-color: rgba(5, 150, 105, 0.4) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #047857 !important;
+}
+
+html.light .cl-chip-rose {
+  border-color: rgba(225, 29, 72, 0.35) !important;
+  background: rgba(244, 63, 94, 0.1) !important;
+  color: #be123c !important;
+}
+
+/* Gradient headlines pop on light backgrounds */
+html.light .bg-clip-text {
+  filter: saturate(1.7) brightness(0.72) contrast(1.1);
+}
+
+html.light p,
+html.light span,
+html.light li {
+  letter-spacing: 0.005em;
 }
 
 html.light .cl-btn-primary {
