@@ -166,8 +166,7 @@ export default async function LandingPage() {
       {/* ------------------------------------------------------------- */}
       <Section id="modules" className="border-t border-white/8">
         <SectionHeading
-          eyebrow="Nine modules"
-          title="One login. Nine things your campus actually needs."
+          title="One login. Nine things you actually need."
           description="Every module is independently useful and compounding in value — the roommate you match here is in the same building as the equipment you rent, and they show up in your events feed."
         />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

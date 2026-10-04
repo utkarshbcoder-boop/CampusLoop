@@ -7,7 +7,7 @@ export function SiteFooter({ colleges }: { colleges: College[] }) {
   return (
     <footer className="mt-20 border-t border-white/8 bg-ink-900/50">
       <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6">
-        <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-fuchsia-500 font-black text-white">
@@ -20,7 +20,7 @@ export function SiteFooter({ colleges }: { colleges: College[] }) {
               it all into one trusted student ecosystem.
             </p>
             <p className="mt-4 text-xs text-white/35">
-              Live across {colleges.length} campuses · {colleges.reduce((a, c) => a + c.campusloop_students, 0).toLocaleString("en-IN")}{" "}
+              Live across {colleges.length} colleges · {colleges.reduce((a, c) => a + c.campusloop_students, 0).toLocaleString("en-IN")}{" "}
               verified students
             </p>
           </div>
@@ -67,30 +67,15 @@ export function SiteFooter({ colleges }: { colleges: College[] }) {
             </ul>
           </div>
 
-          <div>
-            <h3 className="text-xs font-semibold tracking-wider text-white/45 uppercase">Campuses</h3>
-            <ul className="mt-4 flex flex-col gap-2.5">
-              {colleges.map((c) => (
-                <li key={c.id}>
-                  <Link href={`/college/${c.slug}`} className="text-sm text-white/55 transition hover:text-white">
-                    {c.short_name}
-                    <span className="ml-1.5 text-[11px] text-white/30">{c.city}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
 
         <div className="cl-divider mt-12" />
         <div className="mt-6 flex flex-col gap-3 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {year} CampusLoop. Built for Indian campuses, priced in rupees, verified with student IDs.
+            © {year} CampusLoop. Built for students, priced in rupees, verified with student IDs.
           </p>
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <span>Runs on seeded local data — no setup needed</span>
-            <span className="text-white/20">•</span>
-            <span>Deterministic match engine v1.0.0</span>
           </p>
         </div>
       </div>
