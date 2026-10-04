@@ -137,8 +137,13 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
             await signInWithGoogle(keepMe);
             markVisited();
           } catch (e) {
-            setError("Google sign-in failed. Try again.");
-            console.error(e);
+            const code = (e as { code?: string }).code;
+            if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+              setError(null);
+            } else {
+              setError("Google sign-in failed. Try again.");
+              console.error(e);
+            }
           } finally {
             setBusy(false);
           }
