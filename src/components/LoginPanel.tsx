@@ -42,7 +42,18 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
       }
       markVisited();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed. Try again.");
+      const code = (e as { code?: string }).code;
+      if (code === "auth/email-already-in-use") {
+        setError("This email already has an account. Sign in — or use Continue with Google.");
+      } else if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
+        setError("Wrong email or password.");
+      } else if (code === "auth/wrong-password") {
+        setError("Wrong password.");
+      } else if (code === "auth/weak-password") {
+        setError("Password should be at least 6 characters.");
+      } else {
+        setError(e instanceof Error ? e.message : "Sign-in failed. Try again.");
+      }
     } finally {
       setBusy(false);
     }
