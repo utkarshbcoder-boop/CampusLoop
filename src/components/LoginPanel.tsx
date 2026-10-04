@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithEmail, signInWithGoogle } from "@/lib/firebase/auth";
+import { signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/firebase/auth";
 
 export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
   const [email, setEmail] = useState("");
@@ -9,6 +9,8 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [keepMe, setKeepMe] = useState(false);
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [name, setName] = useState("");
 
   const markVisited = () => {
     try {
@@ -28,7 +30,16 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
     }
     setBusy(true);
     try {
-      await signInWithEmail(email, password, keepMe);
+      if (mode === "signup") {
+        if (!name.trim()) {
+          setError("Enter your name to sign up.");
+          setBusy(false);
+          return;
+        }
+        await signUpWithEmail(name, email, password, keepMe);
+      } else {
+        await signInWithEmail(email, password, keepMe);
+      }
       markVisited();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign-in failed. Try again.");
@@ -39,10 +50,24 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
 
   return (
     <div className="cl-panel cl-panel-solid w-full max-w-md p-8">
-      <h1 className="text-center text-2xl font-black tracking-tight text-white">Welcome back</h1>
-      <p className="mt-1.5 text-center text-sm text-white/50">Sign in to your CampusLoop account</p>
+      <h1 className="text-center text-2xl font-black tracking-tight text-white">
+        {mode === "signup" ? "Create your account" : "Welcome back"}
+      </h1>
+      <p className="mt-1.5 text-center text-sm text-white/50">
+        {mode === "signup" ? "Sign up for CampusLoop" : "Sign in to your CampusLoop account"}
+      </p>
 
       <div className="mt-6 flex flex-col gap-3">
+        {mode === "signup" && (
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Full name"
+            autoComplete="name"
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition focus:border-brand-400/60"
+          />
+        )}
         <input
           type="email"
           value={email}
@@ -75,7 +100,14 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
           onClick={submit}
           className="cl-btn cl-btn-primary mt-1 px-4 py-3 text-sm"
         >
-          {busy ? "Signing in…" : "Sign in"}
+          {busy ? (mode === "signup" ? "Creating account…" : "Signing in…") : mode === "signup" ? "Create account" : "Sign in"}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(null); }}
+          className="text-center text-xs text-brand-300 transition hover:text-brand-200"
+        >
+          {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
         {error && <p className="text-xs text-red-400">{error}</p>}
       </div>

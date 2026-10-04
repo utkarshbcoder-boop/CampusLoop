@@ -12,6 +12,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
@@ -40,17 +41,18 @@ export async function signInWithGoogle(keepLoggedIn = false): Promise<User> {
 /** Sign in, or create the account if the email is new. */
 export async function signInWithEmail(email: string, password: string, keepLoggedIn = false): Promise<User> {
   await setPersistence(auth, keepLoggedIn ? browserLocalPersistence : browserSessionPersistence);
-  try {
-    const r = await signInWithEmailAndPassword(auth, email, password);
-    return r.user;
-  } catch (e) {
-    const code = (e as { code?: string }).code;
-    if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
-      const r = await createUserWithEmailAndPassword(auth, email, password);
-      return r.user;
-    }
-    throw e;
+  const r = await signInWithEmailAndPassword(auth, email, password);
+  return r.user;
+}
+
+/** Create a new account with email and password. */
+export async function signUpWithEmail(name: string, email: string, password: string, keepLoggedIn = false): Promise<User> {
+  await setPersistence(auth, keepLoggedIn ? browserLocalPersistence : browserSessionPersistence);
+  const r = await createUserWithEmailAndPassword(auth, email, password);
+  if (name.trim()) {
+    await updateProfile(r.user, { displayName: name.trim() });
   }
+  return r.user;
 }
 
 /** Sign out the current user. */
