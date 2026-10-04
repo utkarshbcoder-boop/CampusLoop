@@ -13,7 +13,7 @@ import {
   StarIcon,
   TargetIcon,
 } from "@/components/Icon";
-import { EquipmentCard, ListingCard, ServiceCard } from "@/components/cards";
+import { EquipmentCard, ListingCard } from "@/components/cards";
 import { GhostLink, PrimaryLink, Section, SectionHeading, Stat } from "@/components/ui";
 import { platformStats } from "@/lib/data/business";
 import { compactNumber, rupeesShort } from "@/lib/format";
@@ -30,16 +30,15 @@ async function moduleCounts() {
     books: ctx.listings.length,
     equipment: ctx.equipment.length,
     homes: ctx.pgListings.length,
-    services: ctx.services.length,
     students: ctx.profiles.length,
   };
 }
 
 export default async function LandingPage() {
   const colleges = await getColleges();
-  const { ctx, books, equipment, homes, services, students } = await moduleCounts();
+  const { ctx, books, equipment, homes, students } = await moduleCounts();
 
-  const counts: Record<string, number> = { books, equipment, homes, services };
+  const counts: Record<string, number> = { books, equipment, homes };
   const painPoints = [
     {
       emoji: "📱",
@@ -101,8 +100,7 @@ export default async function LandingPage() {
               </h1>
 
               <p className="mt-6 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
-                Nine modules that usually need nine different apps: used books, equipment rental, PG and roommate matching,
-                project teammates, a skills exchange, events, verified services and internships. One login, one campus, one
+                Buy and sell used textbooks, rent equipment by the day, and list or find rooms near campus. One login, one
                 trusted feed.
               </p>
 
@@ -203,7 +201,7 @@ export default async function LandingPage() {
         <SectionHeading
           eyebrow="Real listings, right now"
           title="This is not a mockup. Every card below comes from the seeded data layer."
-          description={`${books} books, ${equipment} pieces of equipment and ${services} services are live in the database right now — with filters, sorting and detail pages wired to the same provider.`}
+          description={`${books} books and ${equipment} pieces of equipment are live in the database right now — with filters, sorting and detail pages wired to the same provider.`}
           action={
             <GhostLink href="/books" className="text-sm">
               Browse everything
@@ -213,7 +211,6 @@ export default async function LandingPage() {
         />
         <div className="grid gap-4 lg:grid-cols-3">
           <ListingCard listing={ctx.listings[0]} colleges={colleges} />
-          <ServiceCard service={ctx.services[0]} colleges={colleges} />
           <EquipmentCard item={ctx.equipment[0]} colleges={colleges} owner={ctx.profiles[1]} />
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-3">

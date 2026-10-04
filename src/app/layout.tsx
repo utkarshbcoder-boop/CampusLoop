@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CampusLoop — Everything Students Need, Within Their Campus",
     description:
-      "Nine modules, one trusted student ecosystem. Used books, equipment rental, PG and roommate matching, project teammates, skills exchange, campus events, verified services, internships — powered by a transparent AI matching engine.",
+      "Four modules, one trusted student ecosystem. Used books, equipment rental, homes and rooms — powered by a transparent AI matching engine.",
     type: "website",
     locale: "en_IN",
   },

@@ -45,15 +45,6 @@ export const NAV_MODULES: NavModule[] = [
     hook: "A PG bed or a 2 BHK near your college, rent or buy.",
     action: "List a home",
   },
-  {
-    href: "/services",
-    label: "Verified Services",
-    short: "Services",
-    emoji: "🛠️",
-    blurb: "Plumbers, electricians, laundry and printing — verified and bookable by slot.",
-    hook: "A verified carpenter, booked for a 4pm slot, paid after the job.",
-    action: "Register as a provider",
-  },
 ];
 
 export const UTILITY_LINKS = [
