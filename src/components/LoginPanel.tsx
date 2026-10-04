@@ -141,7 +141,7 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
             if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
               setError(null);
             } else {
-              setError("Google sign-in failed. Try again.");
+              setError(`Google sign-in failed${code ? ` (${code})` : ""}. Try again.`);
               console.error(e);
             }
           } finally {

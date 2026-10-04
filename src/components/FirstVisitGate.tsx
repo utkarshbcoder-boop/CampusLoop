@@ -31,7 +31,7 @@ export function FirstVisitGate() {
   if (!show || pathname === "/login") return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-ink-950/95 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#040308] px-4">
       <LoginPanel
         onGuest={() => {
           try {
