@@ -28,15 +28,6 @@ export const NAV_MODULES: NavModule[] = [
     action: "Sell a book",
   },
   {
-    href: "/equipment",
-    label: "Equipment Rental",
-    short: "Equipment",
-    emoji: "💻",
-    blurb: "Rent laptops, calculators and lab gear by the day instead of buying it.",
-    hook: "A ₹1.2L laptop, ₹120 a day, from a senior in Block C.",
-    action: "List equipment",
-  },
-  {
     href: "/homes",
     label: "Homes & Rooms",
     short: "Homes",

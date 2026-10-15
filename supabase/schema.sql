@@ -127,36 +127,6 @@ create index listings_subject_idx on listings(subject);
 create index listings_price_idx   on listings(price);
 
 -- ---------------------------------------------------------------------
--- 3. Equipment rental
--- ---------------------------------------------------------------------
-
-create table equipment (
-  id            text primary key,
-  name          text not null,
-  category      text not null,
-  brand         text,
-  model         text,
-  description   text not null default '',
-  day_rate      int not null check (day_rate > 0),
-  deposit       int not null default 0,
-  college_id    text not null references colleges(id) on delete cascade,
-  owner_id      text not null references profiles(id) on delete cascade,
-  condition     text not null default 'good',
-  available_from timestamptz,
-  available_to   timestamptz,
-  rating        numeric(2,1) not null default 0,
-  review_count  int not null default 0,
-  rentals_count int not null default 0,
-  tags          text[] not null default '{}',
-  hue           int not null default 220,
-  emoji         text not null default '',
-  created_at    timestamptz not null default now()
-);
-
-create index equipment_college_idx on equipment(college_id);
-create index equipment_category_idx on equipment(category);
-
--- ---------------------------------------------------------------------
 -- 4. PG / roommate listings
 -- ---------------------------------------------------------------------
 
@@ -190,33 +160,7 @@ create table pg_listings (
 create index pg_college_idx on pg_listings(college_id);
 create index pg_rent_idx    on pg_listings(rent);
 
--- ---------------------------------------------------------------------
--- 5. Project teammate posts
--- ---------------------------------------------------------------------
 
-create table teammate_posts (
-  id              text primary key,
-  title           text not null,
-  project_type    text not null,
-  description     text not null default '',
-  roles_needed     text[] not null default '{}',
-  skills_needed    text[] not null default '{}',
-  college_id      text not null references colleges(id) on delete cascade,
-  author_id       text not null references profiles(id) on delete cascade,
-  mode            work_mode not null default 'onsite',
-  hackathon_tier  text,
-  team_size       int not null default 4,
-  hours_per_week  int not null default 8,
-  timeline_weeks  int not null default 6,
-  prize_pool      int not null default 0,
-  slots           text[] not null default '{}',
-  applicants      int not null default 0,
-  views           int not null default 0,
-  tags            text[] not null default '{}',
-  created_at      timestamptz not null default now()
-);
-
-create index teams_college_idx on teammate_posts(college_id);
 
 -- ---------------------------------------------------------------------
 -- 6. Skills exchange (time banking, 1 credit = 1 hour taught)
