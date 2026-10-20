@@ -19,7 +19,7 @@ export type ISODate = string;
 
 export type Rupee = number;
 
-export type CollegeTier = "IIT" | "NIT" | "BITS" | "Private" | "State";
+export type CollegeTier = "Public" | "BITS" | "Private" | "State";
 
 export type VerificationLevel = "unverified" | "student_id" | "college_email" | "aadhaar";
 

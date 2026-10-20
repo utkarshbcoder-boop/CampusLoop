@@ -111,7 +111,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         <div className="flex flex-col gap-3">
           <FilterBar
             filters={barFilters}
-            placeholder="Search a title, author or subject — try “Cormen” or “GATE”"
+            placeholder="Search a title, author or subject — try “Cormen” or “entrance exam”"
             resultLabel={`${listings.length} ${listings.length === 1 ? "result" : "results"}`}
           />
           <ActiveFilters labels={activeLabels} />

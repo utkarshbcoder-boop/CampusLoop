@@ -21,7 +21,7 @@ export const listings: Listing[] = [
     description:
       "Bought CLRS in first year, barely opened. Spine is intact, no highlighting, no coffee rings. Includes the errata slip. Happy to meet at the library steps.",
     highlights: ["No markings", "Original bill retained", "Free bookmark"],
-    tags: ["algorithms", "gate", "placement"],
+    tags: ["algorithms", "engineering_entrance", "placement"],
     hue: 205,
     emoji: "📘",
     created_at: "2026-09-24T10:20:00Z",
@@ -239,9 +239,9 @@ export const listings: Listing[] = [
     college_id: "col_srm",
     status: "available",
     description:
-      "JAM and GATE organic prep, rent it out. I keep a notebook with the important reaction maps for each chapter as a bonus.",
+      "JAM and engineering entrance exam preparation. I keep a notebook with the important reaction maps for each chapter as a bonus.",
     highlights: ["Reaction map notes", "₹400 deposit", "1-month minimum"],
-    tags: ["organic", "gate", "chem"],
+    tags: ["organic", "engineering_entrance", "chem"],
     hue: 96,
     emoji: "📒",
     created_at: "2026-09-29T13:20:00Z",
@@ -376,7 +376,7 @@ export const listings: Listing[] = [
     description:
       "DM is where placements start. Clean copy, all the exercises answered up to 3.4. Previous owner was serious.",
     highlights: ["Answers up to 3.4", "Clean print"],
-    tags: ["dm", "maths", "gate"],
+    tags: ["dm", "maths", "engineering_entrance"],
     hue: 145,
     emoji: "📗",
     created_at: "2026-09-17T12:50:00Z",
@@ -704,9 +704,9 @@ export const listings: Listing[] = [
     college_id: "col_iitd",
     status: "available",
     description:
-      "Hardest organic problem set in the department. Renting for the GATE prep window. Heavy handwritten notes in the margins for about half the problems.",
+      "Hardest organic problem set in the department. Renting for the engineering entrance exam preparation window. Heavy handwritten notes in the margins for about half the problems.",
     highlights: ["Half the book annotated", "₹70/day"],
-    tags: ["organic", "gate", "chem", "notes"],
+    tags: ["organic", "engineering_entrance", "chem", "notes"],
     hue: 300,
     emoji: "📓",
     created_at: "2026-09-23T21:00:00Z",

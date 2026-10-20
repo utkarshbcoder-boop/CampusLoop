@@ -390,7 +390,7 @@ export const opportunities: Opportunity[] = [
     id: "opp_17",
     title: "Research Fellowship — Sustainable Water Systems",
     type: "fellowship",
-    company: "IIT Madras Research Foundation",
+    company: "Guindy Research Foundation, Chennai",
     company_initials: "IM",
     college_id: null,
     city: "Chennai",
@@ -412,7 +412,7 @@ export const opportunities: Opportunity[] = [
   },
   {
     id: "opp_18",
-    title: "GATE 2027 Scholarship — Test Fee + Coaching",
+    title: "Engineering Entrance Scholarship 2027 — Test Fee + Coaching",
     type: "scholarship",
     company: "Unacademy for CampusLoop",
     company_initials: "UN",
@@ -423,7 +423,7 @@ export const opportunities: Opportunity[] = [
     award_value: 15000,
     deadline: "2026-10-25",
     description:
-      "Sponsored offer covering the GATE 2027 application fee and three months of test-series access for the top 1,000 scored applicants from Tier-2 colleges. Scored automatically on CampusLoop.",
+      "Sponsored offer covering an engineering entrance exam application fee and three months of test-series access for the top 1,000 scored applicants from Tier-2 colleges. Scored automatically on CampusLoop.",
     skills: ["dsalgo", "maths_core", "dbms", "os"],
     eligibility: "all_branches",
     min_cgpa: null,
@@ -432,6 +432,6 @@ export const opportunities: Opportunity[] = [
     sponsored: true,
     verified_company: false,
     applicants: 6700,
-    tags: ["sponsored", "gate", "test_fee", "brand_campaign"],
+    tags: ["sponsored", "engineering_entrance", "test_fee", "brand_campaign"],
   },
 ];

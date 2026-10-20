@@ -1,7 +1,7 @@
 import type { Profile } from "@/lib/types";
 
 /**
- * 26 seeded student profiles. `prof_01` (Aarav Menon, IIT Bombay) is the
+ * 26 seeded student profiles. `prof_01` (Aarav Menon, Powai Campus) is the
  * default signed-in demo user — switchable from the profile switcher in the nav.
  */
 export const profiles: Profile[] = [

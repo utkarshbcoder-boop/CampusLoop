@@ -4,7 +4,7 @@ import type { PGListing } from "@/lib/types";
 export const pgListings: PGListing[] = [
   {
     id: "pg_01",
-    title: "Sunrise Boys PG — Powai, 8 mins to IIT Bombay",
+    title: "Sunrise Boys PG — Powai, 8 mins to campus",
     type: "pg",
     rent: 8500,
     deposit: 25000,
@@ -28,7 +28,7 @@ export const pgListings: PGListing[] = [
     owner_contact: "+91 99300 11223",
     owner_is_alum: true,
     description:
-      "Owner is a 2016 IIT Bombay alum, so the building is maintained properly and the rent has not moved in four years. Two current roommates, both CSE, both study in the library rather than the hostel. Walking distance to the main gate through the market, avoids the Powai bottleneck traffic entirely.",
+      "Owner studied at the Powai campus, so the building is maintained properly and the rent has not moved in four years. Two current roommates, both CSE, both study in the library rather than the hostel. Walking distance to campus through the market, avoiding the Powai bottleneck traffic entirely.",
     hue: 28,
     emoji: "🏙️",
     photos_count: 14,
