@@ -1,5 +1,5 @@
 import { getDataProvider, type ListOptions } from "@/lib/db";
-import type { College, Listing, PGListing, Profile } from "@/lib/types";
+import type { College, Equipment, EquipmentCategory, Listing, PGListing, Profile } from "@/lib/types";
 import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
 
 /**
@@ -118,6 +118,62 @@ export async function getListings(filters: ListingFilters): Promise<Listing[]> {
 export async function getListing(id: string): Promise<Listing | null> {
   const provider = await getDataProvider();
   return provider.listings.byId(id);
+}
+
+export interface EquipmentFilters {
+  q: string;
+  category: string;
+  college: string;
+  maxDayRate: number | null;
+  sort: string;
+}
+
+const EQUIPMENT_SORTS: Record<string, { column: string; ascending: boolean }> = {
+  rate_asc: { column: "day_rate", ascending: true },
+  rate_desc: { column: "day_rate", ascending: false },
+  rating: { column: "rating", ascending: false },
+  popular: { column: "rentals_count", ascending: false },
+  newest: { column: "created_at", ascending: false },
+};
+
+export function parseEquipmentFilters(params: SearchParams): EquipmentFilters {
+  const rateRaw = sp(params.rate);
+  return {
+    q: sp(params.q),
+    category: sp(params.category),
+    college: sp(params.college),
+    maxDayRate: rateRaw ? Number.parseInt(rateRaw, 10) : null,
+    sort: sp(params.sort) || "rate_asc",
+  };
+}
+
+export async function getEquipment(filters: EquipmentFilters): Promise<Equipment[]> {
+  const provider = await getDataProvider();
+  const options: ListOptions = {
+    orderBy: EQUIPMENT_SORTS[filters.sort] ?? EQUIPMENT_SORTS.rate_asc,
+  };
+  if (filters.category && filters.category !== "all") {
+    options.where = { category: filters.category as EquipmentCategory };
+  }
+  if (filters.college && filters.college !== "all") {
+    options.where = { ...options.where, college_id: filters.college };
+  }
+  if (filters.maxDayRate) options.lte = { day_rate: filters.maxDayRate };
+
+  const rows = await provider.equipment.list(options);
+  if (!filters.q) return rows;
+  const term = filters.q.trim().toLowerCase();
+  return rows.filter((item) =>
+    [item.name, item.brand, item.category, item.description, ...item.specs]
+      .join(" ")
+      .toLowerCase()
+      .includes(term),
+  );
+}
+
+export async function getEquipmentItem(id: string): Promise<Equipment | null> {
+  const provider = await getDataProvider();
+  return provider.equipment.byId(id);
 }
 
 export interface PGFilters {

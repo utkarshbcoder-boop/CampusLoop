@@ -38,7 +38,7 @@ export default async function LandingPage() {
   const colleges = await getColleges();
   const { ctx, books, equipment, homes, students } = await moduleCounts();
 
-  const counts: Record<string, number> = { books, equipment, homes };
+  const counts: Record<string, number> = { books, devices: equipment, homes };
   const painPoints = [
     {
       emoji: "📱",

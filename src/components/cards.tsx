@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { SaveButton } from "@/components/Actions";
 import { PinIcon, ClockIcon, StarIcon } from "@/components/Icon";
+import { equipmentCategoryLabel } from "@/lib/data/equipmentCategories";
 import { Avatar, ScoreBreakdown, ScoreRing, StarRating, TagList, Thumbnail } from "@/components/ui";
 import { formatDate, formatTime, relativeDay, rupees, rupeesShort, timeAgo, titleCase } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -111,7 +112,7 @@ export function EquipmentCard({ item, colleges, owner }: { item: Equipment; coll
       <div className="relative">
         <Thumbnail hue={item.hue} emoji={item.emoji} size="lg" label={item.name} />
         <span className="absolute top-3 left-3 rounded-full bg-ink-950/75 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-          {titleCase(item.category)}
+          {equipmentCategoryLabel(item.category)}
         </span>
         {item.delivery_available ? (
           <span className="absolute top-3 right-3 rounded-full bg-mint-500/85 px-2.5 py-1 text-[10px] font-semibold text-ink-950">
@@ -122,7 +123,7 @@ export function EquipmentCard({ item, colleges, owner }: { item: Equipment; coll
 
       <div className="flex flex-1 flex-col p-4">
         <h3 className="cl-line-clamp-2 text-sm leading-snug font-semibold text-white">
-          <Link href={`/equipment/${item.id}`} className="after:absolute after:inset-0">
+          <Link href={`/devices/${item.id}`} className="after:absolute after:inset-0">
             {item.name}
           </Link>
         </h3>
