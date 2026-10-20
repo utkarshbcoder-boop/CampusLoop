@@ -7,4 +7,4 @@
 export { app, auth, db } from "./config";
 export { ADMIN_EMAIL, isAdmin, signInWithGoogle, signOutUser, onAuthChange } from "./auth";
 export { getFirestoreProvider } from "./firestore";
-export { useCollection, useDocument } from "./hooks";
+export { useCollection } from "./hooks";

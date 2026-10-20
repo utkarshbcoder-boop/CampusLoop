@@ -161,7 +161,7 @@ export const campusServices: CampusService[] = [
     slots: ["weekday_morning", "weekday_afternoon"],
     hue: 120,
     emoji: "🐜",
-    premium_only: true,
+    premium_only: false,
   },
   {
     id: "svc_08",
@@ -253,7 +253,7 @@ export const campusServices: CampusService[] = [
     slots: ["weekday_morning", "weekday_afternoon", "weekday_evening", "weekend_morning"],
     hue: 10,
     emoji: "🏍️",
-    premium_only: true,
+    premium_only: false,
   },
   {
     id: "svc_12",
@@ -324,7 +324,7 @@ export const serviceBookings: ServiceBooking[] = [
     issue: "8 kg wash and fold, plus two shirts ironed.",
     status: "completed",
     price: 370,
-    priority: "premium_priority",
+    priority: "standard",
     created_at: "2026-09-28T07:20:00Z",
   },
   {
@@ -354,7 +354,7 @@ export const serviceBookings: ServiceBooking[] = [
     issue: "Rodent noise in the wall behind the almirah every night after 1am.",
     status: "confirmed",
     price: 1200,
-    priority: "premium_priority",
+    priority: "standard",
     created_at: "2026-09-28T14:10:00Z",
   },
 ];

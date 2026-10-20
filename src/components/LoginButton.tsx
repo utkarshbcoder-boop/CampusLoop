@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { signInWithGoogle, signOutUser } from "@/lib/firebase/auth";
@@ -32,9 +33,12 @@ export function LoginButton() {
             className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-white/20 hover:bg-white/8"
           >
             {user.photoURL ? (
-              <img
+              <Image
                 src={user.photoURL}
                 alt=""
+                width={24}
+                height={24}
+                unoptimized
                 className="h-6 w-6 rounded-full"
                 referrerPolicy="no-referrer"
               />

@@ -28,10 +28,13 @@ export interface Toast {
 
 interface CampusLoopState {
   saved: string[];
+  hydrated: boolean;
   toggleSave: (id: string) => void;
   isSaved: (id: string) => boolean;
   premium: boolean;
   setPremium: (value: boolean) => void;
+  feeFreeSalesUsed: number;
+  recordFeeFreeSale: () => boolean;
   toasts: Toast[];
   pushToast: (toast: Omit<Toast, "id">) => void;
   dismissToast: (id: string) => void;
@@ -46,6 +49,17 @@ const Context = createContext<CampusLoopState | null>(null);
 const SAVED_KEY = "campusloop:saved";
 const PREMIUM_KEY = "campusloop:premium";
 const ACTIONS_KEY = "campusloop:actions";
+const FEE_FREE_SALES_KEY = "campusloop:fee-free-sales";
+
+interface MonthlySalesUsage {
+  month: string;
+  used: number;
+}
+
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -60,6 +74,7 @@ function readJson<T>(key: string, fallback: T): T {
 export function CampusLoopProvider({ children }: { children: ReactNode }) {
   const [saved, setSaved] = useState<string[]>([]);
   const [premium, setPremiumState] = useState(false);
+  const [feeFreeSalesUsed, setFeeFreeSalesUsed] = useState(0);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [actions, setActions] = useState<Record<string, string>>({});
   const [hydrated, setHydrated] = useState(false);
@@ -68,6 +83,8 @@ export function CampusLoopProvider({ children }: { children: ReactNode }) {
     setSaved(readJson<string[]>(SAVED_KEY, []));
     setPremiumState(readJson<boolean>(PREMIUM_KEY, false));
     setActions(readJson<Record<string, string>>(ACTIONS_KEY, {}));
+    const salesUsage = readJson<MonthlySalesUsage | null>(FEE_FREE_SALES_KEY, null);
+    setFeeFreeSalesUsed(salesUsage?.month === currentMonthKey() ? salesUsage.used : 0);
     setHydrated(true);
   }, []);
 
@@ -99,6 +116,14 @@ export function CampusLoopProvider({ children }: { children: ReactNode }) {
     },
     [persist],
   );
+
+  const recordFeeFreeSale = useCallback(() => {
+    if (!premium || feeFreeSalesUsed >= 3) return false;
+    const next = feeFreeSalesUsed + 1;
+    setFeeFreeSalesUsed(next);
+    persist(FEE_FREE_SALES_KEY, { month: currentMonthKey(), used: next } satisfies MonthlySalesUsage);
+    return true;
+  }, [feeFreeSalesUsed, persist, premium]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -134,10 +159,13 @@ export function CampusLoopProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CampusLoopState>(
     () => ({
       saved,
+      hydrated,
       toggleSave,
       isSaved,
       premium,
       setPremium,
+      feeFreeSalesUsed,
+      recordFeeFreeSale,
       toasts,
       pushToast,
       dismissToast,
@@ -145,7 +173,7 @@ export function CampusLoopProvider({ children }: { children: ReactNode }) {
       setAction,
       hasAction,
     }),
-    [saved, toggleSave, isSaved, premium, setPremium, toasts, pushToast, dismissToast, actions, setAction, hasAction],
+    [saved, hydrated, toggleSave, isSaved, premium, setPremium, feeFreeSalesUsed, recordFeeFreeSale, toasts, pushToast, dismissToast, actions, setAction, hasAction],
   );
 
   return (

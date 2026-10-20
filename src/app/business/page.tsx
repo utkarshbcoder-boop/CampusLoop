@@ -136,10 +136,11 @@ export default async function BusinessPage() {
 
           <div className="flex flex-col gap-4">
             <div className="cl-panel p-5">
-              <h3 className="text-base font-semibold text-white">1 · Students — free, then ₹49–99/month</h3>
+              <h3 className="text-base font-semibold text-white">1 · Students — free, then ₹99/month or ₹49/semester</h3>
               <p className="mt-2 text-sm leading-relaxed text-white/60">
-                The base is free forever. Premium removes caps: boosted listings, unlimited matches, priority service slots,
-                AI skill insights. At {platformStats.premium_conversion_pct}% of{" "}
+                Browse and list rooms, PG rentals, second-hand devices and used books for free. Premium adds optional
+                listing boosts, no seller fee on the first three sales each month, a Premium seller badge and priority
+                support. At {platformStats.premium_conversion_pct}% of{" "}
                 {platformStats.students_onboarded.toLocaleString("en-IN")} students, that is roughly{" "}
                 {Math.round((platformStats.students_onboarded * platformStats.premium_conversion_pct) / 100).toLocaleString("en-IN")}{" "}
                 paying students, or about{" "}
@@ -269,13 +270,11 @@ export default async function BusinessPage() {
         <div className="mt-10 grid gap-4 lg:grid-cols-2">
           <Callout title="Why commission, not ads, is the core" tone="brand">
             Ads scale but they poison the ranking. Commission scales with student benefit — we only earn when a transaction
-            actually helps someone. The two premium surfaces that do affect ranking (boosted listings, priority slots) are
-            clearly marked and only available to paying students, never to advertisers.
+            actually helps someone. Premium listing boosts are clearly labeled and do not change organic search results.
           </Callout>
           <Callout title="Honest weakness" tone="flare">
-            Commission is thin and a 2.5% take-rate marketplace needs volume. Our answer is that CampusLoop is not really a
-            marketplace — it is the campus OS, and marketplace GMV is a by-product of daily use. If we ever become only a
-            marketplace, the commission alone will not carry the business.
+            Commission is thin and a 2.5% take-rate marketplace needs volume. CampusLoop depends on useful, fairly priced
+            campus room, PG, book and device listings and repeat transactions to make the marketplace sustainable.
           </Callout>
         </div>
       </Section>

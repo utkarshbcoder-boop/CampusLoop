@@ -15,7 +15,6 @@ import {
   orderBy,
   where,
   type QueryConstraint,
-  doc,
 } from "firebase/firestore";
 import { db } from "./config";
 
@@ -32,6 +31,7 @@ export function useCollection<T extends { id: string }>(
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const whereValueKey = JSON.stringify(constraints?.whereValue);
 
   useEffect(() => {
     const qConstraints: QueryConstraint[] = [];
@@ -69,49 +69,8 @@ export function useCollection<T extends { id: string }>(
     constraints?.orderDirection,
     constraints?.whereField,
     // Serialise the where value so the effect re-runs when it changes
-    JSON.stringify(constraints?.whereValue),
+    whereValueKey,
   ]);
-
-  return { data, loading, error };
-}
-
-/** Subscribe to a single Firestore document. */
-export function useDocument<T extends { id: string }>(
-  collectionName: string,
-  docId: string | null,
-): { data: T | null; loading: boolean; error: string | null } {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!docId) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-
-    const ref = doc(db, collectionName, docId);
-    const unsubscribe = onSnapshot(
-      ref,
-      (snap) => {
-        if (snap.exists()) {
-          setData({ id: snap.id, ...snap.data() } as T);
-        } else {
-          setData(null);
-        }
-        setLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error(`Firestore doc error [${collectionName}/${docId}]:`, err);
-        setError(err.message);
-        setLoading(false);
-      },
-    );
-
-    return unsubscribe;
-  }, [collectionName, docId]);
 
   return { data, loading, error };
 }

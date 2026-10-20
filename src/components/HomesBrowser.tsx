@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { SaveButton } from "@/components/Actions";
 import { PinIcon } from "@/components/Icon";
 import { rupees } from "@/lib/format";
 import { HOME_TYPE_LABELS, type Home, type HomeType } from "@/lib/data/homes";
@@ -81,14 +82,17 @@ export function HomesBrowser({ homes }: { homes: Home[] }) {
               <div className="flex items-center gap-3 text-xs text-white/55">
                 <span>{h.beds} bed</span>·<span>{h.baths} bath</span>·<span>{h.furnished}</span>
               </div>
-              <div className="mt-auto flex items-center justify-between border-t border-white/8 pt-3">
+              <div className="mt-auto flex items-center justify-between gap-2 border-t border-white/8 pt-3">
                 <p className="text-lg font-bold text-white">
                   {rupees(h.price)}
                   {h.mode === "rent" ? <span className="text-xs font-normal text-white/45">/mo</span> : null}
                 </p>
-                <Link href={h.mode === "rent" ? "/homes" : "/sell"} className="cl-btn cl-btn-ghost px-3 py-1.5 text-xs">
-                  {h.mode === "rent" ? "Contact" : "Make offer"}
-                </Link>
+                <div className="relative z-10 flex items-center gap-2">
+                  <SaveButton id={`home:${h.id}`} label="Star" className="px-2.5 py-1.5 text-xs" />
+                  <Link href={h.mode === "rent" ? "/homes" : "/sell"} className="cl-btn cl-btn-ghost px-3 py-1.5 text-xs">
+                    {h.mode === "rent" ? "Contact" : "Make offer"}
+                  </Link>
+                </div>
               </div>
               <p className="text-[11px] text-white/35">
                 Available {h.available} · Listed by {h.owner}

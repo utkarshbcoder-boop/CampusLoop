@@ -1,58 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PremiumToggleButton } from "@/components/Actions";
-import { Callout, PageHeader, Section, Stat, TagList } from "@/components/ui";
+import { Callout, PageHeader, Section, Stat } from "@/components/ui";
 import { CheckIcon, CloseIcon, SparkIcon, StarIcon } from "@/components/Icon";
 
 import { pricingPlans } from "@/lib/data/business";
-import { NAV_MODULES } from "@/lib/nav";
+import { PREMIUM_ADDS } from "@/lib/premium";
 
 export const metadata: Metadata = {
   title: "CampusLoop Premium",
   description:
-    "Free forever for the basics that matter. Premium at ₹49–99 a month adds boosted listings, unlimited roommate matches, priority service booking and AI skill insights.",
+    "CampusLoop Premium adds boosted listings for room and PG rentals, second-hand devices and used books, plus seller benefits.",
 };
 
 const FREE_INCLUDES = [
-  "Unlimited marketplace listings — buy, sell and rent",
-  "Up to 5 roommate matches a day",
-  "Full event feed and RSVP",
-  "Browse every verified campus service",
-  "Browse all internships and opportunities",
-  "Basic match scores",
-];
-
-const PREMIUM_ADDS = [
-  {
-    title: "Boosted listings",
-    body: "Your book or gear appears at the top of its category for 7 days. On a campus with 400 students selling the same three textbooks, position is the whole game.",
-    icon: "🚀",
-  },
-  {
-    title: "Unlimited roommate & teammate matches",
-    body: "The free tier caps you at 5 matches a day. If your hostel search has not worked by week three, the cap is the problem, not the algorithm.",
-    icon: "🏠",
-  },
-  {
-    title: "Priority service booking",
-    body: "Emergency AC slots and same-day plumbing jump the queue. Providers see Premium requests first.",
-    icon: "🛠️",
-  },
-  {
-    title: "AI skill insights",
-    body: "A read on which skills are actually in demand on your campus this placement season, and the two credits you should earn next to unlock the most openings.",
-    icon: "🎯",
-  },
-  {
-    title: "Fee-free selling",
-    body: "Premium sellers pay zero commission on the first three sales every month. Students should not lose 8% of a ₹150 book sale.",
-    icon: "💸",
-  },
-  {
-    title: "Verified badge & priority support",
-    body: "A trust badge on your profile, plus a support queue that answers within a day.",
-    icon: "🛡️",
-  },
+  "Browse and list rooms and PG rentals",
+  "Buy and sell second-hand devices",
+  "Buy and sell used books",
+  "Standard listing visibility",
+  "Browse without Premium; saving favorites requires Premium",
 ];
 
 export default function PremiumPage() {
@@ -62,16 +28,24 @@ export default function PremiumPage() {
     <>
       <PageHeader
         eyebrow="Revenue model · B2C"
-        title="Free for the basics. Paid for the things that save you a semester."
-        description="CampusLoop is free for every student to join, list, sell and discover. Premium exists for one reason: to remove the artificial limits that stop a motivated student from finding a room or selling a stack of books."
+        title="Campus rentals and second-hand finds, all in one place."
+        description="Browse and list rooms and PG rentals, second-hand devices, and used books for free. Premium adds optional seller tools to help your listings stand out."
       >
-        <PremiumToggleButton />
+        <PremiumToggleButton
+          priceLabel={`₹${premiumPlan?.price_monthly ?? 99} / month · ${premiumPlan?.price_note ?? "semester pass available"}`}
+        />
       </PageHeader>
 
       <Section className="pt-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat value="₹0" label="To join" sublabel="No card, no college email gate that locks people out" />
-          <Stat value="₹49–99" label="Premium, per month" sublabel="Priced at roughly one pizza a month" tone="flare" icon={<StarIcon width={20} height={20} />} />
+          <Stat
+            value={`₹${premiumPlan?.price_monthly ?? 99}`}
+            label="Premium, per month"
+            sublabel={premiumPlan?.price_note ?? "Semester pass available"}
+            tone="flare"
+            icon={<StarIcon width={20} height={20} />}
+          />
           <Stat value="8%" label="Commission" sublabel="Charged to the seller, never added to the buyer" tone="mint" />
           <Stat value="12%" label="Target attach rate" sublabel="Our planning assumption, not a measured figure" tone="flare" />
         </div>
@@ -79,7 +53,7 @@ export default function PremiumPage() {
         <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.15fr]">
           <div className="cl-panel cl-panel-solid flex flex-col p-6">
             <h2 className="text-lg font-bold text-white">Free — forever</h2>
-            <p className="mt-1.5 text-sm text-white/50">Everything a student needs to take part.</p>
+            <p className="mt-1.5 text-sm text-white/50">Browse and post marketplace listings without paying.</p>
             <p className="mt-5 text-4xl font-black tracking-tight text-white">₹0</p>
             <ul className="mt-6 flex flex-col gap-3">
               {FREE_INCLUDES.map((item) => (
@@ -103,13 +77,17 @@ export default function PremiumPage() {
               <div className="flex items-center gap-2">
                 <SparkIcon width={18} height={18} className="text-flare-400" />
                 <h2 className="text-lg font-bold text-white">Premium</h2>
-                <span className="cl-chip cl-chip-flare">₹49 student · ₹99 power user</span>
+                <span className="cl-chip cl-chip-flare">
+                  ₹{premiumPlan?.price_monthly ?? 99}/month · {(premiumPlan?.price_note ?? "semester pass available").replace(/^or /, "")}
+                </span>
               </div>
               <p className="mt-1.5 text-sm text-white/50">
                 {premiumPlan ? premiumPlan.tagline : "For the student who is actually hunting for a room."}
               </p>
-              <p className="mt-5 text-4xl font-black tracking-tight text-white">₹49</p>
-              <p className="text-xs text-white/40">per month · cancel in two taps</p>
+              <p className="mt-5 text-4xl font-black tracking-tight text-white">₹{premiumPlan?.price_monthly ?? 99}</p>
+              <p className="text-xs text-white/40">
+                per month · {premiumPlan?.price_note ?? "semester pass available"}
+              </p>
 
               <div className="mt-6 flex flex-col gap-4">
                 {PREMIUM_ADDS.map((f) => (
@@ -129,22 +107,13 @@ export default function PremiumPage() {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">Premium across all nine modules</h2>
+          <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">Built for campus rentals and resale</h2>
           <p className="mt-2 text-sm text-white/50">
-            One subscription, one login, and every module knows you are a paying student.
+            Find or list a room or PG, pass on a used book, or sell a second-hand device. Core browsing and listing stay free.
           </p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {NAV_MODULES.map((m) => (
-              <div key={m.href} className="cl-panel p-4">
-                <div className="flex items-center gap-2">
-                  <span aria-hidden>{m.emoji}</span>
-                  <Link href={m.href} className="text-sm font-semibold text-white hover:text-brand-200">
-                    {m.label}
-                  </Link>
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-white/50">{m.blurb}</p>
-              </div>
-            ))}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/homes" className="cl-btn cl-btn-ghost">Browse rooms & PGs</Link>
+            <Link href="/books" className="cl-btn cl-btn-ghost">Browse used books</Link>
           </div>
         </div>
 
@@ -161,12 +130,12 @@ export default function PremiumPage() {
           <Callout title="What we will not do" tone="flare">
             <span className="inline-flex items-center gap-1.5">
               <CloseIcon width={13} height={13} className="text-rose-400" />
-              No selling your data to recruiters without an explicit opt-in
+              No hidden or misleading promoted listings
             </span>
             <br />
             <span className="mt-2 inline-flex items-center gap-1.5">
               <CloseIcon width={13} height={13} className="text-rose-400" />
-              No paid placement inside a score breakdown
+              No charge to browse rooms, PGs, books, or devices
             </span>
             <br />
             <span className="mt-2 inline-flex items-center gap-1.5">
@@ -176,20 +145,6 @@ export default function PremiumPage() {
           </Callout>
         </div>
 
-        <div className="mt-10 cl-panel p-5">
-          <p className="text-xs font-medium tracking-wide text-white/40 uppercase">Skills on your profile today</p>
-          <div className="mt-3">
-            <TagList tags={["react", "typescript", "python", "sql", "figma"]} tone="brand" />
-          </div>
-          <p className="mt-3 text-xs text-white/45">
-            Premium turns this list into a plan: which of these are priced highest on your campus right now, and what the
-            skill exchange can teach you for one credit.{" "}
-            <Link href="/books" className="text-brand-300">
-              Browse used books
-            </Link>
-            .
-          </p>
-        </div>
       </Section>
     </>
   );

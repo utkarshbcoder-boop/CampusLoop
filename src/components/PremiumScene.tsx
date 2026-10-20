@@ -78,8 +78,7 @@ export function PremiumScene({ compact = false }: { compact?: boolean }) {
           </h1>
 
           <p className={`mx-auto mt-4 max-w-2xl leading-relaxed text-white/60 ${compact ? "text-xs sm:text-sm" : "text-base sm:text-lg"}`} style={{ transform: "translateZ(40px)" }}>
-            Unlimited roommate matches, boosted listings, priority bookings and AI skill insights — everything
-            CampusLoop charges for, priced at one pizza a month.
+            Boost room and PG rentals, second-hand devices, and used-book listings. Browsing and standard listings stay free.
           </p>
 
           {/* Floating 3D card */}

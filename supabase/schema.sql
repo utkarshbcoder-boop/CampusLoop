@@ -162,199 +162,11 @@ create index pg_rent_idx    on pg_listings(rent);
 
 
 
--- ---------------------------------------------------------------------
--- 6. Skills exchange (time banking, 1 credit = 1 hour taught)
--- ---------------------------------------------------------------------
 
-create table skill_profiles (
-  id                 text primary key,
-  title              text not null,
-  kind               text not null check (kind in ('teaching', 'learning')),
-  category           text not null,
-  level              text not null,
-  description        text not null default '',
-  tags               text[] not null default '{}',
-  credit_rate        int not null default 1,
-  sessions_completed int not null default 0,
-  rating             numeric(2,1) not null default 0,
-  review_count       int not null default 0,
-  college_id         text not null references colleges(id) on delete cascade,
-  owner_id           text not null references profiles(id) on delete cascade,
-  remote_ok          boolean not null default true,
-  slots              text[] not null default '{}',
-  hue                int not null default 220,
-  emoji              text not null default '',
-  created_at         timestamptz not null default now()
-);
 
-create index skills_college_idx on skill_profiles(college_id);
 
--- ---------------------------------------------------------------------
--- 7. Campus events
--- ---------------------------------------------------------------------
 
-create table campus_events (
-  id          text primary key,
-  title       text not null,
-  category    text not null,
-  description text not null default '',
-  starts_at   timestamptz not null,
-  ends_at     timestamptz not null,
-  venue       text not null,
-  college_id  text not null references colleges(id) on delete cascade,
-  club        text not null default '',
-  price       int not null default 0,
-  free        boolean not null default true,
-  capacity    int not null default 100,
-  rsvp_count  int not null default 0,
-  tags        text[] not null default '{}',
-  hue         int not null default 220,
-  emoji       text not null default '',
-  created_at  timestamptz not null default now()
-);
 
-create index events_college_idx on campus_events(college_id, starts_at);
-
--- ---------------------------------------------------------------------
--- 8. Verified campus services
--- ---------------------------------------------------------------------
-
-create table campus_services (
-  id                text primary key,
-  name              text not null,
-  category          text not null,
-  provider_name     text not null,
-  provider_since    int not null default 2020,
-  college_id        text not null references colleges(id) on delete cascade,
-  rating            numeric(2,1) not null default 0,
-  review_count      int not null default 0,
-  jobs_completed    int not null default 0,
-  base_price        int not null check (base_price > 0),
-  pricing_unit      service_pricing_unit not null default 'visit',
-  turnaround_hours  int not null default 24,
-  verified          boolean not null default false,
-  description       text not null default '',
-  serviceable_areas text[] not null default '{}',
-  guarantee         text not null default '',
-  slots             text[] not null default '{}',
-  premium_only      boolean not null default false,
-  hue               int not null default 220,
-  emoji             text not null default '',
-  created_at        timestamptz not null default now()
-);
-
-create index services_college_idx on campus_services(college_id, category);
-
-create table service_bookings (
-  id           text primary key,
-  service_id   text not null references campus_services(id) on delete cascade,
-  service_name text not null,
-  student_id   text not null references profiles(id) on delete cascade,
-  student_name text not null,
-  date         date not null,
-  slot         text not null,
-  address      text not null,
-  issue        text not null default '',
-  status       booking_status not null default 'requested',
-  amount       int not null default 0,
-  created_at   timestamptz not null default now()
-);
-
-create index bookings_student_idx on service_bookings(student_id, status);
-
--- ---------------------------------------------------------------------
--- 9. Internships, hackathons, scholarships, part-time work
--- ---------------------------------------------------------------------
-
-create table opportunities (
-  id               text primary key,
-  title            text not null,
-  type             opportunity_type not null,
-  company          text not null,
-  company_initials text not null default '',
-  college_id       text references colleges(id) on delete set null,
-  city             text not null default '',
-  mode             work_mode not null default 'onsite',
-  monthly_pay      int not null default 0,
-  award_value      int not null default 0,
-  deadline         date not null,
-  description      text not null default '',
-  skills           text[] not null default '{}',
-  eligibility      eligibility not null default 'all_branches',
-  min_cgpa         numeric(2,1),
-  openings         int not null default 1,
-  posted_at        timestamptz not null default now(),
-  sponsored        boolean not null default false,
-  verified_company boolean not null default false,
-  applicants       int not null default 0,
-  tags             text[] not null default '{}'
-);
-
-create index opps_type_idx     on opportunities(type, deadline);
-create index opps_college_idx  on opportunities(college_id);
-
--- ---------------------------------------------------------------------
--- 10. Match ledger — persists scores so they can be audited later
--- ---------------------------------------------------------------------
-
-create table matches (
-  id           text primary key,
-  domain       text not null check (domain in ('teammate', 'roommate', 'skills', 'items', 'services', 'events')),
-  profile_id   text not null references profiles(id) on delete cascade,
-  target_id    text not null,
-  score        int not null check (score between 0 and 100),
-  breakdown    jsonb not null default '[]'::jsonb,
-  engine       text not null default 'campusloop-scorer-v1',
-  computed_at  timestamptz not null default now()
-);
-
-create index matches_profile_idx on matches(profile_id, domain, score desc);
-
--- ---------------------------------------------------------------------
--- Business model: transactions, subscriptions, sponsorships
--- ---------------------------------------------------------------------
-
-create table transactions (
-  id               text primary key,
-  kind             transaction_kind not null,
-  description      text not null,
-  amount           int not null,
-  platform_revenue int not null,
-  payer            text not null,
-  payee            text not null,
-  college_id       text references colleges(id) on delete set null,
-  occurred_at      timestamptz not null default now()
-);
-
-create index transactions_kind_idx on transactions(kind, occurred_at desc);
-
-create table college_subscriptions (
-  id             text primary key,
-  college_id     text not null references colleges(id) on delete cascade,
-  plan           college_plan not null,
-  mrr            int not null default 0,
-  active_students int not null default 0,
-  status         text not null default 'active' check (status in ('active', 'trial', 'past_due')),
-  features       text[] not null default '{}',
-  started_at     timestamptz not null default now(),
-  renews_at      timestamptz not null
-);
-
-create table sponsorships (
-  id             text primary key,
-  brand          text not null,
-  brand_initials text not null default '',
-  college_id     text not null references colleges(id) on delete cascade,
-  campaign       text not null,
-  format         sponsorship_format not null,
-  budget         int not null default 0,
-  impressions    int not null default 0,
-  clicks         int not null default 0,
-  ctr            numeric(5,2) not null default 0,
-  status         campaign_status not null default 'scheduled',
-  starts_at      timestamptz not null,
-  ends_at        timestamptz not null
-);
 
 -- ---------------------------------------------------------------------
 -- Row Level Security
@@ -365,23 +177,11 @@ create table sponsorships (
 
 alter table profiles enable row level security;
 alter table listings enable row level security;
-alter table equipment enable row level security;
 alter table pg_listings enable row level security;
-alter table teammate_posts enable row level security;
-alter table skill_profiles enable row level security;
-alter table campus_events enable row level security;
-alter table campus_services enable row level security;
-alter table opportunities enable row level security;
 
 create policy "profiles are public"   on profiles for select using (true);
 create policy "listings are public"   on listings for select using (true);
-create policy "equipment is public"   on equipment for select using (true);
 create policy "rooms are public"      on pg_listings for select using (true);
-create policy "team posts are public" on teammate_posts for select using (true);
-create policy "skills are public"     on skill_profiles for select using (true);
-create policy "events are public"     on campus_events for select using (true);
-create policy "services are public"   on campus_services for select using (true);
-create policy "opportunities are public" on opportunities for select using (true);
 
 -- Production: a student may only edit their own profile.
 -- create policy "own profile only" on profiles for update using (auth.uid() = id);
@@ -394,18 +194,6 @@ create policy "opportunities are public" on opportunities for select using (true
 -- Useful views
 -- ---------------------------------------------------------------------
 
--- Monthly platform revenue by line, for the /business dashboard.
-create or replace view platform_revenue_by_kind as
-select
-  kind,
-  date_trunc('month', occurred_at) as month,
-  sum(amount)           as gross_volume,
-  sum(platform_revenue) as platform_revenue,
-  count(*)              as transactions
-from transactions
-group by kind, date_trunc('month', occurred_at)
-order by month desc, platform_revenue desc;
-
 -- Engagement per college, for the /college admin dashboard.
 create or replace view college_engagement as
 select
@@ -414,22 +202,6 @@ select
   c.short_name,
   (select count(*) from profiles p where p.college_id = c.id)                as members,
   (select count(*) from listings l where l.college_id = c.id and l.status = 'available') as live_listings,
-  (select count(*) from equipment e where e.college_id = c.id)               as equipment_listings,
-  (select count(*) from pg_listings r where r.college_id = c.id)             as room_listings,
-  (select count(*) from teammate_posts t where t.college_id = c.id)          as team_posts,
-  (select count(*) from skill_profiles s where s.college_id = c.id)          as skill_profiles,
-  (select count(*) from campus_services sv where sv.college_id = c.id and sv.verified) as verified_services
+  (select count(*) from pg_listings r where r.college_id = c.id)             as room_listings
 from colleges c
 order by members desc;
-
--- Opportunities a student is actually eligible for.
-create or replace view eligible_opportunities as
-select
-  o.*,
-  p.name as student_name,
-  p.branch,
-  p.year_of_study,
-  (o.eligibility <> 'final_year' or p.year_of_study >= 4) as year_ok
-from opportunities o
-cross join profiles p
-where p.college_id = o.college_id or o.college_id is null;

@@ -320,15 +320,15 @@ export default async function LandingPage() {
       <Section className="border-t border-white/8">
         <SectionHeading
           eyebrow="How it makes money"
-          title="Students pay ₹49. The campus pays more."
-          description="Student Premium at ₹49–99 a month is the wedge, not the business. The revenue engine is marketplace commissions from sellers, college SaaS licences, and brand sponsorships sold into a captive, verified campus audience."
+          title="Students sell and rent on campus."
+          description="CampusLoop keeps browsing and standard listings free. Optional Premium seller tools support campus room and PG rentals, used books, and second-hand devices."
         />
         <div className="grid gap-4 lg:grid-cols-3">
           {[
             {
               icon: <StarIcon width={20} height={20} />,
-              title: "Student Premium · ₹49–99/mo",
-              body: "Unlimited roommate matches, full score breakdowns, boosted listings and priority service booking. Around 6% of active students convert, and they churn slowly because the roommate and team matches keep paying off.",
+              title: "Student Premium · ₹99/mo or ₹49/semester",
+              body: "Premium adds optional 7-day listing boosts, no seller fee on the first three sales each month, a Premium seller badge and priority support for campus rentals and second-hand listings.",
               tone: "brand" as const,
             },
             {

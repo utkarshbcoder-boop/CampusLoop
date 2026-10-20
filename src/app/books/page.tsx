@@ -123,9 +123,9 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
               "Drag the price slider to find your budget."
             )}
           </p>
-          <GhostLink href="/equipment" className="text-xs">
+          <GhostLink href="/sell?type=device" className="text-xs">
             <BoltIcon width={14} height={14} />
-            Not sure what you need? Browse equipment
+            Got old gear to clear out? Sell a second-hand device
           </GhostLink>
         </div>
 

@@ -17,7 +17,7 @@ export function SiteHeader(_props: {
   colleges: College[];
 }) {
   const pathname = usePathname();
-  const { premium, setPremium } = useCampusLoop();
+  const { premium, hydrated } = useCampusLoop();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -133,6 +133,11 @@ export function SiteHeader(_props: {
               <StarIcon width={14} height={14} />
               Go Premium
             </Link>
+            {hydrated && premium ? (
+              <span className="hidden items-center gap-1 rounded-full border border-flare-400/35 bg-flare-500/10 px-2.5 py-1 text-[11px] font-semibold text-flare-200 lg:inline-flex">
+                🛡️ Verified seller
+              </span>
+            ) : null}
 
             <ThemeToggle />
             <LoginButton />
@@ -218,14 +223,13 @@ export function SiteHeader(_props: {
                   {link.label}
                 </Link>
               ))}
-              <button
-                type="button"
-                onClick={() => setPremium(!premium)}
+              <Link
+                href="/premium"
                 className={cn("cl-btn justify-start", premium ? "cl-btn-flare" : "cl-btn-ghost")}
               >
                 <StarIcon width={15} height={15} />
-                {premium ? "Premium is on (demo)" : "Enable Premium demo"}
-              </button>
+                {premium ? "Manage Premium" : "See Premium benefits"}
+              </Link>
             </div>
           </div>
         </div>

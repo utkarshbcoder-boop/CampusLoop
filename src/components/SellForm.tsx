@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { BookIcon, HomeIcon, LaptopIcon } from "@/components/Icon";
 import { rupees } from "@/lib/format";
 import { useCampusLoop } from "@/lib/store";
@@ -14,13 +15,15 @@ const CONDITIONS = [
 ];
 
 export function SellForm({ initialKind }: { initialKind: "book" | "device" | "home" }) {
-  const { pushToast } = useCampusLoop();
+  const { premium, hydrated, feeFreeSalesUsed, recordFeeFreeSale, pushToast } = useCampusLoop();
   const [kind, setKind] = useState<"book" | "device" | "home">(initialKind);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState("good");
   const [address, setAddress] = useState("");
   const [done, setDone] = useState(false);
+  const [demoSaleRecorded, setDemoSaleRecorded] = useState(false);
+  const [supportRequested, setSupportRequested] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +31,8 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" | "ho
     setDone(true);
     pushToast({
       title: kind === "book" ? "Book listed" : kind === "device" ? "Device listed" : "Home listed",
-      body: `"${title.trim()}" for ${rupees(Number(price))} at ${address.trim()} is now live on CampusLoop. Students on your campus can buy it with escrow-backed handover. Demo mode — no real listing was created.`,
-      tone: "success",
+      body: `"${title.trim()}" for ${rupees(Number(price))} at ${address.trim()} is now live on CampusLoop.${premium ? " Premium demo: your listing boost is active for 7 days." : ""} Demo mode — no real listing was created.`,
+      tone: premium ? "premium" : "success",
     });
   };
 
@@ -40,13 +43,68 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" | "ho
         <p className="text-sm leading-relaxed text-white/60">
           &quot;{title}&quot; · {rupees(Number(price))} · {CONDITIONS.find((c) => c.value === condition)?.label} ·{" "}
           {address}. It will appear in the {kind === "book" ? "Books" : kind === "device" ? "Equipment" : "Homes"} feed
-          within a few minutes.
+          within a few minutes{premium ? " with your Premium 7-day listing boost" : ""}.
         </p>
+        {premium ? (
+          <div className="rounded-xl border border-flare-400/25 bg-flare-500/8 p-4">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold text-flare-200">
+              <span className="rounded-full border border-flare-400/30 px-2 py-0.5 text-[10px] uppercase">✓ Verified seller</span>
+              Seller benefits active
+            </p>
+            <p className="mt-2 text-xs text-white/55">
+              {demoSaleRecorded
+                ? `Demo sale recorded. ${3 - feeFreeSalesUsed} of 3 fee-free completed sales remain this month.`
+                : `${3 - feeFreeSalesUsed} of 3 fee-free completed sales remain this month.`}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={demoSaleRecorded || feeFreeSalesUsed >= 3 || !hydrated}
+                onClick={() => {
+                  if (!recordFeeFreeSale()) return;
+                  setDemoSaleRecorded(true);
+                  pushToast({
+                    title: "Demo sale recorded",
+                    body: "No seller commission was charged for this simulated sale. No real transaction took place.",
+                    tone: "premium",
+                  });
+                }}
+                className="cl-btn cl-btn-flare disabled:opacity-50"
+              >
+                {demoSaleRecorded ? "Demo sale recorded" : feeFreeSalesUsed >= 3 ? "Monthly fee-free sales used" : "Simulate completed sale"}
+              </button>
+              <button
+                type="button"
+                disabled={supportRequested}
+                onClick={() => {
+                  setSupportRequested(true);
+                  pushToast({
+                    title: "Priority seller support requested",
+                    body: "Demo mode — the request is not sent to a support team.",
+                    tone: "premium",
+                  });
+                }}
+                className="cl-btn cl-btn-ghost disabled:opacity-50"
+              >
+                {supportRequested ? "Support requested" : "Request priority support"}
+              </button>
+            </div>
+            <p className="mt-2 text-[10px] text-white/40">
+              Demo controls only. This preview does not create listings, sales, or real support tickets.
+            </p>
+          </div>
+        ) : (
+          <Link href="/premium" className="cl-btn cl-btn-flare self-start">
+            Upgrade for a 7-day boost and seller benefits
+          </Link>
+        )}
         <button
           type="button"
           className="cl-btn cl-btn-ghost self-start"
           onClick={() => {
             setDone(false);
+            setDemoSaleRecorded(false);
+            setSupportRequested(false);
             setTitle("");
             setPrice("");
             setAddress("");
@@ -60,6 +118,11 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" | "ho
 
   return (
     <form onSubmit={submit} className="cl-panel cl-panel-solid flex flex-col gap-4 p-6">
+      {premium ? (
+        <div className="rounded-xl border border-flare-400/25 bg-flare-500/8 p-3 text-xs text-flare-100">
+          <span className="inline-flex items-center gap-1.5"><span className="rounded-full border border-flare-400/30 px-1.5 py-0.5 text-[10px] uppercase">✓ Verified</span> Verified seller: this listing gets a 7-day boost. Your first 3 completed sales each month are fee-free.</span>
+        </div>
+      ) : null}
       <div className="grid grid-cols-3 gap-2">
         {(
           [
@@ -132,7 +195,14 @@ export function SellForm({ initialKind }: { initialKind: "book" | "device" | "ho
       <button type="submit" className="cl-btn cl-btn-primary justify-center">
         {kind === "book" ? "Sell my books" : kind === "device" ? "Sell my device" : "Sell / list my home"}
       </button>
-      <p className="text-xs text-white/40">CampusLoop takes no listing fee — we earn a small commission only when it sells.</p>
+      <p className="text-xs text-white/40">
+        No listing fee. Standard sale commission applies{premium ? " after your first 3 fee-free sales this month" : ""}.
+      </p>
+      {!premium ? (
+        <Link href="/premium" className="text-xs text-flare-200 hover:text-flare-100">
+          Verified sellers get 3 fee-free sales each month, listing boosts, and priority support
+        </Link>
+      ) : null}
     </form>
   );
 }

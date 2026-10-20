@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckIcon, HeartIcon, RepeatIcon, SparkIcon, StarIcon } from "@/components/Icon";
+import { CheckIcon, RepeatIcon, SparkIcon, StarIcon } from "@/components/Icon";
 import { rupees } from "@/lib/format";
 import { useCampusLoop } from "@/lib/store";
+import { PREMIUM_ADDS } from "@/lib/premium";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,24 +37,42 @@ export function SaveButton({
   label?: string;
   className?: string;
 }) {
-  const { isSaved, toggleSave, pushToast } = useCampusLoop();
+  const { premium, isSaved, toggleSave, pushToast } = useCampusLoop();
+  const router = useRouter();
   const saved = isSaved(id);
   return (
     <button
       type="button"
       onClick={() => {
+        if (!premium) {
+          pushToast({
+            title: "Save favorites with Premium",
+            body: "Upgrade to star and keep your favorite books, rooms, and PG listings saved.",
+            tone: "premium",
+          });
+          router.push("/premium");
+          return;
+        }
         toggleSave(id);
         pushToast({
-          title: saved ? "Removed from saved" : "Saved to your list",
-          body: saved ? "You can find it again any time from your profile." : "We will tell you if the price drops.",
-          tone: "info",
+          title: saved ? "Removed from favorites" : "Added to favorites",
+          body: saved
+            ? "This listing has been removed from your saved favorites."
+            : "This listing is saved in your Premium favorites.",
+          tone: "premium",
         });
       }}
-      className={cn("cl-btn cl-btn-ghost", saved && "border-rose-400/50 text-rose-200", className)}
-      aria-pressed={saved}
+      className={cn(
+        "cl-btn cl-btn-ghost",
+        saved && "border-flare-400/50 text-flare-200",
+        !premium && "border-flare-400/25 text-flare-200",
+        className,
+      )}
+      aria-pressed={premium ? saved : undefined}
+      aria-label={premium ? (saved ? "Remove from favorites" : "Add to favorites") : "Save favorites with Premium"}
     >
-      <HeartIcon width={15} height={15} />
-      {saved ? "Saved" : label}
+      <StarIcon width={15} height={15} className={saved ? "text-flare-300" : undefined} />
+      {premium ? (saved ? "Starred" : label) : "Premium"}
     </button>
   );
 }
@@ -94,23 +113,19 @@ export function BookServiceButton({
   serviceId,
   serviceName,
   price,
-  premiumOnly,
   defaultPrice,
 }: {
   serviceId: string;
   serviceName: string;
   price: number;
-  premiumOnly: boolean;
   defaultPrice?: number;
 }) {
   const { record, done } = useDemoAction("booking", serviceId);
-  const { premium } = useCampusLoop();
   const [open, setOpen] = useState(false);
   const [slot, setSlot] = useState("weekday_afternoon");
   const [address, setAddress] = useState("");
   const [issue, setIssue] = useState("");
 
-  const blocked = premiumOnly && !premium;
   const finalPrice = defaultPrice ?? price;
 
   if (done) {
@@ -130,28 +145,10 @@ export function BookServiceButton({
     );
   }
 
-  if (blocked) {
-    return (
-      <div className="cl-panel flex flex-col gap-2 border-flare-400/30 bg-flare-500/8 p-4">
-        <p className="flex items-center gap-1.5 text-sm font-semibold text-flare-300">
-          <StarIcon width={14} height={14} /> Premium booking required
-        </p>
-        <p className="text-xs leading-relaxed text-white/60">
-          {serviceName} is reserved for Premium members because response times on this service are the tightest in the
-          catalogue. Premium also unlocks priority slots and same-day booking.
-        </p>
-        <a href="/premium" className="cl-btn cl-btn-flare self-start">
-          See Premium benefits
-        </a>
-      </div>
-    );
-  }
-
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className="cl-btn cl-btn-primary">
         Book a slot · {rupees(finalPrice)}
-        {premium ? <span className="text-[10px] opacity-80">★ priority</span> : null}
       </button>
     );
   }
@@ -195,7 +192,7 @@ export function BookServiceButton({
             record(
               "booked",
               "Slot confirmed",
-              `${serviceName} · ${slot.replace("_", " ")} · ${rupees(finalPrice)}${premium ? " (priority)" : ""}. Demo mode — the seeded data layer records this in memory.`,
+              `${serviceName} · ${slot.replace("_", " ")} · ${rupees(finalPrice)}. Demo mode — the seeded data layer records this in memory.`,
               "success",
             );
             setOpen(false);
@@ -328,27 +325,105 @@ export function SkillExchangeButton({ skillId, title, creditRate }: { skillId: s
   );
 }
 
-export function PremiumToggleButton() {
+export function PremiumToggleButton({ priceLabel }: { priceLabel: string }) {
   const { premium, setPremium, pushToast } = useCampusLoop();
   const router = useRouter();
+  const [showPreview, setShowPreview] = useState(false);
+
+  function activatePremiumDemo() {
+    setPremium(true);
+    pushToast({
+      title: "Premium demo activated",
+      body: "Premium features are now enabled in this demo. No payment was taken and no subscription was started.",
+      tone: "premium",
+    });
+    setShowPreview(false);
+    router.refresh();
+  }
+
   return (
-    <button
-      type="button"
-      onClick={() => {
-        setPremium(!premium);
-        pushToast({
-          title: premium ? "Premium switched off" : "Premium switched on",
-          body: premium
-            ? "Back to free limits: 3 roommate matches a day, standard booking slots."
-            : "Unlimited roommate matches, boosted listings, priority booking and full score breakdowns are now active.",
-          tone: premium ? "info" : "premium",
-        });
-        router.refresh();
-      }}
-      className={cn("cl-btn", premium ? "cl-btn-flare" : "cl-btn-primary")}
-    >
-      <SparkIcon width={15} height={15} />
-      {premium ? "Premium is active" : "Activate Premium demo"}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          if (premium) {
+            setPremium(false);
+            pushToast({
+              title: "Premium switched off",
+              body: "Premium seller perks are off. Your listings remain active with standard visibility.",
+              tone: "info",
+            });
+            router.refresh();
+            return;
+          }
+          setShowPreview(true);
+        }}
+        className={cn("cl-btn", premium ? "cl-btn-flare" : "cl-btn-primary")}
+      >
+        <SparkIcon width={15} height={15} />
+        {premium ? "Premium is active" : "See benefits & continue"}
+      </button>
+
+      {showPreview ? (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="premium-preview-title"
+            aria-describedby="premium-preview-description"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setShowPreview(false);
+            }}
+            className="cl-panel cl-panel-solid w-full max-w-lg overflow-y-auto p-6"
+          >
+            <div className="flex items-start gap-3">
+              <SparkIcon width={20} height={20} className="mt-1 shrink-0 text-flare-400" />
+              <div>
+                <h2 id="premium-preview-title" className="text-xl font-bold text-white">
+                  Review your Premium benefits
+                </h2>
+                <p id="premium-preview-description" className="mt-1 text-sm text-white/55">
+                  Here is what is included before you continue.
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-5 rounded-xl border border-flare-400/25 bg-flare-500/8 p-3 text-sm font-semibold text-flare-200">
+              {priceLabel}
+            </p>
+
+            <ul className="mt-5 flex max-h-[45vh] flex-col gap-4 overflow-y-auto pr-1">
+              {PREMIUM_ADDS.map((benefit) => (
+                <li key={benefit.title} className="flex gap-3">
+                  <span aria-hidden className="text-lg">{benefit.icon}</span>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">{benefit.title}</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-white/55">{benefit.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-5 text-xs leading-relaxed text-white/45">
+              Demo only: continuing enables Premium in this browser. No payment is taken and no recurring subscription
+              starts.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setShowPreview(false)}
+                className="cl-btn cl-btn-ghost"
+              >
+                Not now
+              </button>
+              <button type="button" onClick={activatePremiumDemo} className="cl-btn cl-btn-flare">
+                Continue with Premium demo
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

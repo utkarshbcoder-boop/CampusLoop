@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { SaveButton } from "@/components/Actions";
 import { PinIcon, ClockIcon, StarIcon } from "@/components/Icon";
@@ -53,7 +53,12 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
             {titleCase(listing.status)}
           </span>
         ) : null}
-        {listing.boosted ? <span className="cl-chip cl-chip-flare">â˜… Boosted</span> : null}
+        {listing.boosted ? (
+          <>
+            <span className="cl-chip cl-chip-flare">Boosted</span>
+            <span className="cl-chip cl-chip-mint">Verified Seller</span>
+          </>
+        ) : null}
       </div>
 
       <p className="cl-line-clamp-2 px-4 pt-3 text-xs leading-relaxed text-white/50">{listing.description}</p>
@@ -219,9 +224,12 @@ export function PGCard({ pg, colleges }: { pg: PGListing; colleges: College[] })
               available {relativeDay(pg.available_from)}
             </p>
           </div>
-          <p className="border-t border-white/8 pt-3 text-[11px] text-white/40">
-            {pg.saves} students saved this Â· {pg.photos_count} photos
-          </p>
+          <div className="relative z-10 flex items-center justify-between gap-2 border-t border-white/8 pt-3">
+            <p className="text-[11px] text-white/40">
+              {pg.saves} students saved this · {pg.photos_count} photos
+            </p>
+            <SaveButton id={`pg:${pg.id}`} label="Star" className="px-2.5 py-1 text-xs" />
+          </div>
         </div>
       </div>
     </article>

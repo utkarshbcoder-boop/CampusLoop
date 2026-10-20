@@ -11,18 +11,8 @@ const ADMIN_NAV = [
   { href: "/admin/seed", label: "Seed Data", emoji: "🌱" },
   { href: "/admin/colleges", label: "Colleges", emoji: "🏛️" },
   { href: "/admin/profiles", label: "Profiles", emoji: "👤" },
-  { href: "/admin/listings", label: "Books", emoji: "📚" },
-  { href: "/admin/equipment", label: "Equipment", emoji: "💻" },
+  { href: "/admin/listings", label: "Books & Devices", emoji: "📚" },
   { href: "/admin/pg_listings", label: "PG & Rooms", emoji: "🏠" },
-  { href: "/admin/teammate_posts", label: "Teams", emoji: "🧑‍💻" },
-  { href: "/admin/skill_profiles", label: "Skills", emoji: "🎯" },
-  { href: "/admin/events", label: "Events", emoji: "🎤" },
-  { href: "/admin/services", label: "Services", emoji: "🛠️" },
-  { href: "/admin/opportunities", label: "Opportunities", emoji: "💼" },
-  { href: "/admin/transactions", label: "Transactions", emoji: "💰" },
-  { href: "/admin/subscriptions", label: "Subscriptions", emoji: "📋" },
-  { href: "/admin/sponsorships", label: "Sponsorships", emoji: "📣" },
-  { href: "/admin/notifications", label: "Notifications", emoji: "🔔" },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
