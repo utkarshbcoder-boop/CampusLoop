@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/firebase/auth";
+import { requestPasswordReset, signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/firebase/auth";
 
 function authErrorMessage(error: unknown, provider: "email" | "google"): string {
   const code = (error as { code?: string } | null)?.code;
@@ -28,6 +28,8 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [resetBusy, setResetBusy] = useState(false);
   const [keepMe, setKeepMe] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
@@ -44,6 +46,7 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
 
   const submit = async () => {
     setError(null);
+    setNotice(null);
     if (!email || !password) {
       setError("Enter your email and password.");
       return;
@@ -65,6 +68,30 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
       setError(authErrorMessage(e, "email"));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    setError(null);
+    setNotice(null);
+    if (!email.trim()) {
+      setError("Enter your email address first.");
+      return;
+    }
+
+    setResetBusy(true);
+    try {
+      await requestPasswordReset(email.trim());
+      setNotice("If an account exists for that email, Firebase will send a password reset link.");
+    } catch (e) {
+      const code = (e as { code?: string } | null)?.code;
+      setError(
+        code === "auth/invalid-email"
+          ? "Enter a valid email address."
+          : authErrorMessage(e, "email"),
+      );
+    } finally {
+      setResetBusy(false);
     }
   };
 
@@ -105,6 +132,16 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
           onKeyDown={(e) => e.key === "Enter" && submit()}
           className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 outline-none transition focus:border-brand-400/60"
         />
+        {mode === "signin" && (
+          <button
+            type="button"
+            onClick={resetPassword}
+            disabled={busy || resetBusy}
+            className="self-end text-xs text-brand-300 transition hover:text-brand-200 disabled:opacity-50"
+          >
+            {resetBusy ? "Sending reset link…" : "Forgot password?"}
+          </button>
+        )}
         <label className="mt-1 flex items-center gap-2 text-xs text-white/55 select-none cursor-pointer">
           <input
             type="checkbox"
@@ -130,6 +167,7 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
           {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
         {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
+        {notice && <p role="status" className="text-xs text-mint-300">{notice}</p>}
       </div>
 
       <div className="my-5 flex items-center gap-3 text-[11px] text-white/30 uppercase">

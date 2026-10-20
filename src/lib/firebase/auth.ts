@@ -11,6 +11,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   createUserWithEmailAndPassword,
   updateProfile,
   setPersistence,
@@ -44,6 +45,11 @@ export async function signInWithEmail(email: string, password: string, keepLogge
   await setPersistence(auth, keepLoggedIn ? browserLocalPersistence : browserSessionPersistence);
   const r = await signInWithEmailAndPassword(auth, email, password);
   return r.user;
+}
+
+/** Send a password reset email for an email/password account. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 /** Create a new account with email and password. */
