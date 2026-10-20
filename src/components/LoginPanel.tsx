@@ -3,6 +3,26 @@
 import { useState } from "react";
 import { signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/firebase/auth";
 
+function authErrorMessage(error: unknown, provider: "email" | "google"): string {
+  const code = (error as { code?: string } | null)?.code;
+
+  if (code === "auth/operation-not-allowed") {
+    const method = provider === "email" ? "Email/Password" : "Google";
+    return `${method} sign-in is disabled for this Firebase project. Enable it in Firebase Console → Authentication → Sign-in method.`;
+  }
+  if (code === "auth/email-already-in-use") {
+    return "This email already has an account. Sign in — or use Continue with Google.";
+  }
+  if (code === "auth/user-not-found" || code === "auth/invalid-credential" || code === "auth/wrong-password") {
+    return "Wrong email or password.";
+  }
+  if (code === "auth/weak-password") {
+    return "Password should be at least 6 characters.";
+  }
+
+  return error instanceof Error ? error.message : "Sign-in failed. Try again.";
+}
+
 export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,18 +62,7 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
       }
       markVisited();
     } catch (e) {
-      const code = (e as { code?: string }).code;
-      if (code === "auth/email-already-in-use") {
-        setError("This email already has an account. Sign in — or use Continue with Google.");
-      } else if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
-        setError("Wrong email or password.");
-      } else if (code === "auth/wrong-password") {
-        setError("Wrong password.");
-      } else if (code === "auth/weak-password") {
-        setError("Password should be at least 6 characters.");
-      } else {
-        setError(e instanceof Error ? e.message : "Sign-in failed. Try again.");
-      }
+      setError(authErrorMessage(e, "email"));
     } finally {
       setBusy(false);
     }
@@ -120,7 +129,7 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
         >
           {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
         </button>
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
       </div>
 
       <div className="my-5 flex items-center gap-3 text-[11px] text-white/30 uppercase">
@@ -141,7 +150,7 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
             if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
               setError(null);
             } else {
-              setError(`Google sign-in failed${code ? ` (${code})` : ""}. Try again.`);
+              setError(authErrorMessage(e, "google"));
               console.error(e);
             }
           } finally {
