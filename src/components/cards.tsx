@@ -35,7 +35,7 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="cl-line-clamp-2 text-sm leading-snug font-semibold text-white">
-              <Link href={`/books/${listing.id}`} className="after:absolute after:inset-0">
+              <Link href={listing.item_type === "device" ? `/devices/${listing.id}` : `/books/${listing.id}`} className="after:absolute after:inset-0">
                 {listing.title}
               </Link>
             </h3>

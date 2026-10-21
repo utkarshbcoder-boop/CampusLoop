@@ -48,6 +48,7 @@ export const NAV_MODULES: NavModule[] = [
 ];
 
 export const UTILITY_LINKS = [
+  { href: "/my-listings", label: "My Listings", emoji: "📋" },
   { href: "/college", label: "For Colleges", emoji: "🏛️" },
   { href: "/saved", label: "Saved", emoji: "⭐" },
   { href: "/premium", label: "Premium", emoji: "⭐" },

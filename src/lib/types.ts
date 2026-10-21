@@ -105,11 +105,14 @@ export interface Profile {
 /* ------------------------------------------------------------------ */
 
 export type ListingKind = "sell" | "buy" | "rent";
+export type MarketplaceItemType = "book" | "device";
 export type BookCondition = "like_new" | "good" | "fair" | "heavy_notes";
 export type ListingStatus = "available" | "reserved" | "sold";
 
 export interface Listing {
   id: ID;
+  /** Missing on older seeded records; those are treated as book listings. */
+  item_type?: MarketplaceItemType;
   title: string;
   author: string;
   edition: string;
@@ -127,6 +130,7 @@ export interface Listing {
   deposit?: Rupee;
   seller_id: ID;
   college_id: ID;
+  pickup_location?: string;
   status: ListingStatus;
   description: string;
   highlights: string[];

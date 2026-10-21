@@ -8,7 +8,7 @@ import { rupees } from "@/lib/format";
 import { BOOK_SUBJECTS } from "@/lib/data/taxonomy";
 import { getColleges, getListings, parseListingFilters, type SearchParams } from "@/lib/queries";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Used Books Marketplace",

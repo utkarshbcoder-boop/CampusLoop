@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BoltIcon, FilterIcon, LaptopIcon } from "@/components/Icon";
 import { ActiveFilters, FilterBar, type FilterDef } from "@/components/FilterBar";
-import { EquipmentCard } from "@/components/cards";
+import { EquipmentCard, ListingCard } from "@/components/cards";
 import { EmptyState, GhostLink, PageHeader, Section } from "@/components/ui";
 import { EQUIPMENT_CATEGORIES } from "@/lib/data/equipmentCategories";
 import { rupees } from "@/lib/format";
-import { getColleges, getEquipment, parseEquipmentFilters, type SearchParams } from "@/lib/queries";
+import { getColleges, getEquipment, getSecondhandListings, parseEquipmentFilters, type SearchParams } from "@/lib/queries";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Campus Devices & Gear",
@@ -27,10 +27,11 @@ const SORTS = [
 export default async function DevicesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
   const filters = parseEquipmentFilters(params);
-  const [items, allItems, colleges] = await Promise.all([
+  const [items, allItems, colleges, resaleListings] = await Promise.all([
     getEquipment(filters),
     getEquipment({ q: "", category: "all", college: "all", maxDayRate: null, sort: "rate_asc" }),
     getColleges(),
+    getSecondhandListings("device"),
   ]);
   const cheapest = items.length ? Math.min(...items.map((item) => item.day_rate)) : 0;
 
@@ -182,6 +183,22 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
             List device or gear
           </Link>
         </div>
+      </Section>
+      <Section className="border-t border-white/8 py-12">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-white">Second-hand devices for sale</h2>
+            <p className="mt-1 text-sm text-white/50">Buy a device directly from a student on your campus.</p>
+          </div>
+          <Link href="/sell?type=device" className="cl-btn cl-btn-primary">Sell a device</Link>
+        </div>
+        {resaleListings.length ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {resaleListings.map((listing) => <ListingCard key={listing.id} listing={listing} colleges={colleges} />)}
+          </div>
+        ) : (
+          <EmptyState title="No second-hand devices listed yet" description="Be the first to list a device for sale." />
+        )}
       </Section>
     </>
   );

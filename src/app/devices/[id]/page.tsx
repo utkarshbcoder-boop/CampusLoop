@@ -3,29 +3,72 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClockIcon, PinIcon } from "@/components/Icon";
 import { RentButton } from "@/components/Actions";
+import { ListingInterestButton } from "@/components/ListingInterestButton";
 import { Callout, KeyValue, Section, StarRating, TagList, Thumbnail } from "@/components/ui";
 import { equipmentCategoryLabel } from "@/lib/data/equipmentCategories";
-import { getColleges, getEquipmentItem } from "@/lib/queries";
+import { getColleges, getEquipmentItem, getListing } from "@/lib/queries";
 import { getDataProvider } from "@/lib/db";
 import { formatDateTime, rupees } from "@/lib/format";
+import type { Listing } from "@/lib/types";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const item = await getEquipmentItem(id);
-  if (!item) return { title: "Device listing not found" };
+  if (!item) {
+    const listing = await getListing(id);
+    return listing?.item_type === "device"
+      ? { title: listing.title, description: listing.description.slice(0, 155) }
+      : { title: "Device listing not found" };
+  }
   return { title: item.name, description: item.description.slice(0, 155) };
+}
+
+function ResaleDeviceDetail({ listing }: { listing: Listing }) {
+  return (
+    <Section className="py-8">
+      <nav className="mb-6 flex items-center gap-2 text-xs text-white/40" aria-label="Breadcrumb">
+        <Link href="/devices" className="transition hover:text-white">Devices & gear</Link>
+        <span aria-hidden>/</span>
+        <span className="truncate text-white/70">{listing.title}</span>
+      </nav>
+      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="cl-panel cl-panel-solid flex min-h-64 items-center justify-center p-8">
+          <span className="text-8xl" aria-hidden>{listing.emoji || "💻"}</span>
+        </div>
+        <div className="cl-panel cl-panel-solid p-6">
+          <div className="flex flex-wrap gap-2">
+            <span className="cl-chip cl-chip-brand">Second-hand device</span>
+            <span className="cl-chip">{listing.status === "available" ? "Available" : listing.status}</span>
+            <span className="cl-chip">{listing.condition.replaceAll("_", " ")}</span>
+          </div>
+          <h1 className="mt-4 text-2xl font-bold text-white">{listing.title}</h1>
+          <p className="mt-2 text-sm text-white/55">{listing.author} · {listing.edition}</p>
+          <p className="mt-4 text-3xl font-black text-white">{rupees(listing.price)}</p>
+          <p className="mt-4 text-sm leading-relaxed text-white/60">{listing.description}</p>
+          <dl className="mt-5 grid gap-3">
+            <KeyValue label="Category / details" value={listing.subject} />
+            <KeyValue label="Pickup address" value={listing.pickup_location || "Contact seller"} />
+          </dl>
+          <div className="mt-6">
+            <ListingInterestButton listingId={listing.id} status={listing.status} />
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
 }
 
 export default async function DeviceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [item, colleges, provider] = await Promise.all([
-    getEquipmentItem(id),
-    getColleges(),
-    getDataProvider(),
-  ]);
-  if (!item) notFound();
+  const item = await getEquipmentItem(id);
+  if (!item) {
+    const listing = await getListing(id);
+    if (listing?.item_type === "device") return <ResaleDeviceDetail listing={listing} />;
+    notFound();
+  }
+  const [colleges, provider] = await Promise.all([getColleges(), getDataProvider()]);
 
   const [owner, college] = await Promise.all([
     provider.profiles.byId(item.owner_id),

@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRightIcon, BookIcon, ClockIcon, ShieldIcon } from "@/components/Icon";
 import { BuyButton, RentButton, SaveButton } from "@/components/Actions";
+import { ListingInterestButton } from "@/components/ListingInterestButton";
 import { ListingCard } from "@/components/cards";
 import { Callout, KeyValue, Section, StarRating, TagList } from "@/components/ui";
 import { formatDateTime, rupees, timeAgo, titleCase } from "@/lib/format";
 import { getColleges, getCurrentProfile, getListing, getListings } from "@/lib/queries";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -147,6 +148,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     itemName={listing.title}
                     dayRate={listing.rent_per_day ?? Math.round(listing.price / 30)}
                   />
+                ) : listing.kind === "sell" ? (
+                  <ListingInterestButton listingId={listing.id} status={listing.status} />
                 ) : (
                   <BuyButton listingId={listing.id} title={listing.title} price={listing.price} />
                 )}
@@ -176,6 +179,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 <KeyValue label="Semester" value={titleCase(listing.semester)} />
                 <KeyValue label="Subject" value={listing.subject} />
                 <KeyValue label="Kind" value={titleCase(listing.kind)} />
+                {listing.pickup_location ? <KeyValue label="Pickup address" value={listing.pickup_location} /> : null}
               </dl>
             </div>
 

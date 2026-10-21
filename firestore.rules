@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.email == 'utkarshbcoder@gmail.com';
+    }
+
+    match /listings/{listingId} {
+      allow read: if true;
+      allow create: if isAdmin() || (
+        signedIn()
+        && request.resource.data.id == listingId
+        && request.resource.data.seller_id == request.auth.uid
+        && request.resource.data.kind == 'sell'
+        && request.resource.data.item_type in ['book', 'device']
+        && request.resource.data.status == 'available'
+        && request.resource.data.price is number
+        && request.resource.data.price > 0
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.author is string
+        && request.resource.data.edition is string
+        && request.resource.data.subject is string
+        && request.resource.data.condition in ['like_new', 'good', 'fair', 'heavy_notes']
+        && request.resource.data.mrp is number
+        && request.resource.data.negotiable is bool
+        && request.resource.data.semester is string
+        && request.resource.data.branch is string
+        && request.resource.data.college_id is string
+        && request.resource.data.pickup_location is string
+        && request.resource.data.pickup_location.size() > 0
+        && request.resource.data.description is string
+        && request.resource.data.highlights is list
+        && request.resource.data.tags is list
+        && request.resource.data.hue is number
+        && request.resource.data.emoji is string
+        && request.resource.data.boosted is bool
+        && request.resource.data.views is number
+        && request.resource.data.saves is number
+        && request.resource.data.created_at is string
+        && request.resource.data.keys().hasAll([
+          'id', 'item_type', 'title', 'author', 'edition', 'subject', 'semester',
+          'branch', 'kind', 'condition', 'price', 'mrp', 'seller_id', 'college_id',
+          'negotiable', 'pickup_location', 'status', 'description', 'highlights',
+          'tags', 'hue', 'emoji', 'boosted', 'views', 'saves', 'created_at'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id', 'item_type', 'title', 'author', 'edition', 'subject', 'semester',
+          'branch', 'kind', 'condition', 'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit',
+          'seller_id', 'college_id', 'pickup_location', 'status', 'description',
+          'highlights', 'tags', 'hue', 'emoji', 'boosted', 'views', 'saves', 'created_at'
+        ])
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    match /listing_interests/{interestId} {
+      allow read: if isAdmin() || (
+        signedIn()
+        && (resource.data.buyer_id == request.auth.uid || resource.data.seller_id == request.auth.uid)
+      );
+      allow create: if isAdmin() || (
+        signedIn()
+        && request.resource.data.buyer_id == request.auth.uid
+        && interestId == request.resource.data.listing_id + '_' + request.auth.uid
+        && request.resource.data.keys().hasAll(['listing_id', 'buyer_id', 'seller_id', 'created_at'])
+        && request.resource.data.keys().hasOnly(['listing_id', 'buyer_id', 'seller_id', 'created_at'])
+        && request.resource.data.listing_id is string
+        && request.resource.data.seller_id is string
+        && request.resource.data.created_at is string
+        && exists(/databases/$(database)/documents/listings/$(request.resource.data.listing_id))
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listing_id)).data.status == 'available'
+        && get(/databases/$(database)/documents/listings/$(request.resource.data.listing_id)).data.seller_id == request.resource.data.seller_id
+        && request.resource.data.seller_id != request.auth.uid
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    match /profiles/{profileId} {
+      allow create: if isAdmin() || (
+        signedIn()
+        && profileId == request.auth.uid
+        && request.resource.data.id == request.auth.uid
+      );
+      allow read: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /{collectionName}/{document=**} {
+      allow read: if collectionName in [
+        'colleges', 'equipment', 'pg_listings', 'teammate_posts',
+        'skill_profiles', 'events', 'services', 'bookings',
+        'opportunities', 'transactions', 'subscriptions',
+        'sponsorships', 'notifications'
+      ];
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

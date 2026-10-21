@@ -6,6 +6,7 @@ import {
   doc,
   setDoc,
   deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useCollection } from "@/lib/firebase/hooks";
@@ -17,7 +18,7 @@ import { useCollection } from "@/lib/firebase/hooks";
 const COLLECTION_META: Record<string, { label: string; emoji: string; keyFields: string[] }> = {
   colleges:       { label: "Colleges",       emoji: "🏛️", keyFields: ["name", "city", "slug"] },
   profiles:       { label: "Profiles",       emoji: "👤", keyFields: ["name", "handle", "email", "college_id"] },
-  listings:       { label: "Books",          emoji: "📚", keyFields: ["title", "seller_id", "price", "condition"] },
+  listings:       { label: "Books & devices", emoji: "📚", keyFields: ["title", "item_type", "seller_id", "price", "condition", "status"] },
   equipment:      { label: "Equipment",      emoji: "💻", keyFields: ["name", "owner_id", "daily_rate", "category"] },
   pg_listings:    { label: "PG & Rooms",     emoji: "🏠", keyFields: ["title", "owner_id", "rent", "type"] },
   teammate_posts: { label: "Teams",          emoji: "🧑‍💻", keyFields: ["title", "poster_id", "skills_needed"] },
@@ -437,6 +438,7 @@ function DocCard({
   onEdit,
   onDelete,
   onView,
+  onMarkSold,
   formatCell,
 }: {
   row: Record<string, unknown>;
@@ -444,6 +446,7 @@ function DocCard({
   onEdit: () => void;
   onDelete: () => void;
   onView: () => void;
+  onMarkSold?: () => void;
   formatCell: (val: unknown) => string;
 }) {
   return (
@@ -457,6 +460,11 @@ function DocCard({
           {row.id as string}
         </code>
         <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+          {onMarkSold ? (
+            <button type="button" onClick={onMarkSold} className="rounded-md px-2 py-1 text-[11px] font-medium text-mint-300 transition hover:bg-mint-500/15">
+              ✓ Sold
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onEdit}
@@ -509,6 +517,18 @@ export default function AdminCollectionPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [viewDoc, setViewDoc] = useState<Record<string, unknown> | null>(null);
   const [viewType, setViewType] = useState<"table" | "cards">("table");
+  const [actionError, setActionError] = useState("");
+
+  const markListingSold = async (listingId: string) => {
+    if (!confirm("Mark this listing as sold? It will no longer accept buyer interest.")) return;
+    setActionError("");
+    try {
+      await updateDoc(doc(db, "listings", listingId), { status: "sold" });
+    } catch (error) {
+      console.error("Failed to mark listing sold:", error);
+      setActionError("Could not update the listing status. Please try again.");
+    }
+  };
 
   // Redirect if unknown collection
   useEffect(() => {
@@ -599,6 +619,7 @@ export default function AdminCollectionPage() {
           ❌ Error: {error}
         </div>
       )}
+      {actionError ? <p role="alert" className="mb-4 text-sm text-rose-300">{actionError}</p> : null}
 
       {/* Admin tip for profiles */}
       {collectionName === "profiles" && !loading && (
@@ -653,6 +674,7 @@ export default function AdminCollectionPage() {
               onEdit={() => setEditDoc(row)}
               onDelete={() => setDeleteId(row.id)}
               onView={() => setViewDoc(row as Record<string, unknown>)}
+              onMarkSold={collectionName === "listings" && row.status === "available" ? () => void markListingSold(row.id) : undefined}
               formatCell={formatCell}
             />
           ))}
@@ -710,6 +732,16 @@ export default function AdminCollectionPage() {
                         >
                           🗑️ Delete
                         </button>
+                        {collectionName === "listings" && row.status === "available" ? (
+                          <button
+                            type="button"
+                            onClick={() => void markListingSold(row.id)}
+                            className="rounded-md px-2 py-1 text-[11px] font-medium text-mint-300 transition hover:bg-mint-500/15"
+                            title="Mark this listing as sold"
+                          >
+                            ✓ Sold
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

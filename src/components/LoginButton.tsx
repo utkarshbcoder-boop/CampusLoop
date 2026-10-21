@@ -59,6 +59,12 @@ export function LoginButton() {
               </p>
             )}
             <div className="my-1 h-px bg-white/8" />
+            <Link
+              href="/my-listings"
+              className="block w-full rounded-lg px-2 py-1.5 text-left text-xs text-white/70 transition hover:bg-white/8 hover:text-white"
+            >
+              My Listings
+            </Link>
             <button
               type="button"
               onClick={() => signOutUser()}

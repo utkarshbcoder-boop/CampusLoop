@@ -23,7 +23,6 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { db } from "./config";
-import { unstable_cache } from "next/cache";
 import type { DataProvider, ListOptions, WritableTable } from "@/lib/db/provider";
 import type {
   CampusEvent,
@@ -67,28 +66,6 @@ function makeId(): string {
 
 function firestoreTable<T extends { id: string }>(collectionName: string): WritableTable<T> {
   const colRef = () => collection(db, collectionName);
-
-  // Wrap the live-Firestore fetchers in Next's data cache so repeat
-  // requests within 60s are served from cache instead of hitting
-  // Firestore over the network every time.
-  const cachedList = unstable_cache(
-    async (optionsKey: string) => {
-      const options = optionsKey ? (JSON.parse(optionsKey) as ListOptions) : undefined;
-      return listUncached(options);
-    },
-    [collectionName, "list"],
-    { revalidate: 3600 },
-  );
-
-  const cachedById = unstable_cache(
-    async (id: string) => {
-      const snap = await getDoc(doc(db, collectionName, id));
-      if (!snap.exists()) return null;
-      return { id: snap.id, ...snap.data() } as T;
-    },
-    [collectionName, "byId"],
-    { revalidate: 3600 },
-  );
 
   async function listUncached(options?: ListOptions): Promise<T[]> {
       const constraints: QueryConstraint[] = [];
@@ -234,15 +211,17 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
 
   return {
     list(options?: ListOptions): Promise<T[]> {
-      return cachedList(JSON.stringify(options ?? null));
+      return listUncached(options);
     },
 
-    byId(id: string): Promise<T | null> {
-      return cachedById(id);
+    async byId(id: string): Promise<T | null> {
+      const snap = await getDoc(doc(db, collectionName, id));
+      if (!snap.exists()) return null;
+      return { id: snap.id, ...snap.data() } as T;
     },
 
     async count(options?: ListOptions): Promise<number> {
-      const rows = await cachedList(JSON.stringify(options ?? null));
+      const rows = await listUncached(options);
       return rows.length;
     },
 

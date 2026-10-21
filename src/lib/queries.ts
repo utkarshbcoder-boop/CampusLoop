@@ -1,5 +1,5 @@
 import { getDataProvider, type ListOptions } from "@/lib/db";
-import type { College, Equipment, EquipmentCategory, Listing, PGListing, Profile } from "@/lib/types";
+import type { College, Equipment, EquipmentCategory, Listing, MarketplaceItemType, PGListing, Profile } from "@/lib/types";
 import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
 
 /**
@@ -99,12 +99,13 @@ export async function getListings(filters: ListingFilters): Promise<Listing[]> {
     ...options,
     orderBy: LISTING_SORTS[filters.sort] ?? LISTING_SORTS.recent,
   });
+  const bookRows = rows.filter((listing) => !listing.item_type || listing.item_type === "book");
 
   // Free-text is matched in memory across several fields so that searching an
   // author ("Cormen") or a subject finds the book, not just a title hit.
   if (filters.q) {
     const term = filters.q.trim().toLowerCase();
-    return rows.filter((l) =>
+    return bookRows.filter((l) =>
       [l.title, l.author, l.subject, l.semester, l.condition, l.kind, ...l.tags]
         .join(" ")
         .toLowerCase()
@@ -112,12 +113,20 @@ export async function getListings(filters: ListingFilters): Promise<Listing[]> {
     );
   }
 
-  return rows;
+  return bookRows;
 }
 
 export async function getListing(id: string): Promise<Listing | null> {
   const provider = await getDataProvider();
   return provider.listings.byId(id);
+}
+
+export async function getSecondhandListings(itemType: MarketplaceItemType): Promise<Listing[]> {
+  const provider = await getDataProvider();
+  const rows = await provider.listings.list({
+    orderBy: { column: "created_at", ascending: false },
+  });
+  return rows.filter((listing) => listing.item_type === itemType);
 }
 
 export interface EquipmentFilters {
@@ -223,7 +232,9 @@ export async function loadMatchContext() {
     await Promise.all([
       provider.colleges.list(),
       provider.profiles.list(),
-      provider.listings.list({ where: { status: "available" } }),
+      provider.listings.list({ where: { status: "available" } }).then((rows) =>
+        rows.filter((listing) => !listing.item_type || listing.item_type === "book"),
+      ),
       provider.equipment.list(),
       provider.pg_listings.list(),
       provider.teammate_posts.list(),
