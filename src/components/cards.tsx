@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { SaveButton } from "@/components/Actions";
 import { PinIcon, ClockIcon, StarIcon } from "@/components/Icon";
 import { equipmentCategoryLabel } from "@/lib/data/equipmentCategories";
+import { campusNameById } from "@/lib/data/campusOptions";
 import { Avatar, ScoreBreakdown, ScoreRing, StarRating, TagList, Thumbnail } from "@/components/ui";
 import { formatDate, formatTime, relativeDay, rupees, rupeesShort, timeAgo, titleCase } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,9 @@ import type {
 } from "@/lib/types";
 
 const shortCollege = (colleges: College[], id: string | null | undefined): string =>
-  colleges.find((c) => c.id === id)?.short_name ?? "Campus";
+  colleges.find((c) => c.id === id)?.short_name
+  ?? (id ? campusNameById(id) : undefined)
+  ?? "Campus";
 
 /* ------------------------------------------------------------------ */
 /* Books                                                               */

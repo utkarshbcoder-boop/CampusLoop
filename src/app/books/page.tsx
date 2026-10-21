@@ -6,6 +6,7 @@ import { ListingCard } from "@/components/cards";
 import { EmptyState, GhostLink, PageHeader, Section } from "@/components/ui";
 import { rupees } from "@/lib/format";
 import { BOOK_SUBJECTS } from "@/lib/data/taxonomy";
+import { campusOptions } from "@/lib/data/campusOptions";
 import { getColleges, getListings, parseListingFilters, type SearchParams } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       key: "college",
       label: "Campus",
       defaultValue: "all",
-      options: [{ value: "all", label: "All campuses" }, ...colleges.map((c) => ({ value: c.id, label: c.short_name }))],
+      options: [{ value: "all", label: "All campuses" }, ...campusOptions.map((campus) => ({ value: campus.id, label: campus.short_name }))],
     },
     {
       kind: "range",

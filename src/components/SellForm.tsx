@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { colleges } from "@/lib/data/colleges";
+import {
+  campusOptions,
+  customCampusId,
+  OTHER_CAMPUS_VALUE,
+} from "@/lib/data/campusOptions";
 import { createHomeMarketplaceListing, createMarketplaceListing } from "@/lib/firebase/marketplace";
 import { rupees } from "@/lib/format";
 import { readSettingsPreferences } from "@/lib/settingsPreferences";
@@ -32,6 +37,8 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [collegeId, setCollegeId] = useState(colleges[0]?.id ?? "");
+  const [customCollegeName, setCustomCollegeName] = useState("");
+  const [otherCampusSelected, setOtherCampusSelected] = useState(false);
   const [homeMode, setHomeMode] = useState<HomeListingMode>("rent");
   const [homeType, setHomeType] = useState<HomeListingType>("separate_room");
   const [beds, setBeds] = useState("1");
@@ -48,7 +55,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
       || !Number.isFinite(amount)
       || amount <= 0
       || !address.trim()
-      || (kind !== "home" && !collegeId)
+      || (kind !== "home" && (!collegeId || collegeId === OTHER_CAMPUS_VALUE || !customCollegeName.trim() && otherCampusSelected))
       || (kind === "home" && (!Number.isInteger(Number(beds)) || Number(beds) < 1))
     ) {
       setError("Enter a valid title, price, address, and campus or bedroom count.");
@@ -235,9 +242,43 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
       </label> : null}
       {kind !== "home" ? <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">Campus</span>
-        <select className="cl-input" value={collegeId} onChange={(event) => setCollegeId(event.target.value)} required>
-          {colleges.map((college) => <option key={college.id} value={college.id} className="bg-ink-900">{college.name}</option>)}
+        <select
+          className="cl-input"
+          value={otherCampusSelected ? OTHER_CAMPUS_VALUE : collegeId}
+          onChange={(event) => {
+            const value = event.target.value;
+            const isOther = value === OTHER_CAMPUS_VALUE;
+            setOtherCampusSelected(isOther);
+            if (isOther) {
+              setCollegeId(
+                customCollegeName.trim()
+                  ? customCampusId(customCollegeName)
+                  : OTHER_CAMPUS_VALUE,
+              );
+              return;
+            }
+            setCustomCollegeName("");
+            setCollegeId(value);
+          }}
+          required
+        >
+          {campusOptions.map((campus) => <option key={campus.id} value={campus.id} className="bg-ink-900">{campus.name}</option>)}
+          <option value={OTHER_CAMPUS_VALUE} className="bg-ink-900">Other</option>
         </select>
+        {otherCampusSelected ? (
+          <input
+            className="cl-input"
+            value={customCollegeName}
+            onChange={(event) => {
+              const value = event.target.value;
+              setCustomCollegeName(value);
+              setCollegeId(value.trim() ? customCampusId(value) : OTHER_CAMPUS_VALUE);
+            }}
+            placeholder="Enter your college name"
+            maxLength={120}
+            required
+          />
+        ) : null}
       </label> : null}
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">{kind === "home" ? "Home address / locality" : "Pickup shop / address"}</span>

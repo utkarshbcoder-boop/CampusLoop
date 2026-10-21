@@ -5,6 +5,7 @@ import { ActiveFilters, FilterBar, type FilterDef } from "@/components/FilterBar
 import { EquipmentCard, ListingCard } from "@/components/cards";
 import { EmptyState, GhostLink, PageHeader, Section } from "@/components/ui";
 import { EQUIPMENT_CATEGORIES } from "@/lib/data/equipmentCategories";
+import { campusOptions } from "@/lib/data/campusOptions";
 import { rupees } from "@/lib/format";
 import { getColleges, getEquipment, getSecondhandListings, parseEquipmentFilters, type SearchParams } from "@/lib/queries";
 
@@ -53,7 +54,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
       defaultValue: "all",
       options: [
         { value: "all", label: "All campuses" },
-        ...colleges.map((college) => ({ value: college.id, label: college.short_name })),
+        ...campusOptions.map((campus) => ({ value: campus.id, label: campus.short_name })),
       ],
     },
     {

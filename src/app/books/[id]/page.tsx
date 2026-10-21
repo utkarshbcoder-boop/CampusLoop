@@ -6,6 +6,7 @@ import { BuyButton, RentButton, SaveButton } from "@/components/Actions";
 import { ListingInterestButton } from "@/components/ListingInterestButton";
 import { ListingCard } from "@/components/cards";
 import { Callout, KeyValue, Section, StarRating, TagList } from "@/components/ui";
+import { campusNameById } from "@/lib/data/campusOptions";
 import { formatDateTime, rupees, timeAgo, titleCase } from "@/lib/format";
 import { getColleges, getCurrentProfile, getListing, getListings } from "@/lib/queries";
 
@@ -25,6 +26,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
   const seller = listing.seller_id === profile.id ? profile : undefined;
   const college = colleges.find((c) => c.id === listing.college_id);
+  const campusShortName = college?.short_name ?? campusNameById(listing.college_id) ?? "Campus";
+  const campusName = college?.name ?? campusNameById(listing.college_id) ?? "Campus";
   const discount = listing.mrp > 0 ? Math.round((1 - listing.price / listing.mrp) * 100) : 0;
 
   // Real related inventory from the same subject.
@@ -112,7 +115,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="cl-chip cl-chip-brand">{titleCase(listing.kind)}</span>
                 <span className="cl-chip">{titleCase(listing.condition)}</span>
-                <span className="cl-chip">{college?.short_name}</span>
+                <span className="cl-chip">{campusShortName}</span>
                 {listing.status !== "available" ? (
                   <span className="cl-chip cl-chip-rose">{titleCase(listing.status)}</span>
                 ) : null}
@@ -171,7 +174,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 <p className="mt-1 text-xs text-white/50">This is your own listing, shown the way buyers see it.</p>
               ) : (
                 <p className="mt-1 text-xs leading-relaxed text-white/50">
-                  Verified student at {college?.name}. Response time and completed sales are on their profile.
+                  Verified student at {campusName}. Response time and completed sales are on their profile.
                 </p>
               )}
               <dl className="mt-4 grid grid-cols-2 gap-4">
@@ -218,7 +221,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             <div>
               <p className="text-sm font-semibold text-white">Nothing else in this subject yet</p>
               <p className="mt-1 text-xs text-white/50">
-                Be the first to list a {listing.subject} title — {college?.short_name} students are searching it right
+                Be the first to list a {listing.subject} title — {campusShortName} students are searching it right
                 now.
               </p>
             </div>
@@ -234,8 +237,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           <div>
             <StarRating rating={4.7} count={listings_reviewCount(listing.saves)} />
             <p className="mt-2 text-xs text-white/45">
-              {listing.saves} students saved this listing · {college?.campusloop_students.toLocaleString("en-IN")}{" "}
-              verified students on {college?.short_name}
+              {listing.saves} students saved this listing ·{" "}
+              {college
+                ? `${college.campusloop_students.toLocaleString("en-IN")} verified students on ${campusShortName}`
+                : `Campus: ${campusShortName}`}
             </p>
           </div>
           <Link href="/books" className="cl-btn cl-btn-primary shrink-0">

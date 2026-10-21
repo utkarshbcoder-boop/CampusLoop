@@ -5,7 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { ListingCard } from "@/components/cards";
 import { EmptyState } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
-import { colleges as campusOptions } from "@/lib/data/colleges";
+import {
+  campusOptions,
+  customCampusId,
+  customCampusName,
+  isCustomCampusId,
+  OTHER_CAMPUS_VALUE,
+} from "@/lib/data/campusOptions";
 import {
   readSettingsPreferences,
   saveSettingsPreferences,
@@ -27,6 +33,7 @@ export function SecondhandMarketplace({
   const userId = user?.uid ?? "guest";
   const [itemType, setItemType] = useState<ItemFilter>("all");
   const [campusId, setCampusId] = useState("");
+  const [customCampus, setCustomCampus] = useState("");
   const [status, setStatus] = useState<StatusFilter>("available");
   const [search, setSearch] = useState("");
 
@@ -34,11 +41,13 @@ export function SecondhandMarketplace({
     const prefs = readSettingsPreferences(userId);
     setItemType(prefs.marketplaceCategory);
     setCampusId(prefs.marketplaceCampusId);
+    setCustomCampus(customCampusName(prefs.marketplaceCampusId));
     const handleChange = (event: Event) => {
       const detail = (event as CustomEvent<{ userId: string; preferences: ReturnType<typeof readSettingsPreferences> }>).detail;
       if (detail?.userId !== userId) return;
       setItemType(detail.preferences.marketplaceCategory);
       setCampusId(detail.preferences.marketplaceCampusId);
+      setCustomCampus(customCampusName(detail.preferences.marketplaceCampusId));
     };
     window.addEventListener(SETTINGS_PREFERENCES_EVENT, handleChange);
     return () => window.removeEventListener(SETTINGS_PREFERENCES_EVENT, handleChange);
@@ -49,7 +58,11 @@ export function SecondhandMarketplace({
     return listings.filter((listing) => {
       const listingType = listing.item_type ?? "book";
       if (itemType !== "all" && listingType !== itemType) return false;
-      if (campusId && listing.college_id !== campusId) return false;
+      if (
+        campusId
+        && campusId !== OTHER_CAMPUS_VALUE
+        && listing.college_id !== campusId
+      ) return false;
       if (status !== "all" && listing.status !== status) return false;
       return !term || [
         listing.title,
@@ -88,17 +101,42 @@ export function SecondhandMarketplace({
         </select>
         <select
           className="cl-input sm:w-48"
-          value={campusId}
+          aria-label="Filter by campus"
+          value={
+            campusId === OTHER_CAMPUS_VALUE || isCustomCampusId(campusId)
+              ? OTHER_CAMPUS_VALUE
+              : campusId
+          }
           onChange={(event) => {
-            const nextCampusId = event.target.value;
+            const value = event.target.value;
+            const nextCampusId = value === OTHER_CAMPUS_VALUE
+              ? customCampus.trim() ? customCampusId(customCampus) : OTHER_CAMPUS_VALUE
+              : value;
             setCampusId(nextCampusId);
+            if (value !== OTHER_CAMPUS_VALUE) setCustomCampus("");
             saveSettingsPreferences(userId, { marketplaceCampusId: nextCampusId });
           }}
-          aria-label="Filter by campus"
         >
           <option value="">All campuses</option>
           {campusOptions.map((campus) => <option key={campus.id} value={campus.id}>{campus.short_name}</option>)}
+          <option value={OTHER_CAMPUS_VALUE}>Other</option>
         </select>
+        {campusId === OTHER_CAMPUS_VALUE || isCustomCampusId(campusId) ? (
+          <input
+            className="cl-input"
+            value={customCampus}
+            onChange={(event) => {
+              const name = event.target.value;
+              const nextCampusId = name.trim() ? customCampusId(name) : OTHER_CAMPUS_VALUE;
+              setCustomCampus(name);
+              setCampusId(nextCampusId);
+              saveSettingsPreferences(userId, { marketplaceCampusId: nextCampusId });
+            }}
+            placeholder="Enter your college name"
+            aria-label="Enter your college name"
+            maxLength={120}
+          />
+        ) : null}
         <select className="cl-input sm:w-48" value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} aria-label="Filter by status">
           <option value="available">Available</option>
           <option value="sold">Sold</option>

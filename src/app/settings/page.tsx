@@ -7,7 +7,13 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SettingsPreferences } from "@/components/SettingsPreferences";
-import { colleges } from "@/lib/data/colleges";
+import {
+  campusOptions,
+  customCampusId,
+  customCampusName,
+  isCustomCampusId,
+  OTHER_CAMPUS_VALUE,
+} from "@/lib/data/campusOptions";
 import { db } from "@/lib/firebase/config";
 import { deleteCurrentAccount, requestPasswordReset, signOutUser } from "@/lib/firebase/auth";
 
@@ -19,6 +25,8 @@ export default function SettingsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [collegeId, setCollegeId] = useState("");
+  const [customCollegeName, setCustomCollegeName] = useState("");
+  const [otherCampusSelected, setOtherCampusSelected] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -28,7 +36,10 @@ export default function SettingsPage() {
       if (!cancelled && snapshot.exists()) {
         const profile = snapshot.data();
         setDisplayName((current) => current || String(profile.name ?? ""));
-        setCollegeId(String(profile.college_id ?? ""));
+        const savedCollegeId = String(profile.college_id ?? "");
+        setCollegeId(savedCollegeId);
+        setCustomCollegeName(customCampusName(savedCollegeId));
+        setOtherCampusSelected(isCustomCampusId(savedCollegeId));
       }
     }).catch((cause: unknown) => {
       console.error("Failed to load settings profile:", cause);
@@ -45,6 +56,10 @@ export default function SettingsPage() {
     const name = displayName.trim();
     if (!name) {
       setError("Enter a display name.");
+      return;
+    }
+    if (collegeId === OTHER_CAMPUS_VALUE || !collegeId) {
+      setError("Choose a campus or enter your college name.");
       return;
     }
     setBusy("profile");
@@ -94,10 +109,47 @@ export default function SettingsPage() {
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-white/50">Campus</span>
-                <select className="cl-input" value={collegeId} onChange={(event) => setCollegeId(event.target.value)}>
+                <select
+                  className="cl-input"
+                  value={
+                    otherCampusSelected
+                      ? OTHER_CAMPUS_VALUE
+                      : collegeId
+                  }
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    const isOther = value === OTHER_CAMPUS_VALUE;
+                    setOtherCampusSelected(isOther);
+                    if (isOther) {
+                      setCollegeId(
+                        customCollegeName.trim()
+                          ? customCampusId(customCollegeName)
+                          : OTHER_CAMPUS_VALUE,
+                      );
+                      return;
+                    }
+                    setCustomCollegeName("");
+                    setCollegeId(value);
+                  }}
+                >
                   <option value="">Choose your campus</option>
-                  {colleges.map((college) => <option key={college.id} value={college.id} className="bg-ink-900">{college.name}</option>)}
+                  {campusOptions.map((campus) => <option key={campus.id} value={campus.id} className="bg-ink-900">{campus.name}</option>)}
+                  <option value={OTHER_CAMPUS_VALUE} className="bg-ink-900">Other</option>
                 </select>
+                {otherCampusSelected ? (
+                  <input
+                    className="cl-input"
+                    value={customCollegeName}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setCustomCollegeName(value);
+                      setCollegeId(value.trim() ? customCampusId(value) : OTHER_CAMPUS_VALUE);
+                    }}
+                    placeholder="Enter your college name"
+                    maxLength={120}
+                    required
+                  />
+                ) : null}
               </label>
               <p className="text-xs text-white/40 sm:col-span-2">Account email: {user.email || "Not provided"}</p>
               <button type="submit" disabled={busy !== null} className="cl-btn cl-btn-primary justify-center sm:col-span-2 sm:justify-self-start">

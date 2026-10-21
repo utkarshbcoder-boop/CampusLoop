@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { colleges } from "@/lib/data/colleges";
+import {
+  campusOptions,
+  customCampusId,
+  customCampusName,
+  OTHER_CAMPUS_VALUE,
+} from "@/lib/data/campusOptions";
 import {
   applyAccessibilityPreferences,
   DEFAULT_SETTINGS_PREFERENCES,
@@ -16,10 +21,17 @@ export function SettingsPreferences({ userId }: { userId: string }) {
   const [preferences, setPreferences] = useState<Preferences>(DEFAULT_SETTINGS_PREFERENCES);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("unsupported");
   const [message, setMessage] = useState("");
+  const [customCampus, setCustomCampus] = useState("");
+  const [otherCampusSelected, setOtherCampusSelected] = useState(false);
 
   useEffect(() => {
     const stored = readSettingsPreferences(userId);
     setPreferences(stored);
+    setCustomCampus(customCampusName(stored.marketplaceCampusId));
+    setOtherCampusSelected(
+      stored.marketplaceCampusId === OTHER_CAMPUS_VALUE
+      || stored.marketplaceCampusId.startsWith("custom:"),
+    );
     applyAccessibilityPreferences(stored);
     setPermission(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
   }, [userId]);
@@ -142,19 +154,61 @@ export function SettingsPreferences({ userId }: { userId: string }) {
               <option value="device" className="bg-ink-900 text-white">Second-hand devices</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-white/50">Default campus</span>
-            <select
-              className="cl-input"
-              value={preferences.marketplaceCampusId}
-              onChange={(event) => update({ marketplaceCampusId: event.target.value })}
-            >
-              <option value="" className="bg-ink-900 text-white">All campuses</option>
-              {colleges.map((college) => (
-                <option key={college.id} value={college.id} className="bg-ink-900 text-white">{college.name}</option>
-              ))}
-            </select>
-          </label>
+          <div className="flex flex-col gap-1.5">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-white/50">Default campus</span>
+              <select
+                className="cl-input"
+                value={
+                  otherCampusSelected
+                    ? OTHER_CAMPUS_VALUE
+                    : preferences.marketplaceCampusId
+                }
+                onChange={(event) => {
+                  const value = event.target.value;
+                  const isOther = value === OTHER_CAMPUS_VALUE;
+                  setOtherCampusSelected(isOther);
+                  if (isOther) {
+                    update({
+                      marketplaceCampusId: customCampus.trim()
+                        ? customCampusId(customCampus)
+                        : OTHER_CAMPUS_VALUE,
+                    });
+                  } else {
+                    setCustomCampus("");
+                    update({ marketplaceCampusId: value });
+                  }
+                }}
+              >
+                <option value="" className="bg-ink-900 text-white">All campuses</option>
+                {campusOptions.map((campus) => (
+                  <option key={campus.id} value={campus.id} className="bg-ink-900 text-white">{campus.name}</option>
+                ))}
+                <option value={OTHER_CAMPUS_VALUE} className="bg-ink-900 text-white">Other</option>
+              </select>
+            </label>
+            {otherCampusSelected ? (
+              <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-white/50">Your college or campus</span>
+              <input
+                className="cl-input"
+                value={customCampus}
+                onChange={(event) => {
+                  const name = event.target.value;
+                  setCustomCampus(name);
+                  update({
+                    marketplaceCampusId: name.trim()
+                      ? customCampusId(name)
+                      : OTHER_CAMPUS_VALUE,
+                  });
+                }}
+                placeholder="Enter your college name"
+                maxLength={120}
+                required
+              />
+              </label>
+            ) : null}
+          </div>
         </div>
       </div>
       {message ? <p role="status" className="mt-4 text-sm text-white/55">{message}</p> : null}
