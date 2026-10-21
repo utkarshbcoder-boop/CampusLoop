@@ -120,7 +120,15 @@ service cloud.firestore {
         && request.resource.data.id == request.auth.uid
       );
       allow read: if true;
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        signedIn()
+        && profileId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'college_id'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.college_id is string
+      );
+      allow delete: if isAdmin();
     }
 
     match /{collectionName}/{document=**} {

@@ -53,64 +53,52 @@ export function SiteHeader(_props: {
 
   return (
     <>
-      {/* Utility strip: data-layer status + quick links */}
-      <div className="hidden border-b border-white/6 bg-ink-900/70 text-[11px] text-white/45 lg:block">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-1.5">
-          <p className="flex items-center gap-2">
-            <span className="cl-pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-mint-400" aria-hidden />
-            Real-time Firebase · Connected to students worldwide
-          </p>
-          <nav className="flex items-center gap-4">
-            {UTILITY_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn("transition hover:text-white", isActive(link.href) ? "font-semibold text-white" : "")}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <span className="text-white/20">|</span>
-            <span>Live in 7 campuses across India</span>
-          </nav>
-        </div>
-      </div>
-
-      <header className="sticky top-0 z-50 border-b border-white/8 bg-ink-950/85 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-50 border-b border-brand-400/15 bg-ink-950/95 shadow-[0_12px_40px_-28px_rgba(99,102,241,0.65)] backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 py-4 sm:px-6 lg:py-5">
           <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="CampusLoop home">
-            <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-fuchsia-500 font-black text-white shadow-lg shadow-brand-600/30">
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 via-brand-500 to-fuchsia-500 text-lg font-black text-white shadow-lg shadow-brand-600/35">
               C
             </span>
             <span className="flex flex-col leading-none">
-              <span className="text-[15px] font-bold tracking-tight text-white">CampusLoop</span>
+              <span className="text-base font-bold tracking-tight text-white">CampusLoop</span>
               <span className="mt-0.5 hidden text-[10px] text-white/40 sm:block">Everything within your campus</span>
             </span>
           </Link>
 
           {/* Desktop module nav */}
-          <nav className="ml-2 hidden flex-1 items-center justify-center gap-0.5 xl:flex" aria-label="Modules">
+          <nav className="ml-2 hidden flex-1 items-center justify-center gap-1 xl:flex" aria-label="Modules">
             {NAV_MODULES.map((m) => (
               <Link
                 key={m.href}
                 href={m.href}
                 className={cn(
-                  "rounded-lg px-2 py-1.5 text-[12.5px] font-medium transition",
+                  "rounded-xl px-3 py-2 text-sm font-semibold transition",
                   isActive(m.href)
-                    ? "bg-brand-500/15 text-brand-200"
-                    : "text-white/55 hover:bg-white/5 hover:text-white/90",
+                    ? "bg-brand-500/18 text-brand-100 ring-1 ring-brand-300/20"
+                    : "text-white/65 hover:bg-white/7 hover:text-white",
                 )}
               >
                 {m.short}
               </Link>
             ))}
+            <Link
+              href="/marketplace"
+              className={cn(
+                "rounded-xl border px-3 py-2 text-sm font-bold transition",
+                isActive("/marketplace")
+                  ? "border-brand-300/40 bg-brand-500/20 text-white"
+                  : "border-brand-300/20 bg-gradient-to-r from-brand-500/10 to-fuchsia-500/10 text-brand-100 hover:border-brand-300/40 hover:from-brand-500/20 hover:to-fuchsia-500/20",
+              )}
+            >
+              🛍️ Marketplace
+            </Link>
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
             <Link
               href="/sell?type=book"
               className={cn(
-                "cl-btn hidden gap-1.5 sm:inline-flex",
+                "cl-btn hidden gap-1.5 px-4 py-2.5 text-sm sm:inline-flex",
                 isSellBook ? "cl-btn-primary" : "cl-btn-ghost",
               )}
             >
@@ -119,7 +107,7 @@ export function SiteHeader(_props: {
             <Link
               href="/sell?type=device"
               className={cn(
-                "cl-btn hidden gap-1.5 sm:inline-flex",
+                "cl-btn hidden gap-1.5 px-4 py-2.5 text-sm sm:inline-flex",
                 isSellDevice ? "cl-btn-primary" : "cl-btn-ghost",
               )}
             >
