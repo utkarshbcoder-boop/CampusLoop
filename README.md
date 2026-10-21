@@ -55,8 +55,6 @@ The app reads through one interface, `DataProvider` (`src/lib/db/provider.ts`), 
 
 Book, second-hand device, and home listings require Firebase Authentication and Firestore. Before enabling them in a Firebase project, deploy the repository's `firestore.rules` with `firebase deploy --only firestore:rules`. Sellers can create their own listings and register buyer interest; only the admin account can edit or delete listings or mark second-hand items sold. The `/marketplace` page is the shared public feed; `/homes` shows community-submitted rooms alongside the demo homes.
 
-Location suggestions on sell forms use the Google Maps JavaScript API's Places Autocomplete widget. Enable Maps JavaScript API and Places API (New), set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in local/deployment environment settings, and restrict the key by allowed website referrers and APIs. Google Cloud billing may be required; manual location entry remains available when the key is not configured.
-
 Because every page goes through `src/lib/queries.ts`, swapping providers changes no page code. TypeScript types in `src/lib/types.ts` are snake_case to match the Postgres columns, so a row from either provider is structurally identical.
 
 ```
