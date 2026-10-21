@@ -109,9 +109,9 @@ export function SettingsPreferences({ userId }: { userId: string }) {
               value={preferences.fontSize}
               onChange={(event) => update({ fontSize: event.target.value as Preferences["fontSize"] })}
             >
-              <option value="standard">Standard</option>
-              <option value="large">Large</option>
-              <option value="largest">Largest</option>
+              <option value="standard" className="bg-ink-900 text-white">Standard</option>
+              <option value="large" className="bg-ink-900 text-white">Large</option>
+              <option value="largest" className="bg-ink-900 text-white">Largest</option>
             </select>
           </label>
           <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/4 p-4">
@@ -137,9 +137,9 @@ export function SettingsPreferences({ userId }: { userId: string }) {
               value={preferences.marketplaceCategory}
               onChange={(event) => update({ marketplaceCategory: event.target.value as Preferences["marketplaceCategory"] })}
             >
-              <option value="all">Books and devices</option>
-              <option value="book">Books</option>
-              <option value="device">Second-hand devices</option>
+              <option value="all" className="bg-ink-900 text-white">Books and devices</option>
+              <option value="book" className="bg-ink-900 text-white">Books</option>
+              <option value="device" className="bg-ink-900 text-white">Second-hand devices</option>
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
@@ -149,9 +149,9 @@ export function SettingsPreferences({ userId }: { userId: string }) {
               value={preferences.marketplaceCampusId}
               onChange={(event) => update({ marketplaceCampusId: event.target.value })}
             >
-              <option value="">All campuses</option>
+              <option value="" className="bg-ink-900 text-white">All campuses</option>
               {colleges.map((college) => (
-                <option key={college.id} value={college.id} className="bg-ink-900">{college.name}</option>
+                <option key={college.id} value={college.id} className="bg-ink-900 text-white">{college.name}</option>
               ))}
             </select>
           </label>
