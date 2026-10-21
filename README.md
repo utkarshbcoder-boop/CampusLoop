@@ -53,7 +53,9 @@ The app reads through one interface, `DataProvider` (`src/lib/db/provider.ts`), 
 - **`src/lib/db/supabase.ts`** — real Postgres, selected automatically once `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set.
 - **`src/lib/firebase/firestore.ts`** — Firestore provider, selected when Firebase is enabled and seeded.
 
-Book, second-hand device, and home listings require Firebase Authentication and Firestore. Before enabling them in a Firebase project, deploy the repository's `firestore.rules` with `firebase deploy --only firestore:rules`. Sellers can create their own listings and register buyer interest; only the admin account can edit or delete listings or mark second-hand items sold. The `/marketplace` page is the shared public feed; `/homes` shows community-submitted rooms alongside the demo homes.
+Book, second-hand device, and home listings require Firebase Authentication and Firestore. Deploy the repository's `firestore.rules` with `firebase deploy --only firestore:rules` whenever rules change. Sellers can create their own listings and register buyer interest; only the verified admin account can edit or delete listings or mark second-hand items sold. Bookings and notifications are readable only by their student, while financial and sponsorship records are admin-only. The `/marketplace` page is the shared public feed; `/homes` shows community-submitted rooms alongside the demo homes.
+
+The Next.js app also sends baseline browser security headers. Keep Firebase rules deployed separately from application code: pushing a Git commit does not update Firestore security rules.
 
 Because every page goes through `src/lib/queries.ts`, swapping providers changes no page code. TypeScript types in `src/lib/types.ts` are snake_case to match the Postgres columns, so a row from either provider is structurally identical.
 

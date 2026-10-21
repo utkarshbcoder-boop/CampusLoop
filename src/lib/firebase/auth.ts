@@ -27,7 +27,7 @@ export const ADMIN_EMAIL = "utkarshbcoder@gmail.com";
 
 /** Whether the given user is the site admin. */
 export function isAdmin(user: User | null): boolean {
-  if (!user?.email) return false;
+  if (!user?.email || !user.emailVerified) return false;
   return user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 }
 

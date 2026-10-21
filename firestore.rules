@@ -6,7 +6,9 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && request.auth.token.email == 'utkarshbcoder@gmail.com';
+      return signedIn()
+        && request.auth.token.email == 'utkarshbcoder@gmail.com'
+        && request.auth.token.email_verified == true;
     }
 
     match /listings/{listingId} {
@@ -131,12 +133,38 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /bookings/{bookingId} {
+      allow read: if isAdmin() || (
+        signedIn()
+        && resource.data.student_id == request.auth.uid
+      );
+      allow write: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAdmin() || (
+        signedIn()
+        && resource.data.profile_id == request.auth.uid
+      );
+      allow write: if isAdmin();
+    }
+
+    match /transactions/{transactionId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /subscriptions/{subscriptionId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /sponsorships/{sponsorshipId} {
+      allow read, write: if isAdmin();
+    }
+
     match /{collectionName}/{document=**} {
       allow read: if collectionName in [
         'colleges', 'equipment', 'pg_listings', 'teammate_posts',
-        'skill_profiles', 'events', 'services', 'bookings',
-        'opportunities', 'transactions', 'subscriptions',
-        'sponsorships', 'notifications'
+        'skill_profiles', 'events', 'services', 'opportunities'
       ];
       allow write: if isAdmin();
     }
