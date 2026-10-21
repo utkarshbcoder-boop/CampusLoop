@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SettingsPreferences } from "@/components/SettingsPreferences";
 import { colleges } from "@/lib/data/colleges";
 import { db } from "@/lib/firebase/config";
 import { deleteCurrentAccount, requestPasswordReset, signOutUser } from "@/lib/firebase/auth";
@@ -141,6 +142,8 @@ export default function SettingsPage() {
           </Link>
         </div>
       </div>
+
+      <SettingsPreferences userId={user?.uid ?? "guest"} />
 
       <div className="cl-panel cl-panel-solid mt-5 p-6">
         <h2 className="text-base font-bold text-white">Security & account</h2>

@@ -4,6 +4,8 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { PremiumScene } from "@/components/PremiumScene";
 import { AuthProvider } from "@/components/AuthProvider";
 import { FirstVisitGate } from "@/components/FirstVisitGate";
+import { SettingsAccessibilityEffect } from "@/components/SettingsPreferences";
+import { MarketplaceNotificationListener } from "@/components/MarketplaceNotificationListener";
 
 import { getDataProvider } from "@/lib/db";
 import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
@@ -77,6 +79,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AuthProvider>
           <CampusLoopProvider>
             <FirstVisitGate />
+            <SettingsAccessibilityEffect />
+            <MarketplaceNotificationListener />
             {currentProfile ? (
               <SiteHeader currentProfile={currentProfile} profiles={profiles} colleges={colleges} />
             ) : null}

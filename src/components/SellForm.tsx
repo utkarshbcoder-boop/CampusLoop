@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { colleges } from "@/lib/data/colleges";
 import { createHomeMarketplaceListing, createMarketplaceListing } from "@/lib/firebase/marketplace";
 import { rupees } from "@/lib/format";
+import { readSettingsPreferences } from "@/lib/settingsPreferences";
 import type { BookCondition, HomeListingMode, HomeListingType } from "@/lib/types";
 
 const CONDITIONS: { value: BookCondition; label: string }[] = [
@@ -70,7 +71,9 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
           furnished: "Unfurnished",
           distanceKm: 0,
           available: "Immediate",
-          owner: user.displayName || user.email || "CampusLoop member",
+          owner: readSettingsPreferences(user.uid).showNameOnHomeListings
+            ? user.displayName || "CampusLoop member"
+            : "CampusLoop member",
           owner_id: user.uid,
           created_at: now,
         });

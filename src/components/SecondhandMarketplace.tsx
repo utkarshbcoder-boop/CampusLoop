@@ -1,9 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ListingCard } from "@/components/cards";
 import { EmptyState } from "@/components/ui";
+import { useAuth } from "@/components/AuthProvider";
+import { colleges as campusOptions } from "@/lib/data/colleges";
+import {
+  readSettingsPreferences,
+  saveSettingsPreferences,
+  SETTINGS_PREFERENCES_EVENT,
+} from "@/lib/settingsPreferences";
 import type { College, Listing } from "@/lib/types";
 
 type ItemFilter = "all" | "book" | "device";
@@ -16,15 +23,33 @@ export function SecondhandMarketplace({
   listings: Listing[];
   colleges: College[];
 }) {
+  const { user } = useAuth();
+  const userId = user?.uid ?? "guest";
   const [itemType, setItemType] = useState<ItemFilter>("all");
+  const [campusId, setCampusId] = useState("");
   const [status, setStatus] = useState<StatusFilter>("available");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const prefs = readSettingsPreferences(userId);
+    setItemType(prefs.marketplaceCategory);
+    setCampusId(prefs.marketplaceCampusId);
+    const handleChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ userId: string; preferences: ReturnType<typeof readSettingsPreferences> }>).detail;
+      if (detail?.userId !== userId) return;
+      setItemType(detail.preferences.marketplaceCategory);
+      setCampusId(detail.preferences.marketplaceCampusId);
+    };
+    window.addEventListener(SETTINGS_PREFERENCES_EVENT, handleChange);
+    return () => window.removeEventListener(SETTINGS_PREFERENCES_EVENT, handleChange);
+  }, [userId]);
 
   const visibleListings = useMemo(() => {
     const term = search.trim().toLowerCase();
     return listings.filter((listing) => {
       const listingType = listing.item_type ?? "book";
       if (itemType !== "all" && listingType !== itemType) return false;
+      if (campusId && listing.college_id !== campusId) return false;
       if (status !== "all" && listing.status !== status) return false;
       return !term || [
         listing.title,
@@ -35,7 +60,7 @@ export function SecondhandMarketplace({
         listing.pickup_location ?? "",
       ].join(" ").toLowerCase().includes(term);
     });
-  }, [itemType, listings, search, status]);
+  }, [campusId, itemType, listings, search, status]);
 
   return (
     <>
@@ -47,10 +72,32 @@ export function SecondhandMarketplace({
           placeholder="Search books, devices, sellers, pickup locations…"
           aria-label="Search second-hand listings"
         />
-        <select className="cl-input sm:w-48" value={itemType} onChange={(event) => setItemType(event.target.value as ItemFilter)} aria-label="Filter by item type">
+        <select
+          className="cl-input sm:w-48"
+          value={itemType}
+          onChange={(event) => {
+            const nextCategory = event.target.value as ItemFilter;
+            setItemType(nextCategory);
+            saveSettingsPreferences(userId, { marketplaceCategory: nextCategory });
+          }}
+          aria-label="Filter by item type"
+        >
           <option value="all">Books & devices</option>
           <option value="book">Books</option>
           <option value="device">Devices</option>
+        </select>
+        <select
+          className="cl-input sm:w-48"
+          value={campusId}
+          onChange={(event) => {
+            const nextCampusId = event.target.value;
+            setCampusId(nextCampusId);
+            saveSettingsPreferences(userId, { marketplaceCampusId: nextCampusId });
+          }}
+          aria-label="Filter by campus"
+        >
+          <option value="">All campuses</option>
+          {campusOptions.map((campus) => <option key={campus.id} value={campus.id}>{campus.short_name}</option>)}
         </select>
         <select className="cl-input sm:w-48" value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} aria-label="Filter by status">
           <option value="available">Available</option>
