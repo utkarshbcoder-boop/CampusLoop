@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { GooglePlaceInput } from "@/components/GooglePlaceInput";
 import { colleges } from "@/lib/data/colleges";
 import { createHomeMarketplaceListing, createMarketplaceListing } from "@/lib/firebase/marketplace";
 import { rupees } from "@/lib/format";
@@ -238,7 +239,12 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
       </label> : null}
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">{kind === "home" ? "Home address / locality" : "Pickup shop / address"}</span>
-        <input className="cl-input" value={address} onChange={(event) => setAddress(event.target.value)} placeholder={kind === "home" ? "e.g. Main Market, Block C" : "e.g. Shop 12, Main Market, Block C"} required />
+        <GooglePlaceInput
+          value={address}
+          onChange={setAddress}
+          placeholder={kind === "home" ? "Search an address or locality" : "Search a pickup address or shop"}
+          label={kind === "home" ? "Home address or locality" : "Pickup address"}
+        />
       </label>
       {error ? <p role="alert" className="text-sm text-rose-300">{error}</p> : null}
       <button type="submit" disabled={busy} className="cl-btn cl-btn-primary justify-center disabled:opacity-50">
