@@ -5,13 +5,38 @@ import {
   setDoc,
   type DocumentData,
 } from "firebase/firestore";
-import type { Listing } from "@/lib/types";
+import type { Listing, HomeListingMode, HomeListingType } from "@/lib/types";
 import { db } from "./config";
+
+export interface HomeMarketplaceListing {
+  id: string;
+  title: string;
+  locality: string;
+  type: HomeListingType;
+  mode: HomeListingMode;
+  price: number;
+  beds: number;
+  baths: number;
+  furnished: "Full" | "Semi" | "Unfurnished";
+  distanceKm: number;
+  available: string;
+  owner: string;
+  owner_id: string;
+  created_at: string;
+}
 
 export async function createMarketplaceListing(
   listing: Omit<Listing, "id">,
 ): Promise<string> {
   const reference = doc(collection(db, "listings"));
+  await setDoc(reference, { ...listing, id: reference.id } satisfies DocumentData);
+  return reference.id;
+}
+
+export async function createHomeMarketplaceListing(
+  listing: Omit<HomeMarketplaceListing, "id">,
+): Promise<string> {
+  const reference = doc(collection(db, "home_listings"));
   await setDoc(reference, { ...listing, id: reference.id } satisfies DocumentData);
   return reference.id;
 }

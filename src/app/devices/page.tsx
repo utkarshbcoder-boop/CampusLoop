@@ -104,6 +104,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
         <nav className="mb-5 flex gap-2" aria-label="Marketplace">
           <Link href="/books" className="cl-chip transition hover:text-white">📚 Used books</Link>
           <Link href="/devices" aria-current="page" className="cl-chip cl-chip-brand">💻 Devices & gear</Link>
+          <Link href="/marketplace" className="cl-chip transition hover:text-white">🛍️ All second-hand</Link>
         </nav>
         <nav className="mb-5 flex flex-wrap gap-2" aria-label="Device categories">
           <Link

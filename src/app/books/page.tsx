@@ -107,6 +107,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         <nav className="mb-5 flex gap-2" aria-label="Marketplace">
           <Link href="/books" aria-current="page" className="cl-chip cl-chip-brand">📚 Used books</Link>
           <Link href="/devices" className="cl-chip transition hover:text-white">💻 Devices & gear</Link>
+          <Link href="/marketplace" className="cl-chip transition hover:text-white">🛍️ All second-hand</Link>
         </nav>
         <div className="flex flex-col gap-3">
           <FilterBar

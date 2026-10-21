@@ -19,6 +19,8 @@ const COLLECTION_META: Record<string, { label: string; emoji: string; keyFields:
   colleges:       { label: "Colleges",       emoji: "🏛️", keyFields: ["name", "city", "slug"] },
   profiles:       { label: "Profiles",       emoji: "👤", keyFields: ["name", "handle", "email", "college_id"] },
   listings:       { label: "Books & devices", emoji: "📚", keyFields: ["title", "item_type", "seller_id", "price", "condition", "status"] },
+  listing_interests: { label: "Buyer interest", emoji: "🙋", keyFields: ["listing_id", "buyer_id", "seller_id", "created_at"] },
+  home_listings:  { label: "Home & room listings", emoji: "🏠", keyFields: ["title", "owner_id", "mode", "price", "locality"] },
   equipment:      { label: "Equipment",      emoji: "💻", keyFields: ["name", "owner_id", "daily_rate", "category"] },
   pg_listings:    { label: "PG & Rooms",     emoji: "🏠", keyFields: ["title", "owner_id", "rent", "type"] },
   teammate_posts: { label: "Teams",          emoji: "🧑‍💻", keyFields: ["title", "poster_id", "skills_needed"] },

@@ -6,6 +6,8 @@ import { SaveButton } from "@/components/Actions";
 import { PinIcon } from "@/components/Icon";
 import { rupees } from "@/lib/format";
 import { HOME_TYPE_LABELS, type Home, type HomeType } from "@/lib/data/homes";
+import { useCollection } from "@/lib/firebase/hooks";
+import type { HomeMarketplaceListing } from "@/lib/firebase/marketplace";
 
 const TYPE_OPTIONS: { value: "all" | HomeType; label: string }[] = [
   { value: "all", label: "All home types" },
@@ -19,19 +21,26 @@ const TYPE_OPTIONS: { value: "all" | HomeType; label: string }[] = [
 ];
 
 export function HomesBrowser({ homes }: { homes: Home[] }) {
+  const userHomes = useCollection<HomeMarketplaceListing>("home_listings");
+  const allHomes = useMemo<Home[]>(() => [
+    ...homes,
+    ...userHomes.data.map(({ id, title, locality, type, mode, price, beds, baths, furnished, distanceKm, available, owner }) => ({
+      id, title, locality, type, mode, price, beds, baths, furnished, distanceKm, available, owner,
+    })),
+  ], [homes, userHomes.data]);
   const [mode, setMode] = useState<"all" | "rent" | "sale">("all");
   const [type, setType] = useState<"all" | HomeType>("all");
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return homes.filter((h) => {
+    return allHomes.filter((h) => {
       if (mode !== "all" && h.mode !== mode) return false;
       if (type !== "all" && h.type !== type) return false;
       if (needle && !`${h.title} ${h.locality}`.toLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [homes, mode, type, q]);
+  }, [allHomes, mode, type, q]);
 
   return (
     <>
@@ -59,6 +68,7 @@ export function HomesBrowser({ homes }: { homes: Home[] }) {
       <p className="mt-4 text-xs text-white/40">
         {filtered.length} {filtered.length === 1 ? "home" : "homes"} found
       </p>
+      {userHomes.error ? <p role="alert" className="mt-2 text-xs text-rose-300">Could not load newly listed homes.</p> : null}
 
       {filtered.length === 0 ? (
         <div className="cl-panel mt-4 p-10 text-center text-sm text-white/50">
@@ -77,7 +87,7 @@ export function HomesBrowser({ homes }: { homes: Home[] }) {
               <h3 className="text-sm font-semibold leading-snug text-white">{h.title}</h3>
               <p className="flex items-center gap-1 text-xs text-white/45">
                 <PinIcon width={12} height={12} />
-                {h.locality} · {h.distanceKm} km from campus
+                {h.locality}{h.distanceKm > 0 ? ` · ${h.distanceKm} km from campus` : ""}
               </p>
               <div className="flex items-center gap-3 text-xs text-white/55">
                 <span>{h.beds} bed</span>·<span>{h.baths} bath</span>·<span>{h.furnished}</span>

@@ -106,6 +106,8 @@ export interface Profile {
 
 export type ListingKind = "sell" | "buy" | "rent";
 export type MarketplaceItemType = "book" | "device";
+export type HomeListingType = "pg" | "separate_room" | "1rk" | "1bhk" | "2bhk" | "3bhk" | "4bhk";
+export type HomeListingMode = "rent" | "sale";
 export type BookCondition = "like_new" | "good" | "fair" | "heavy_notes";
 export type ListingStatus = "available" | "reserved" | "sold";
 

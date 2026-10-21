@@ -121,12 +121,17 @@ export async function getListing(id: string): Promise<Listing | null> {
   return provider.listings.byId(id);
 }
 
-export async function getSecondhandListings(itemType: MarketplaceItemType): Promise<Listing[]> {
+export async function getSecondhandListings(itemType?: MarketplaceItemType): Promise<Listing[]> {
   const provider = await getDataProvider();
   const rows = await provider.listings.list({
     orderBy: { column: "created_at", ascending: false },
   });
-  return rows.filter((listing) => listing.item_type === itemType);
+  return rows.filter((listing) => {
+    if (listing.kind !== "sell") return false;
+    if (!itemType) return !listing.item_type || listing.item_type === "book" || listing.item_type === "device";
+    if (itemType === "book") return !listing.item_type || listing.item_type === "book";
+    return listing.item_type === itemType;
+  });
 }
 
 export interface EquipmentFilters {
