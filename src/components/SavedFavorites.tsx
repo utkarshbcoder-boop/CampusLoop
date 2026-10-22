@@ -6,6 +6,8 @@ import { useCampusLoop } from "@/lib/store";
 import { rupees } from "@/lib/format";
 import type { Home } from "@/lib/data/homes";
 import type { Listing } from "@/lib/types";
+import { useCollection } from "@/lib/firebase/hooks";
+import type { HomeMarketplaceListing } from "@/lib/firebase/marketplace";
 
 export function SavedFavorites({
   listings,
@@ -15,13 +17,18 @@ export function SavedFavorites({
   homes: Home[];
 }) {
   const { saved, hydrated } = useCampusLoop();
+  const liveHomes = useCollection<HomeMarketplaceListing>("home_listings");
 
   if (!hydrated) {
     return <div className="cl-panel p-6 text-sm text-white/55">Loading your saved listings…</div>;
   }
 
   const savedItems = listings.filter((listing) => saved.includes(listing.id));
-  const savedHomes = homes.filter((home) => saved.includes(`home:${home.id}`));
+  const allHomes = [
+    ...homes,
+    ...liveHomes.data.filter((liveHome) => !homes.some((home) => home.id === liveHome.id)),
+  ];
+  const savedHomes = allHomes.filter((home) => saved.includes(`home:${home.id}`));
   const total = savedItems.length + savedHomes.length;
 
   if (total === 0) {
@@ -58,7 +65,7 @@ export function SavedFavorites({
         <article key={`home:${home.id}`} className="cl-panel flex flex-wrap items-center justify-between gap-4 p-4">
           <div className="min-w-0">
             <p className="text-[11px] text-white/40">Room / flat / PG</p>
-            <Link href="/homes" className="mt-1 block font-semibold text-white hover:text-brand-200">
+            <Link href={`/homes/${home.id}`} className="mt-1 block font-semibold text-white hover:text-brand-200">
               {home.title}
             </Link>
             <p className="mt-1 text-sm text-white/55">{home.locality} · {rupees(home.price)}{home.mode === "rent" ? " / month" : ""}</p>

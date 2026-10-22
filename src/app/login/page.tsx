@@ -5,6 +5,15 @@ import { useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { LoginPanel } from "@/components/LoginPanel";
 
+function returnPath() {
+  const requested = new URLSearchParams(window.location.search).get("returnTo");
+  if (!requested || !requested.startsWith("/") || requested.startsWith("//")) return "/";
+  const destination = new URL(requested, window.location.origin);
+  return destination.origin === window.location.origin
+    ? `${destination.pathname}${destination.search}${destination.hash}`
+    : "/";
+}
+
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -16,7 +25,7 @@ export default function LoginPage() {
           sessionStorage.setItem("campusloop_session", "1");
         }
       } catch {}
-      router.replace("/");
+      router.replace(returnPath());
     }
   }, [user, loading, router]);
 
@@ -28,7 +37,7 @@ export default function LoginPage() {
           try {
             sessionStorage.setItem("campusloop_session", "1");
           } catch {}
-          router.replace("/");
+          router.replace(returnPath());
         }}
       />
     </section>

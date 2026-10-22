@@ -32,6 +32,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<BookCondition>("good");
   const [address, setAddress] = useState("");
+  const [homeDescription, setHomeDescription] = useState("");
   const [author, setAuthor] = useState("");
   const [edition, setEdition] = useState("");
   const [subject, setSubject] = useState("");
@@ -82,6 +83,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
             ? user.displayName || "CampusLoop member"
             : "CampusLoop member",
           owner_id: user.uid,
+          description: homeDescription.trim(),
           created_at: now,
         });
         setCreatedId(id);
@@ -194,6 +196,18 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
             </select>
           </label>
         </div>
+      ) : null}
+      {kind === "home" ? (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] tracking-wider text-white/40 uppercase">Property details</span>
+          <textarea
+            className="cl-input min-h-24 resize-y"
+            value={homeDescription}
+            onChange={(event) => setHomeDescription(event.target.value)}
+            placeholder="Describe the place, amenities, terms, and any other useful details."
+            maxLength={2000}
+          />
+        </label>
       ) : null}
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">Title</span>

@@ -21,7 +21,7 @@ test("unrelated business pages and device rentals redirect out of the product", 
     await expect(page).toHaveURL("http://127.0.0.1:3100/");
   }
 
-  await page.goto("/devices");
+  await page.goto("/devices", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL("http://127.0.0.1:3100/marketplace");
 });
 
@@ -47,6 +47,12 @@ test("visitor can browse rooms, flats, and PGs", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Find a place to live" })).toBeVisible();
   await expect(page.getByText("homes for rent", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "List a room, flat, or PG" })).toHaveAttribute("href", "/sell?type=home");
+
+  await page.getByRole("link", { name: "Single AC room in students' PG with mess" }).click();
+  await expect(page).toHaveURL(/\/homes\/h1$/);
+  await expect(page.getByRole("heading", { name: "Single AC room in students' PG with mess" })).toBeVisible();
+  await expect(page.getByText("Koramangala Block C")).toBeVisible();
+  await expect(page.getByText("This is a sample listing.", { exact: false })).toBeVisible();
 });
 
 test("listing creation is gated and the sign-in form validates required fields", async ({ page }) => {

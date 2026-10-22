@@ -109,9 +109,43 @@ service cloud.firestore {
         ])
         && request.resource.data.keys().hasOnly([
           'id', 'title', 'locality', 'type', 'mode', 'price', 'beds', 'baths',
-          'furnished', 'distanceKm', 'available', 'owner', 'owner_id', 'created_at'
+          'furnished', 'distanceKm', 'available', 'owner', 'owner_id', 'created_at', 'description'
         ])
+        && (!('description' in request.resource.data)
+          || (request.resource.data.description is string && request.resource.data.description.size() <= 2000))
       );
+      allow update, delete: if isAdmin();
+    }
+
+    match /home_listing_interests/{interestId} {
+      allow get: if isAdmin() || (
+        signedIn()
+        && (
+          interestId.matches('.*_' + request.auth.uid + '$')
+          || resource.data.buyer_id == request.auth.uid
+          || resource.data.owner_id == request.auth.uid
+        )
+      );
+      allow list: if isAdmin() || (
+        signedIn()
+        && (resource.data.buyer_id == request.auth.uid || resource.data.owner_id == request.auth.uid)
+      );
+      allow create: if signedIn()
+        && request.resource.data.buyer_id == request.auth.uid
+        && interestId == request.resource.data.home_listing_id + '_' + request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'home_listing_id', 'buyer_id', 'owner_id', 'intent', 'created_at'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'home_listing_id', 'buyer_id', 'owner_id', 'intent', 'created_at'
+        ])
+        && request.resource.data.home_listing_id is string
+        && request.resource.data.owner_id is string
+        && request.resource.data.intent in ['rental', 'purchase']
+        && request.resource.data.created_at is string
+        && exists(/databases/$(database)/documents/home_listings/$(request.resource.data.home_listing_id))
+        && get(/databases/$(database)/documents/home_listings/$(request.resource.data.home_listing_id)).data.owner_id == request.resource.data.owner_id
+        && request.resource.data.owner_id != request.auth.uid;
       allow update, delete: if isAdmin();
     }
 

@@ -84,7 +84,11 @@ export function HomesBrowser({ homes }: { homes: Home[] }) {
                   {h.mode === "rent" ? "For rent" : "For sale"}
                 </span>
               </div>
-              <h3 className="text-sm font-semibold leading-snug text-white">{h.title}</h3>
+              <h3 className="text-sm font-semibold leading-snug text-white">
+                <Link href={`/homes/${h.id}`} prefetch={false} className="transition hover:text-brand-200">
+                  {h.title}
+                </Link>
+              </h3>
               <p className="flex items-center gap-1 text-xs text-white/45">
                 <PinIcon width={12} height={12} />
                 {h.locality}{h.distanceKm > 0 ? ` · ${h.distanceKm} km from campus` : ""}
@@ -99,8 +103,8 @@ export function HomesBrowser({ homes }: { homes: Home[] }) {
                 </p>
                 <div className="relative z-10 flex items-center gap-2">
                   <SaveButton id={`home:${h.id}`} label="Star" className="px-2.5 py-1.5 text-xs" />
-                  <Link href={h.mode === "rent" ? "/homes" : "/sell"} className="cl-btn cl-btn-ghost px-3 py-1.5 text-xs">
-                    {h.mode === "rent" ? "Contact" : "Make offer"}
+                  <Link href={`/homes/${h.id}`} prefetch={false} className="cl-btn cl-btn-primary px-3 py-1.5 text-xs">
+                    View details
                   </Link>
                 </div>
               </div>

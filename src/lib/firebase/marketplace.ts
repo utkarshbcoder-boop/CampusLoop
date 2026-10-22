@@ -22,6 +22,7 @@ export interface HomeMarketplaceListing {
   available: string;
   owner: string;
   owner_id: string;
+  description?: string;
   created_at: string;
 }
 
@@ -64,6 +65,34 @@ export async function recordListingInterest(
       listing_id: listingId,
       buyer_id: buyerId,
       seller_id: listing.seller_id,
+      created_at: new Date().toISOString(),
+    });
+    return "created";
+  });
+}
+
+export async function recordHomeListingInterest(
+  listingId: string,
+  buyerId: string,
+): Promise<"created" | "exists" | "unavailable" | "own"> {
+  const listingRef = doc(db, "home_listings", listingId);
+  const interestRef = doc(db, "home_listing_interests", `${listingId}_${buyerId}`);
+
+  return runTransaction(db, async (transaction) => {
+    const listingSnapshot = await transaction.get(listingRef);
+    if (!listingSnapshot.exists()) return "unavailable";
+
+    const listing = listingSnapshot.data();
+    if (listing.owner_id === buyerId) return "own";
+
+    const interestSnapshot = await transaction.get(interestRef);
+    if (interestSnapshot.exists()) return "exists";
+
+    transaction.set(interestRef, {
+      home_listing_id: listingId,
+      buyer_id: buyerId,
+      owner_id: listing.owner_id,
+      intent: listing.mode === "sale" ? "purchase" : "rental",
       created_at: new Date().toISOString(),
     });
     return "created";
