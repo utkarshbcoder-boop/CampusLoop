@@ -5,7 +5,7 @@ import { ArrowRightIcon, BookIcon, ClockIcon, ShieldIcon } from "@/components/Ic
 import { BuyButton, RentButton, SaveButton } from "@/components/Actions";
 import { ListingInterestButton } from "@/components/ListingInterestButton";
 import { ListingCard } from "@/components/cards";
-import { Callout, KeyValue, Section, StarRating, TagList } from "@/components/ui";
+import { Callout, KeyValue, Section, TagList } from "@/components/ui";
 import { campusNameById } from "@/lib/data/campusOptions";
 import { formatDateTime, rupees, timeAgo, titleCase } from "@/lib/format";
 import { getColleges, getCurrentProfile, getListing, getListings } from "@/lib/queries";
@@ -25,9 +25,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   if (!listing) notFound();
 
   const seller = listing.seller_id === profile.id ? profile : undefined;
-  const college = colleges.find((c) => c.id === listing.college_id);
-  const campusShortName = college?.short_name ?? campusNameById(listing.college_id) ?? "Campus";
-  const campusName = college?.name ?? campusNameById(listing.college_id) ?? "Campus";
+  const campusShortName = campusNameById(listing.college_id) ?? "Campus";
   const discount = listing.mrp > 0 ? Math.round((1 - listing.price / listing.mrp) * 100) : 0;
 
   // Real related inventory from the same subject.
@@ -161,8 +159,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
               <p className="mt-4 flex items-start gap-2 text-[11px] leading-relaxed text-white/45">
                 <ShieldIcon width={14} height={14} className="mt-0.5 shrink-0 text-mint-400" />
-                Payment is held in escrow and released only when both sides confirm the handover. No cash changing hands
-                in a corridor.
+                Arrange payment and handover directly with the seller. CampusLoop does not process payments.
               </p>
             </div>
 
@@ -174,7 +171,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 <p className="mt-1 text-xs text-white/50">This is your own listing, shown the way buyers see it.</p>
               ) : (
                 <p className="mt-1 text-xs leading-relaxed text-white/50">
-                  Verified student at {campusName}. Response time and completed sales are on their profile.
+                  Contact the seller directly to confirm the listing and arrange a handover.
                 </p>
               )}
               <dl className="mt-4 grid grid-cols-2 gap-4">
@@ -221,8 +218,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             <div>
               <p className="text-sm font-semibold text-white">Nothing else in this subject yet</p>
               <p className="mt-1 text-xs text-white/50">
-                Be the first to list a {listing.subject} title — {campusShortName} students are searching it right
-                now.
+                Be the first to list another {listing.subject} book nearby.
               </p>
             </div>
             <Link href="/books" className="cl-btn cl-btn-primary ml-auto shrink-0">
@@ -234,14 +230,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
       <Section className="border-t border-white/8 py-10">
         <div className="cl-panel flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <StarRating rating={4.7} count={listings_reviewCount(listing.saves)} />
-            <p className="mt-2 text-xs text-white/45">
-              {listing.saves} students saved this listing ·{" "}
-              {college
-                ? `${college.campusloop_students.toLocaleString("en-IN")} verified students on ${campusShortName}`
-                : `Campus: ${campusShortName}`}
-            </p>
+          <div className="text-xs text-white/45">
+            <p>{listing.saves} saves · Campus: {campusShortName}</p>
+            <p className="mt-1">Confirm condition and availability directly with the seller.</p>
           </div>
           <Link href="/books" className="cl-btn cl-btn-primary shrink-0">
             Back to books
@@ -251,9 +242,4 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       </Section>
     </>
   );
-}
-
-/** Saves make a reasonable proxy for interest when no review table exists yet. */
-function listings_reviewCount(saves: number): number {
-  return Math.max(1, Math.round(saves / 8));
 }

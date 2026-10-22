@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Second-hand Marketplace",
-  description: "Browse second-hand books and devices listed by students, see their status, and register interest.",
+  description: "Browse second-hand books and devices listed by students and contact sellers about available items.",
 };
 
 export default async function MarketplacePage() {
@@ -21,7 +21,7 @@ export default async function MarketplacePage() {
       <PageHeader
         eyebrow="Student marketplace"
         title="Second-hand listings, all in one place"
-        description="Browse books and devices posted by students. Check availability, pickup details, and tell the seller when you are interested."
+        description="Browse pre-owned books and devices. Check availability and pickup details, then contact the seller directly."
       />
       <Section className="pt-6">
         <SecondhandMarketplace listings={listings} colleges={colleges} />

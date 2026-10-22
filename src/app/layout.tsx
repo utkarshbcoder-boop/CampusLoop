@@ -1,47 +1,37 @@
 import type { Metadata, Viewport } from "next";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { PremiumScene } from "@/components/PremiumScene";
 import { AuthProvider } from "@/components/AuthProvider";
 import { FirstVisitGate } from "@/components/FirstVisitGate";
 import { SettingsAccessibilityEffect } from "@/components/SettingsPreferences";
 import { MarketplaceNotificationListener } from "@/components/MarketplaceNotificationListener";
 
-import { getDataProvider } from "@/lib/db";
-import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
 import { CampusLoopProvider } from "@/lib/store";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://campusloop.in"),
-  title: {
-    default: "CampusLoop — Everything Students Need, Within Their Campus",
-    template: "%s · CampusLoop",
-  },
+  title: { default: "CampusLoop — Second-hand Items & Homes", template: "%s · CampusLoop" },
   description:
-    "College life is fragmented across WhatsApp groups, Instagram pages and random websites. CampusLoop brings it all into one trusted student ecosystem: used books, equipment rental, PG and roommate matching, project teammates, a skills exchange, campus events, verified services and internships.",
+    "Browse second-hand books and devices, or find rooms, flats, and PGs to rent or buy near campus.",
   keywords: [
-    "campus app",
     "student marketplace India",
     "used books",
-    "roommate matching",
-    "project teammates",
-    "skills exchange",
-    "campus events",
-    "campus SaaS",
+    "second-hand devices",
+    "rooms and flats near campus",
+    "PG rooms",
   ],
   authors: [{ name: "CampusLoop" }],
   openGraph: {
-    title: "CampusLoop — Everything Students Need, Within Their Campus",
-    description:
-      "Four modules, one trusted student ecosystem. Used books, equipment rental, homes and rooms — powered by a transparent AI matching engine.",
+    title: "CampusLoop — Second-hand Items & Homes",
+    description: "Second-hand books and devices, plus rooms, flats, and PGs to rent or buy near campus.",
     type: "website",
     locale: "en_IN",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CampusLoop — Everything Students Need, Within Their Campus",
-    description: "One trusted student ecosystem for nine parts of campus life, in India.",
+    title: "CampusLoop — Second-hand Items & Homes",
+    description: "A student marketplace for second-hand items and homes in India.",
   },
   robots: { index: true, follow: true },
 };
@@ -54,12 +44,6 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // One provider for the whole app, resolved once on the server.
-  const provider = await getDataProvider();
-  const [colleges, profiles] = await Promise.all([provider.colleges.list(), provider.profiles.list()]);
-
-  const currentProfile = profileById(DEFAULT_PROFILE_ID) ?? profiles[0] ?? null;
-
   return (
     <html lang="en-IN" suppressHydrationWarning>
       <head>
@@ -81,14 +65,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <FirstVisitGate />
             <SettingsAccessibilityEffect />
             <MarketplaceNotificationListener />
-            {currentProfile ? (
-              <SiteHeader currentProfile={currentProfile} profiles={profiles} colleges={colleges} />
-            ) : null}
+            <SiteHeader />
             <main id="main">
-              <PremiumScene compact />
               {children}
             </main>
-            <SiteFooter colleges={colleges} />
+            <SiteFooter />
           </CampusLoopProvider>
         </AuthProvider>
       </body>

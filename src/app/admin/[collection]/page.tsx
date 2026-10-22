@@ -18,20 +18,9 @@ import { useCollection } from "@/lib/firebase/hooks";
 const COLLECTION_META: Record<string, { label: string; emoji: string; keyFields: string[] }> = {
   colleges:       { label: "Colleges",       emoji: "🏛️", keyFields: ["name", "city", "slug"] },
   profiles:       { label: "Profiles",       emoji: "👤", keyFields: ["name", "handle", "email", "college_id"] },
-  listings:       { label: "Books & devices", emoji: "📚", keyFields: ["title", "item_type", "seller_id", "price", "condition", "status"] },
+  listings:       { label: "Second-hand items", emoji: "🛍️", keyFields: ["title", "item_type", "seller_id", "price", "condition", "status"] },
   listing_interests: { label: "Buyer interest", emoji: "🙋", keyFields: ["listing_id", "buyer_id", "seller_id", "created_at"] },
   home_listings:  { label: "Home & room listings", emoji: "🏠", keyFields: ["title", "owner_id", "mode", "price", "locality"] },
-  equipment:      { label: "Equipment",      emoji: "💻", keyFields: ["name", "owner_id", "daily_rate", "category"] },
-  pg_listings:    { label: "PG & Rooms",     emoji: "🏠", keyFields: ["title", "owner_id", "rent", "type"] },
-  teammate_posts: { label: "Teams",          emoji: "🧑‍💻", keyFields: ["title", "poster_id", "skills_needed"] },
-  skill_profiles: { label: "Skills",         emoji: "🎯", keyFields: ["user_id", "skills", "hourly_rate"] },
-  events:         { label: "Events",         emoji: "🎤", keyFields: ["title", "organizer_id", "date", "venue"] },
-  services:       { label: "Services",       emoji: "🛠️", keyFields: ["name", "provider_id", "category", "rating"] },
-  opportunities:  { label: "Opportunities",  emoji: "💼", keyFields: ["title", "company", "type", "stipend"] },
-  transactions:   { label: "Transactions",   emoji: "💰", keyFields: ["description", "amount", "kind", "occurred_at"] },
-  subscriptions:  { label: "Subscriptions",  emoji: "📋", keyFields: ["college_id", "plan", "status"] },
-  sponsorships:   { label: "Sponsorships",   emoji: "📣", keyFields: ["title", "brand", "status", "budget"] },
-  notifications:  { label: "Notifications",  emoji: "🔔", keyFields: ["title", "type", "target"] },
 };
 
 /* ------------------------------------------------------------------ */

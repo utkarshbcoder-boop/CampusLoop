@@ -17,9 +17,9 @@ export default function HomesPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Homes · PG · Rent & Buy"
-        title="A bed, a room, or the whole 4 BHK — near your campus"
-        description="Rent a PG or separate room, or browse 1 RK through 4 BHK homes for rent and sale. Every listing is verified and tied to a real locality on CampusLoop."
+        eyebrow="Rooms · Flats · PGs"
+        title="Find a place to live"
+        description="Browse rooms, flats, and PGs near campus for rent or sale. Confirm availability, location, and terms directly with the lister."
       >
         <div className="cl-panel px-4 py-3">
           <p className="text-2xl font-black text-white">{forRent}</p>
@@ -36,11 +36,11 @@ export default function HomesPage() {
           <div>
             <p className="text-sm font-semibold text-white">Own an empty room, flat or home?</p>
             <p className="mt-1 text-xs leading-relaxed text-white/55">
-              List it for rent or sale in under a minute and reach verified students near your locality.
+              List it for rent or sale and reach people looking for a place nearby.
             </p>
           </div>
           <Link href="/sell?type=home" className="cl-btn cl-btn-primary shrink-0">
-            Sell / list my home
+            List a room, flat, or PG
           </Link>
         </div>
       </Section>

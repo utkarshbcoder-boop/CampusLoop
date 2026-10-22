@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookIcon, BoltIcon, FilterIcon } from "@/components/Icon";
+import { BookIcon, FilterIcon } from "@/components/Icon";
 import { ActiveFilters, FilterBar, type FilterDef } from "@/components/FilterBar";
 import { ListingCard } from "@/components/cards";
 import { EmptyState, GhostLink, PageHeader, Section } from "@/components/ui";
@@ -12,9 +12,8 @@ import { getColleges, getListings, parseListingFilters, type SearchParams } from
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Used Books Marketplace",
-  description:
-    "Buy, sell and rent textbooks from students on your own campus. Filter by subject, condition and price, with escrow-backed handover.",
+  title: "Second-hand Books",
+  description: "Browse pre-owned books listed by students and filter by subject, condition, and price.",
 };
 
 const KINDS = [
@@ -90,9 +89,9 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader
-        eyebrow="Module 01 · Used books"
-        title="The ₹900 textbook you need, ₹180 from a senior in Block C"
-        description="Every listing belongs to a verified student at a college on CampusLoop. Buy with escrow, rent by the week, and sell the semester's worth of notes in under a minute."
+        eyebrow="Second-hand items · Books"
+        title="Find a pre-owned book"
+        description="Browse books listed by students. Check the details and arrange the handover directly with the seller."
       >
         <div className="cl-panel px-4 py-3">
           <p className="text-2xl font-black text-white">{listings.length}</p>
@@ -107,8 +106,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       <Section className="pt-6">
         <nav className="mb-5 flex gap-2" aria-label="Marketplace">
           <Link href="/books" aria-current="page" className="cl-chip cl-chip-brand">📚 Used books</Link>
-          <Link href="/devices" className="cl-chip transition hover:text-white">💻 Devices & gear</Link>
-          <Link href="/marketplace" className="cl-chip transition hover:text-white">🛍️ All second-hand</Link>
+          <Link href="/marketplace" className="cl-chip transition hover:text-white">🛍️ All second-hand items</Link>
         </nav>
         <div className="flex flex-col gap-3">
           <FilterBar
@@ -126,19 +124,18 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
                 Showing books under <span className="font-semibold text-white">{rupees(filters.maxPrice)}</span>
               </>
             ) : (
-              "Drag the price slider to find your budget."
+              "Adjust the price slider to find listings in your budget."
             )}
           </p>
           <GhostLink href="/sell?type=device" className="text-xs">
-            <BoltIcon width={14} height={14} />
-            Got old gear to clear out? Sell a second-hand device
+            Have a used device to sell?
           </GhostLink>
         </div>
 
         {listings.length === 0 ? (
           <EmptyState
             title="No books match those filters"
-            description="Try widening the price range or clearing the subject filter. The whole point is that a matching book exists on your campus — it may just be hidden behind a filter."
+            description="Try widening the price range or clearing the subject filter."
             action={
               <Link href="/books" className="cl-btn cl-btn-primary">
                 <FilterIcon width={15} height={15} />
@@ -162,8 +159,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
             <div>
               <p className="text-sm font-semibold text-white">Finished with a semester?</p>
               <p className="mt-1 text-xs leading-relaxed text-white/55">
-                List a book in under a minute. CampusLoop takes no listing fee — we earn a small commission only when it
-                sells, and the buyer never pays extra.
+                List a used book for students nearby to discover.
               </p>
             </div>
           </div>

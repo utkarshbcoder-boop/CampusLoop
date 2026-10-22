@@ -58,10 +58,7 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
           </span>
         ) : null}
         {listing.boosted ? (
-          <>
-            <span className="cl-chip cl-chip-flare">Boosted</span>
-            <span className="cl-chip cl-chip-mint">Verified Seller</span>
-          </>
+          <span className="cl-chip cl-chip-flare">Boosted</span>
         ) : null}
       </div>
 

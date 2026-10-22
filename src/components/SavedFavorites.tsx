@@ -5,49 +5,32 @@ import { SaveButton } from "@/components/Actions";
 import { useCampusLoop } from "@/lib/store";
 import { rupees } from "@/lib/format";
 import type { Home } from "@/lib/data/homes";
-import type { Listing, PGListing } from "@/lib/types";
+import type { Listing } from "@/lib/types";
 
 export function SavedFavorites({
   listings,
-  pgListings,
   homes,
 }: {
   listings: Listing[];
-  pgListings: PGListing[];
   homes: Home[];
 }) {
-  const { premium, saved, hydrated } = useCampusLoop();
+  const { saved, hydrated } = useCampusLoop();
 
   if (!hydrated) {
     return <div className="cl-panel p-6 text-sm text-white/55">Loading your saved listings…</div>;
   }
 
-  if (!premium) {
-    return (
-      <div className="cl-panel p-6">
-        <h2 className="text-lg font-semibold text-white">Saved favorites are a Premium feature</h2>
-        <p className="mt-2 text-sm text-white/55">
-          Upgrade to star books, rooms, and PG listings and keep them together here.
-        </p>
-        <Link href="/premium" className="cl-btn cl-btn-flare mt-5">
-          See Premium benefits
-        </Link>
-      </div>
-    );
-  }
-
-  const savedBooks = listings.filter((listing) => saved.includes(listing.id));
-  const savedPGs = pgListings.filter((pg) => saved.includes(`pg:${pg.id}`));
+  const savedItems = listings.filter((listing) => saved.includes(listing.id));
   const savedHomes = homes.filter((home) => saved.includes(`home:${home.id}`));
-  const total = savedBooks.length + savedPGs.length + savedHomes.length;
+  const total = savedItems.length + savedHomes.length;
 
   if (total === 0) {
     return (
       <div className="cl-panel p-6">
         <h2 className="text-lg font-semibold text-white">No saved listings yet</h2>
-        <p className="mt-2 text-sm text-white/55">Tap the star on a book, room, or PG listing to save it here.</p>
+        <p className="mt-2 text-sm text-white/55">Save a second-hand item or home listing to keep it here on this device.</p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/books" className="cl-btn cl-btn-ghost">Browse books</Link>
+          <Link href="/marketplace" className="cl-btn cl-btn-ghost">Browse second-hand items</Link>
           <Link href="/homes" className="cl-btn cl-btn-ghost">Browse rooms & PGs</Link>
         </div>
       </div>
@@ -56,11 +39,14 @@ export function SavedFavorites({
 
   return (
     <div className="grid gap-3">
-      {savedBooks.map((listing) => (
+      {savedItems.map((listing) => (
         <article key={listing.id} className="cl-panel flex flex-wrap items-center justify-between gap-4 p-4">
           <div className="min-w-0">
-            <p className="text-[11px] text-white/40">Used book</p>
-            <Link href={`/books/${listing.id}`} className="mt-1 block font-semibold text-white hover:text-brand-200">
+            <p className="text-[11px] text-white/40">Second-hand item</p>
+            <Link
+              href={listing.item_type === "device" ? `/devices/${listing.id}` : `/books/${listing.id}`}
+              className="mt-1 block font-semibold text-white hover:text-brand-200"
+            >
               {listing.title}
             </Link>
             <p className="mt-1 text-sm text-white/55">{rupees(listing.price)}</p>
@@ -68,22 +54,10 @@ export function SavedFavorites({
           <SaveButton id={listing.id} label="Star" />
         </article>
       ))}
-      {savedPGs.map((pg) => (
-        <article key={`pg:${pg.id}`} className="cl-panel flex flex-wrap items-center justify-between gap-4 p-4">
-          <div className="min-w-0">
-            <p className="text-[11px] text-white/40">Room / PG</p>
-            <Link href={`/pg/${pg.id}`} className="mt-1 block font-semibold text-white hover:text-brand-200">
-              {pg.title}
-            </Link>
-            <p className="mt-1 text-sm text-white/55">{pg.locality} · {rupees(pg.rent)} / month</p>
-          </div>
-          <SaveButton id={`pg:${pg.id}`} label="Star" />
-        </article>
-      ))}
       {savedHomes.map((home) => (
         <article key={`home:${home.id}`} className="cl-panel flex flex-wrap items-center justify-between gap-4 p-4">
           <div className="min-w-0">
-            <p className="text-[11px] text-white/40">Room / PG</p>
+            <p className="text-[11px] text-white/40">Room / flat / PG</p>
             <Link href="/homes" className="mt-1 block font-semibold text-white hover:text-brand-200">
               {home.title}
             </Link>

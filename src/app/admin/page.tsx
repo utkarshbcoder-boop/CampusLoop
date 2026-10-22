@@ -16,18 +16,9 @@ interface CollectionInfo {
 const COLLECTIONS: CollectionInfo[] = [
   { key: "colleges", label: "Colleges", emoji: "🏛️", href: "/admin/colleges", description: "Campus data & stats" },
   { key: "profiles", label: "Users", emoji: "👤", href: "/admin/profiles", description: "Student accounts & info" },
-  { key: "listings", label: "Books", emoji: "📚", href: "/admin/listings", description: "Second-hand book marketplace" },
-  { key: "equipment", label: "Equipment", emoji: "💻", href: "/admin/equipment", description: "Rental items & gear" },
-  { key: "pg_listings", label: "PG & Rooms", emoji: "🏠", href: "/admin/pg_listings", description: "PG, hostel & room listings" },
-  { key: "teammate_posts", label: "Teams", emoji: "🧑‍💻", href: "/admin/teammate_posts", description: "Team & worker requests" },
-  { key: "skill_profiles", label: "Skills", emoji: "🎯", href: "/admin/skill_profiles", description: "Skill exchange profiles" },
-  { key: "events", label: "Events", emoji: "🎤", href: "/admin/events", description: "Campus events & meetups" },
-  { key: "services", label: "Services", emoji: "🛠️", href: "/admin/services", description: "Campus services" },
-  { key: "opportunities", label: "Opportunities", emoji: "💼", href: "/admin/opportunities", description: "Jobs, internships & gigs" },
-  { key: "transactions", label: "Transactions", emoji: "💰", href: "/admin/transactions", description: "Revenue & payments" },
-  { key: "subscriptions", label: "Subscriptions", emoji: "📋", href: "/admin/subscriptions", description: "College subscriptions" },
-  { key: "sponsorships", label: "Sponsorships", emoji: "📣", href: "/admin/sponsorships", description: "Brand campaigns" },
-  { key: "notifications", label: "Notifications", emoji: "🔔", href: "/admin/notifications", description: "Push notifications" },
+  { key: "listings", label: "Second-hand items", emoji: "🛍️", href: "/admin/listings", description: "Used item listings" },
+  { key: "home_listings", label: "Rooms & homes", emoji: "🏠", href: "/admin/home_listings", description: "Rooms, flats & PG listings" },
+  { key: "listing_interests", label: "Buyer interest", emoji: "🙋", href: "/admin/listing_interests", description: "Interest in item listings" },
 ];
 
 function CollectionCard({ info }: { info: CollectionInfo }) {
@@ -64,8 +55,7 @@ export default function AdminDashboard() {
   const { data: colleges } = useCollection<College>("colleges");
   const { data: profiles } = useCollection("profiles");
   const { data: listings } = useCollection("listings");
-  const { data: equipment } = useCollection("equipment");
-  const { data: pgListings } = useCollection("pg_listings");
+  const { data: homeListings } = useCollection("home_listings");
 
   const totalStudents = colleges.reduce((sum, c) => sum + c.campusloop_students, 0);
 
@@ -103,7 +93,7 @@ export default function AdminDashboard() {
         </div>
         <div className="cl-panel cl-panel-solid p-5">
           <p className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">Active Listings</p>
-          <p className="mt-1 text-3xl font-black text-white">{listings.length + equipment.length + pgListings.length}</p>
+          <p className="mt-1 text-3xl font-black text-white">{listings.length + homeListings.length}</p>
         </div>
         <div className="cl-panel cl-panel-solid p-5">
           <p className="text-[10px] font-semibold tracking-wider text-white/40 uppercase">Total Students</p>
@@ -125,19 +115,11 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-start gap-2 text-[11px] text-white/50">
             <span className="text-mint-400">✓</span>
-            Manage all book/equipment/PG listings
+            Manage second-hand item and property listings
           </div>
           <div className="flex items-start gap-2 text-[11px] text-white/50">
             <span className="text-mint-400">✓</span>
             Control user profiles and permissions
-          </div>
-          <div className="flex items-start gap-2 text-[11px] text-white/50">
-            <span className="text-mint-400">✓</span>
-            Edit events, services, opportunities
-          </div>
-          <div className="flex items-start gap-2 text-[11px] text-white/50">
-            <span className="text-mint-400">✓</span>
-            View and manage all transactions
           </div>
         </div>
       </div>
@@ -165,13 +147,13 @@ export default function AdminDashboard() {
           </div>
         </Link>
         <Link
-          href="/admin/pg_listings"
+          href="/admin/home_listings"
           className="cl-panel cl-panel-hover flex items-center gap-3 p-4 transition"
         >
           <span className="text-lg">🏠</span>
           <div>
-            <p className="text-xs font-semibold text-white">PG & Rooms</p>
-            <p className="text-[10px] text-white/35">Moderate room listings</p>
+            <p className="text-xs font-semibold text-white">Rooms & Homes</p>
+            <p className="text-[10px] text-white/35">Moderate property listings</p>
           </div>
         </Link>
         <Link

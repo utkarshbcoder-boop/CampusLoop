@@ -1,5 +1,5 @@
 /**
- * Navigation metadata for the product modules.
+ * Navigation metadata for the marketplace's product areas.
  *
  * Lives in a plain module (not a `"use client"` component) so both the client
  * header and the server footer can import it.
@@ -19,40 +19,28 @@ export interface NavModule {
 
 export const NAV_MODULES: NavModule[] = [
   {
-    href: "/books",
-    label: "Used Books",
-    short: "Books",
-    emoji: "📚",
-    blurb: "Buy, sell and rent textbooks from the students already on your campus.",
-    hook: "₹150 for a ₹900 book, from a hostel room 200 metres away.",
-    action: "Sell a book",
-  },
-  {
-    href: "/devices",
-    label: "Devices & Gear",
-    short: "Devices",
-    emoji: "💻",
-    blurb: "Rent laptops, calculators, lab equipment and project gear from students on campus.",
-    hook: "The device you need for a project, for only as long as you need it.",
-    action: "List a device",
+    href: "/marketplace",
+    label: "Second-hand items",
+    short: "Items",
+    emoji: "🛍️",
+    blurb: "Browse used books, devices, and other pre-owned listings.",
+    hook: "Find pre-owned items listed by students nearby.",
+    action: "List an item",
   },
   {
     href: "/homes",
-    label: "Homes & Rooms",
+    label: "Rooms, Flats & PGs",
     short: "Homes",
     emoji: "🏘️",
-    blurb: "Rent a room, PG or 1–4 BHK near campus, or buy a home.",
-    hook: "A PG bed or a 2 BHK near your college, rent or buy.",
-    action: "List a home",
+    blurb: "Find rooms, flats, and PGs to rent or buy near your campus.",
+    hook: "Find a place to live, or list your own.",
+    action: "List a property",
   },
 ];
 
 export const UTILITY_LINKS = [
-  { href: "/marketplace", label: "Second-hand marketplace", emoji: "🛍️" },
   { href: "/my-listings", label: "My Listings", emoji: "📋" },
-  { href: "/college", label: "For Colleges", emoji: "🏛️" },
   { href: "/saved", label: "Saved", emoji: "⭐" },
-  { href: "/premium", label: "Premium", emoji: "⭐" },
   { href: "/settings", label: "Settings", emoji: "⚙️" },
 ];
 

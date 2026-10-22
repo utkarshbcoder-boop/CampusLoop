@@ -37,42 +37,31 @@ export function SaveButton({
   label?: string;
   className?: string;
 }) {
-  const { premium, isSaved, toggleSave, pushToast } = useCampusLoop();
-  const router = useRouter();
+  const { isSaved, toggleSave, pushToast } = useCampusLoop();
   const saved = isSaved(id);
   return (
     <button
       type="button"
       onClick={() => {
-        if (!premium) {
-          pushToast({
-            title: "Save favorites with Premium",
-            body: "Upgrade to star and keep your favorite books, rooms, and PG listings saved.",
-            tone: "premium",
-          });
-          router.push("/premium");
-          return;
-        }
         toggleSave(id);
         pushToast({
           title: saved ? "Removed from favorites" : "Added to favorites",
           body: saved
             ? "This listing has been removed from your saved favorites."
-            : "This listing is saved in your Premium favorites.",
-          tone: "premium",
+            : "This listing is saved to your favorites on this device.",
+          tone: "success",
         });
       }}
       className={cn(
         "cl-btn cl-btn-ghost",
         saved && "border-flare-400/50 text-flare-200",
-        !premium && "border-flare-400/25 text-flare-200",
         className,
       )}
-      aria-pressed={premium ? saved : undefined}
-      aria-label={premium ? (saved ? "Remove from favorites" : "Add to favorites") : "Save favorites with Premium"}
+      aria-pressed={saved}
+      aria-label={saved ? "Remove from favorites" : "Add to favorites"}
     >
       <StarIcon width={15} height={15} className={saved ? "text-flare-300" : undefined} />
-      {premium ? (saved ? "Starred" : label) : "Premium"}
+      {saved ? "Saved" : label}
     </button>
   );
 }
@@ -291,7 +280,7 @@ export function BuyButton({ listingId, title, price }: { listingId: string; titl
         record(
           "buying",
           "Seller notified",
-          `Your interest in "${title}" was sent. CampusLoop holds ₹${price} in escrow until you confirm the handover — no cash exchange on campus.`,
+          `Your interest in "${title}" was sent. Agree on price, payment, and handover directly with the seller; CampusLoop does not process payments.`,
           "success",
         )
       }

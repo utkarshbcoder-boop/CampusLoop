@@ -16,19 +16,6 @@ import { db } from "@/lib/firebase/config";
 import { colleges } from "@/lib/data/colleges";
 import { profiles } from "@/lib/data/profiles";
 import { listings } from "@/lib/data/listings";
-import { equipment } from "@/lib/data/equipment";
-import { pgListings } from "@/lib/data/pgListings";
-import { teammatePosts } from "@/lib/data/teammatePosts";
-import { skillProfiles } from "@/lib/data/skillProfiles";
-import { campusEvents } from "@/lib/data/campusEvents";
-import { campusServices } from "@/lib/data/campusServices";
-import { opportunities } from "@/lib/data/opportunities";
-import {
-  transactions,
-  collegeSubscriptions,
-  sponsorships,
-  notifications,
-} from "@/lib/data/business";
 
 interface SeedCollection {
   name: string;
@@ -40,18 +27,7 @@ interface SeedCollection {
 const SEED_COLLECTIONS: SeedCollection[] = [
   { name: "colleges", label: "Colleges", emoji: "🏛️", data: colleges as unknown as Record<string, unknown>[] },
   { name: "profiles", label: "Profiles", emoji: "👤", data: profiles as unknown as Record<string, unknown>[] },
-  { name: "listings", label: "Books", emoji: "📚", data: listings as unknown as Record<string, unknown>[] },
-  { name: "equipment", label: "Equipment", emoji: "💻", data: equipment as unknown as Record<string, unknown>[] },
-  { name: "pg_listings", label: "PG Listings", emoji: "🏠", data: pgListings as unknown as Record<string, unknown>[] },
-  { name: "teammate_posts", label: "Team Posts", emoji: "🧑‍💻", data: teammatePosts as unknown as Record<string, unknown>[] },
-  { name: "skill_profiles", label: "Skills", emoji: "🎯", data: skillProfiles as unknown as Record<string, unknown>[] },
-  { name: "events", label: "Events", emoji: "🎤", data: campusEvents as unknown as Record<string, unknown>[] },
-  { name: "services", label: "Services", emoji: "🛠️", data: campusServices as unknown as Record<string, unknown>[] },
-  { name: "opportunities", label: "Opportunities", emoji: "💼", data: opportunities as unknown as Record<string, unknown>[] },
-  { name: "transactions", label: "Transactions", emoji: "💰", data: transactions as unknown as Record<string, unknown>[] },
-  { name: "subscriptions", label: "Subscriptions", emoji: "📋", data: collegeSubscriptions as unknown as Record<string, unknown>[] },
-  { name: "sponsorships", label: "Sponsorships", emoji: "📣", data: sponsorships as unknown as Record<string, unknown>[] },
-  { name: "notifications", label: "Notifications", emoji: "🔔", data: notifications as unknown as Record<string, unknown>[] },
+  { name: "listings", label: "Second-hand items", emoji: "🛍️", data: listings as unknown as Record<string, unknown>[] },
 ];
 
 export default function SeedPage() {
@@ -101,8 +77,7 @@ export default function SeedPage() {
     <div>
       <h1 className="text-2xl font-black text-white">🌱 Seed Firestore</h1>
       <p className="mt-2 text-sm text-white/50">
-        Push all mock data from the local data layer into Firestore. This is
-        meant to be run once to bootstrap your database.
+        Seed the campus, profile, and second-hand item collections used by this site.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">

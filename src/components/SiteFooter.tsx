@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { NAV_MODULES } from "@/lib/nav";
-import type { College } from "@/lib/types";
 
-export function SiteFooter({ colleges }: { colleges: College[] }) {
+export function SiteFooter() {
   const year = new Date().getFullYear();
   return (
     <footer className="mt-20 border-t border-white/8 bg-ink-900/50">
@@ -16,17 +15,12 @@ export function SiteFooter({ colleges }: { colleges: College[] }) {
               <span className="text-[15px] font-bold tracking-tight text-white">CampusLoop</span>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/50">
-              College life is fragmented across WhatsApp groups, Instagram pages and random websites. CampusLoop brings
-              it all into one trusted student ecosystem.
-            </p>
-            <p className="mt-4 text-xs text-white/35">
-              Live across {colleges.length} colleges · {colleges.reduce((a, c) => a + c.campusloop_students, 0).toLocaleString("en-IN")}{" "}
-              verified students
+              Browse second-hand items and find rooms, flats, and PGs near campus.
             </p>
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold tracking-wider text-white/45 uppercase">Nine modules</h3>
+            <h3 className="text-xs font-semibold tracking-wider text-white/45 uppercase">Marketplace</h3>
             <ul className="mt-4 flex flex-col gap-2.5">
               {NAV_MODULES.map((m) => (
                 <li key={m.href}>
@@ -50,18 +44,13 @@ export function SiteFooter({ colleges }: { colleges: College[] }) {
                 </Link>
               </li>
               <li>
-                <Link href="/college" className="text-sm text-white/55 transition hover:text-white">
-                  College SaaS dashboard
+                <Link href="/sell" className="text-sm text-white/55 transition hover:text-white">
+                  Create a listing
                 </Link>
               </li>
               <li>
-                <Link href="/premium" className="text-sm text-white/55 transition hover:text-white">
-                  Premium ₹99/month
-                </Link>
-              </li>
-              <li>
-                <Link href="/business" className="text-sm text-white/55 transition hover:text-white">
-                  Business model &amp; unit economics
+                <Link href="/marketplace" className="text-sm text-white/55 transition hover:text-white">
+                  Second-hand items
                 </Link>
               </li>
             </ul>
@@ -72,10 +61,10 @@ export function SiteFooter({ colleges }: { colleges: College[] }) {
         <div className="cl-divider mt-12" />
         <div className="mt-6 flex flex-col gap-3 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {year} CampusLoop. Built for students, priced in rupees, verified with student IDs.
+            © {year} CampusLoop. A marketplace for pre-owned items and homes.
           </p>
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span>Runs on seeded local data — no setup needed</span>
+            <span>Check listing details directly with the lister</span>
           </p>
         </div>
       </div>

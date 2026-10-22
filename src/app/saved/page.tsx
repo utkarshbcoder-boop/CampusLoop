@@ -2,28 +2,25 @@ import type { Metadata } from "next";
 import { PageHeader, Section } from "@/components/ui";
 import { SavedFavorites } from "@/components/SavedFavorites";
 import { HOMES } from "@/lib/data/homes";
-import { getListings, getPGListings, parseListingFilters, parsePGFilters } from "@/lib/queries";
+import { getSecondhandListings } from "@/lib/queries";
 
 export const metadata: Metadata = {
-  title: "Saved Favorites",
-  description: "Your starred campus books, rooms, and PG listings.",
+  title: "Saved Listings",
+  description: "Your saved second-hand items, rooms, flats, and PG listings.",
 };
 
 export default async function SavedPage() {
-  const [listings, pgListings] = await Promise.all([
-    getListings(parseListingFilters({})),
-    getPGListings(parsePGFilters({})),
-  ]);
+  const listings = await getSecondhandListings();
 
   return (
     <>
       <PageHeader
-        eyebrow="Premium · Favorites"
+        eyebrow="Your marketplace"
         title="Your saved listings"
-        description="Find the books, rooms, and PG listings you starred again in one place."
+        description="Find your saved second-hand items, rooms, flats, and PG listings in one place."
       />
       <Section className="pt-6">
-        <SavedFavorites listings={listings} pgListings={pgListings} homes={HOMES} />
+        <SavedFavorites listings={listings} homes={HOMES} />
       </Section>
     </>
   );
