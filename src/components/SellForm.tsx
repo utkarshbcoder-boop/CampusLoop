@@ -25,10 +25,10 @@ const CONDITIONS: { value: BookCondition; label: string }[] = [
 
 type SellKind = "book" | "device" | "home";
 
-export function SellForm({ initialKind }: { initialKind: SellKind }) {
+export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [kind, setKind] = useState<SellKind>(initialKind);
+  const [kind, setKind] = useState<SellKind>(initialKind === "both" ? "book" : initialKind);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<BookCondition>("good");
@@ -164,8 +164,8 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
     <form onSubmit={submit} className="cl-panel cl-panel-solid flex flex-col gap-4 p-6">
       <div className="grid grid-cols-3 gap-2">
         {([
-          { value: "book", label: "Books" },
-          { value: "device", label: "Phone / laptop / tablet" },
+          { value: "book", label: "Sell books" },
+          { value: "device", label: "Sell a device" },
           { value: "home", label: "Home / room" },
         ] as const).map((option) => (
           <button
@@ -182,6 +182,24 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
           </button>
         ))}
       </div>
+      {kind === "device" ? (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-[11px] tracking-wider text-white/40 uppercase">Choose device type</legend>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {DEVICE_CATEGORIES.filter((category) => category.value !== "other").map((category) => (
+              <button
+                key={category.value}
+                type="button"
+                aria-pressed={deviceType === category.value}
+                onClick={() => setDeviceType(category.value)}
+                className={`cl-btn justify-center ${deviceType === category.value ? "cl-btn-primary" : "cl-btn-ghost"}`}
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       {kind === "home" ? (
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5">
@@ -257,20 +275,6 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
           <input className="cl-input" value={edition} onChange={(event) => setEdition(event.target.value)} placeholder={kind === "book" ? "Edition / year" : "Laptop, phone, calculator…"} />
         </label>
       </div> : null}
-      {kind === "device" ? (
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] tracking-wider text-white/40 uppercase">Device type</span>
-          <select
-            className="cl-input"
-            value={deviceType}
-            onChange={(event) => setDeviceType(event.target.value as DeviceCategory)}
-          >
-            {DEVICE_CATEGORIES.map((category) => (
-              <option key={category.value} value={category.value}>{category.label}</option>
-            ))}
-          </select>
-        </label>
-      ) : null}
       {kind !== "home" ? <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">{kind === "book" ? "Subject" : "Description / specs"}</span>
         <input className="cl-input" value={subject} onChange={(event) => setSubject(event.target.value)} placeholder={kind === "book" ? "e.g. Computer Science" : "e.g. 16 GB RAM, 512 GB SSD"} />

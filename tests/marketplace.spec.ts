@@ -44,6 +44,10 @@ test("visitor can browse books, save a listing, and find it again", async ({ pag
 test("marketplace can filter phones, laptops, and tablets", async ({ page }) => {
   await page.goto("/marketplace");
 
+  await expect(page.getByRole("link", { name: "Sell a book" })).toHaveAttribute("href", "/sell?type=book");
+  await expect(page.getByRole("link", { name: "Sell a phone, laptop or tablet" })).toHaveAttribute("href", "/sell?type=device");
+  await expect(page.getByRole("link", { name: "Sell books & devices" })).toHaveAttribute("href", "/sell?type=both");
+
   const itemType = page.getByLabel("Filter by item type");
   const deviceType = page.getByLabel("Filter by device type");
   await expect(deviceType.locator("option")).toHaveText([
