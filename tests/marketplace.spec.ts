@@ -15,14 +15,16 @@ test("homepage links only to second-hand items and homes", async ({ page }) => {
   await expect(page.getByText(/teammates|skills exchange|opportunities|campus events/i)).toHaveCount(0);
 });
 
-test("unrelated business pages and device rentals redirect out of the product", async ({ page }) => {
+test("unrelated business pages redirect and used devices have their own browse page", async ({ page }) => {
   for (const path of ["/business", "/college", "/premium"]) {
     await page.goto(path);
     await expect(page).toHaveURL("http://127.0.0.1:3100/");
   }
 
-  await page.goto("/devices", { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL("http://127.0.0.1:3100/marketplace");
+  await page.goto("/devices");
+  await expect(page.getByRole("heading", { name: "Phones, laptops & tablets" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "List a phone, laptop or tablet" })).toHaveAttribute("href", "/sell?type=device");
+  await expect(page.getByRole("button", { name: "Add to favorites" }).first()).toBeVisible();
 });
 
 test("visitor can browse books, save a listing, and find it again", async ({ page }) => {
@@ -44,8 +46,8 @@ test("visitor can browse books, save a listing, and find it again", async ({ pag
 test("marketplace can filter phones, laptops, and tablets", async ({ page }) => {
   await page.goto("/marketplace");
 
-  await expect(page.getByRole("link", { name: "Sell a book" })).toHaveAttribute("href", "/sell?type=book");
-  await expect(page.getByRole("link", { name: "Sell a phone, laptop or tablet" })).toHaveAttribute("href", "/sell?type=device");
+  await expect(page.getByRole("link", { name: "Browse books" })).toHaveAttribute("href", "/books");
+  await expect(page.getByRole("link", { name: "Browse phones, laptops & tablets" })).toHaveAttribute("href", "/devices");
   await expect(page.getByRole("link", { name: "Sell books & devices" })).toHaveAttribute("href", "/sell?type=both");
 
   const itemType = page.getByLabel("Filter by item type");

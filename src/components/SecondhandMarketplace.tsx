@@ -172,8 +172,8 @@ export function SecondhandMarketplace({
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-white/45">{visibleListings.length} second-hand {visibleListings.length === 1 ? "listing" : "listings"}</p>
         <div className="flex flex-wrap gap-2">
-          <Link href="/sell?type=book" className="cl-btn cl-btn-ghost">Sell a book</Link>
-          <Link href="/sell?type=device" className="cl-btn cl-btn-ghost">Sell a phone, laptop or tablet</Link>
+          <Link href="/books" className="cl-btn cl-btn-ghost">Browse books</Link>
+          <Link href="/devices" className="cl-btn cl-btn-ghost">Browse phones, laptops &amp; tablets</Link>
           <Link href="/sell?type=both" className="cl-btn cl-btn-primary">Sell books &amp; devices</Link>
         </div>
       </div>
