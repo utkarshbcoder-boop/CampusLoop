@@ -5,6 +5,7 @@ import { ListingInterestButton } from "@/components/ListingInterestButton";
 import { KeyValue, Section } from "@/components/ui";
 import { getListing } from "@/lib/queries";
 import { rupees } from "@/lib/format";
+import { DEVICE_CATEGORIES, getDeviceCategory } from "@/lib/marketplaceCategories";
 import type { Listing } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 function DeviceListing({ listing }: { listing: Listing }) {
+  const deviceCategory = DEVICE_CATEGORIES.find((category) => category.value === getDeviceCategory(listing));
   return (
     <Section className="py-8">
       <nav className="mb-6 flex items-center gap-2 text-xs text-white/40" aria-label="Breadcrumb">
@@ -31,7 +33,7 @@ function DeviceListing({ listing }: { listing: Listing }) {
         </div>
         <div className="cl-panel cl-panel-solid p-6">
           <div className="flex flex-wrap gap-2">
-            <span className="cl-chip cl-chip-brand">Second-hand device</span>
+            <span className="cl-chip cl-chip-brand">{deviceCategory?.label ?? "Second-hand device"}</span>
             <span className="cl-chip">{listing.status === "available" ? "Available" : listing.status}</span>
             <span className="cl-chip">{listing.condition.replaceAll("_", " ")}</span>
           </div>

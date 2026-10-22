@@ -17,9 +17,11 @@ import {
   saveSettingsPreferences,
   SETTINGS_PREFERENCES_EVENT,
 } from "@/lib/settingsPreferences";
+import { DEVICE_CATEGORIES, getDeviceCategory } from "@/lib/marketplaceCategories";
 import type { College, Listing } from "@/lib/types";
 
 type ItemFilter = "all" | "book" | "device";
+type DeviceFilter = "all" | "mobile" | "laptop" | "tablet" | "other";
 type StatusFilter = "all" | "available" | "sold";
 
 export function SecondhandMarketplace({
@@ -32,6 +34,7 @@ export function SecondhandMarketplace({
   const { user } = useAuth();
   const userId = user?.uid ?? "guest";
   const [itemType, setItemType] = useState<ItemFilter>("all");
+  const [deviceType, setDeviceType] = useState<DeviceFilter>("all");
   const [campusId, setCampusId] = useState("");
   const [customCampus, setCustomCampus] = useState("");
   const [status, setStatus] = useState<StatusFilter>("available");
@@ -40,12 +43,14 @@ export function SecondhandMarketplace({
   useEffect(() => {
     const prefs = readSettingsPreferences(userId);
     setItemType(prefs.marketplaceCategory);
+    if (prefs.marketplaceCategory !== "device") setDeviceType("all");
     setCampusId(prefs.marketplaceCampusId);
     setCustomCampus(customCampusName(prefs.marketplaceCampusId));
     const handleChange = (event: Event) => {
       const detail = (event as CustomEvent<{ userId: string; preferences: ReturnType<typeof readSettingsPreferences> }>).detail;
       if (detail?.userId !== userId) return;
       setItemType(detail.preferences.marketplaceCategory);
+      if (detail.preferences.marketplaceCategory !== "device") setDeviceType("all");
       setCampusId(detail.preferences.marketplaceCampusId);
       setCustomCampus(customCampusName(detail.preferences.marketplaceCampusId));
     };
@@ -58,6 +63,7 @@ export function SecondhandMarketplace({
     return listings.filter((listing) => {
       const listingType = listing.item_type ?? "book";
       if (itemType !== "all" && listingType !== itemType) return false;
+      if (deviceType !== "all" && (listingType !== "device" || getDeviceCategory(listing) !== deviceType)) return false;
       if (
         campusId
         && campusId !== OTHER_CAMPUS_VALUE
@@ -73,7 +79,7 @@ export function SecondhandMarketplace({
         listing.pickup_location ?? "",
       ].join(" ").toLowerCase().includes(term);
     });
-  }, [campusId, itemType, listings, search, status]);
+  }, [campusId, deviceType, itemType, listings, search, status]);
 
   return (
     <>
@@ -91,13 +97,32 @@ export function SecondhandMarketplace({
           onChange={(event) => {
             const nextCategory = event.target.value as ItemFilter;
             setItemType(nextCategory);
+            if (nextCategory !== "device") setDeviceType("all");
             saveSettingsPreferences(userId, { marketplaceCategory: nextCategory });
           }}
           aria-label="Filter by item type"
         >
           <option value="all">Books & devices</option>
           <option value="book">Books</option>
-          <option value="device">Devices</option>
+          <option value="device">Devices: phones, laptops & tablets</option>
+        </select>
+        <select
+          className="cl-input sm:w-48"
+          value={deviceType}
+          onChange={(event) => {
+            const nextType = event.target.value as DeviceFilter;
+            setDeviceType(nextType);
+            if (nextType !== "all") {
+              setItemType("device");
+              saveSettingsPreferences(userId, { marketplaceCategory: "device" });
+            }
+          }}
+          aria-label="Filter by device type"
+        >
+          <option value="all">All device types</option>
+          {DEVICE_CATEGORIES.map((category) => (
+            <option key={category.value} value={category.value}>{category.label}</option>
+          ))}
         </select>
         <select
           className="cl-input sm:w-48"
@@ -148,7 +173,7 @@ export function SecondhandMarketplace({
         <p className="text-xs text-white/45">{visibleListings.length} second-hand {visibleListings.length === 1 ? "listing" : "listings"}</p>
         <div className="flex gap-2">
           <Link href="/sell?type=book" className="cl-btn cl-btn-ghost">Sell a book</Link>
-          <Link href="/sell?type=device" className="cl-btn cl-btn-primary">Sell a device</Link>
+          <Link href="/sell?type=device" className="cl-btn cl-btn-primary">Sell a phone, laptop or tablet</Link>
         </div>
       </div>
 

@@ -41,6 +41,30 @@ test("visitor can browse books, save a listing, and find it again", async ({ pag
   await expect(page.getByText("Second-hand item", { exact: true })).toBeVisible();
 });
 
+test("marketplace can filter phones, laptops, and tablets", async ({ page }) => {
+  await page.goto("/marketplace");
+
+  const itemType = page.getByLabel("Filter by item type");
+  const deviceType = page.getByLabel("Filter by device type");
+  await expect(deviceType.locator("option")).toHaveText([
+    "All device types",
+    "Mobile phones",
+    "Laptops",
+    "Tablets",
+    "Other devices",
+  ]);
+
+  for (const category of ["mobile", "laptop", "tablet"]) {
+    await deviceType.selectOption(category);
+    await expect(itemType).toHaveValue("device");
+    const cards = page.locator("main article");
+    for (let index = 0; index < await cards.count(); index += 1) {
+      const label = category === "mobile" ? "Mobile phones" : category === "laptop" ? "Laptops" : "Tablets";
+      await expect(cards.nth(index)).toContainText(label);
+    }
+  }
+});
+
 test("visitor can browse rooms, flats, and PGs", async ({ page }) => {
   await page.goto("/homes");
 
@@ -48,7 +72,7 @@ test("visitor can browse rooms, flats, and PGs", async ({ page }) => {
   await expect(page.getByText("homes for rent", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "List a room, flat, or PG" })).toHaveAttribute("href", "/sell?type=home");
 
-  await page.getByRole("link", { name: "Single AC room in students' PG with mess" }).click();
+  await page.getByRole("link", { name: "View details" }).first().click();
   await expect(page).toHaveURL(/\/homes\/h1$/);
   await expect(page.getByRole("heading", { name: "Single AC room in students' PG with mess" })).toBeVisible();
   await expect(page.getByText("Koramangala Block C")).toBeVisible();

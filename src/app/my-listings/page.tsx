@@ -8,6 +8,7 @@ import { useCollection } from "@/lib/firebase/hooks";
 import { db } from "@/lib/firebase/config";
 import { rupees, titleCase } from "@/lib/format";
 import { HOME_TYPE_LABELS } from "@/lib/data/homes";
+import { DEVICE_CATEGORIES, getDeviceCategory } from "@/lib/marketplaceCategories";
 import type { HomeMarketplaceListing } from "@/lib/firebase/marketplace";
 import type { Listing } from "@/lib/types";
 
@@ -112,7 +113,11 @@ function SellerListings({ sellerId }: { sellerId: string }) {
               <span className={`cl-chip ${listing.status === "sold" ? "cl-chip-rose" : listing.status === "available" ? "cl-chip-mint" : "cl-chip-flare"}`}>
                 {titleCase(listing.status)}
               </span>
-              <span className="cl-chip">{listing.item_type === "device" ? "Device" : "Book"}</span>
+              <span className="cl-chip">
+                {listing.item_type === "device"
+                  ? DEVICE_CATEGORIES.find((category) => category.value === getDeviceCategory(listing))?.label ?? "Other devices"
+                  : "Book"}
+              </span>
             </div>
             <p className="mt-2 text-sm text-white/55">{rupees(listing.price)} · Pickup: {listing.pickup_location || "Not provided"}</p>
             <p className="mt-1 text-xs text-white/40">{interestCounts.get(listing.id) ?? 0} buyers interested</p>

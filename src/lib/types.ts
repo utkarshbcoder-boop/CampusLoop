@@ -106,6 +106,7 @@ export interface Profile {
 
 export type ListingKind = "sell" | "buy" | "rent";
 export type MarketplaceItemType = "book" | "device";
+export type DeviceCategory = "mobile" | "laptop" | "tablet" | "other";
 export type HomeListingType = "pg" | "separate_room" | "1rk" | "1bhk" | "2bhk" | "3bhk" | "4bhk";
 export type HomeListingMode = "rent" | "sale";
 export type BookCondition = "like_new" | "good" | "fair" | "heavy_notes";
@@ -115,6 +116,8 @@ export interface Listing {
   id: ID;
   /** Missing on older seeded records; those are treated as book listings. */
   item_type?: MarketplaceItemType;
+  /** Missing on older device records; inferred from the listing text when possible. */
+  device_type?: DeviceCategory;
   title: string;
   author: string;
   edition: string;

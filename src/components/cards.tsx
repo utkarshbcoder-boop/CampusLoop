@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { SaveButton } from "@/components/Actions";
 import { PinIcon, ClockIcon, StarIcon } from "@/components/Icon";
 import { equipmentCategoryLabel } from "@/lib/data/equipmentCategories";
+import { getDeviceCategory, DEVICE_CATEGORIES } from "@/lib/marketplaceCategories";
 import { campusNameById } from "@/lib/data/campusOptions";
 import { Avatar, ScoreBreakdown, ScoreRing, StarRating, TagList, Thumbnail } from "@/components/ui";
 import { formatDate, formatTime, relativeDay, rupees, rupeesShort, timeAgo, titleCase } from "@/lib/format";
@@ -51,6 +52,11 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
 
       <div className="flex flex-wrap items-center gap-1.5 px-4">
         <span className="cl-chip cl-chip-brand">{titleCase(listing.kind)}</span>
+        {listing.item_type === "device" ? (
+          <span className="cl-chip">
+            {DEVICE_CATEGORIES.find((category) => category.value === getDeviceCategory(listing))?.label ?? "Other devices"}
+          </span>
+        ) : null}
         <span className="cl-chip">{titleCase(listing.condition)}</span>
         {listing.status !== "available" ? (
           <span className={cn("cl-chip", listing.status === "sold" ? "cl-chip-rose" : "cl-chip-flare")}>

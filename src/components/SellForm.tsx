@@ -12,8 +12,9 @@ import {
 } from "@/lib/data/campusOptions";
 import { createHomeMarketplaceListing, createMarketplaceListing } from "@/lib/firebase/marketplace";
 import { rupees } from "@/lib/format";
+import { DEVICE_CATEGORIES } from "@/lib/marketplaceCategories";
 import { readSettingsPreferences } from "@/lib/settingsPreferences";
-import type { BookCondition, HomeListingMode, HomeListingType } from "@/lib/types";
+import type { BookCondition, DeviceCategory, HomeListingMode, HomeListingType } from "@/lib/types";
 
 const CONDITIONS: { value: BookCondition; label: string }[] = [
   { value: "like_new", label: "Like new" },
@@ -31,6 +32,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [condition, setCondition] = useState<BookCondition>("good");
+  const [deviceType, setDeviceType] = useState<DeviceCategory>("laptop");
   const [address, setAddress] = useState("");
   const [homeDescription, setHomeDescription] = useState("");
   const [author, setAuthor] = useState("");
@@ -93,6 +95,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
       const itemType = kind === "device" ? "device" : "book";
       const id = await createMarketplaceListing({
         item_type: itemType,
+        ...(itemType === "device" ? { device_type: deviceType } : {}),
         title: title.trim(),
         author: author.trim() || (itemType === "device" ? "Device" : "Student listing"),
         edition: edition.trim() || "Used",
@@ -112,7 +115,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
         highlights: [],
         tags: [],
         hue: itemType === "device" ? 210 : 32,
-        emoji: itemType === "device" ? "💻" : "📚",
+        emoji: itemType !== "device" ? "📚" : deviceType === "mobile" || deviceType === "tablet" ? "📱" : "💻",
         boosted: false,
         views: 0,
         saves: 0,
@@ -162,7 +165,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
       <div className="grid grid-cols-3 gap-2">
         {([
           { value: "book", label: "Books" },
-          { value: "device", label: "2nd-hand device" },
+          { value: "device", label: "Phone / laptop / tablet" },
           { value: "home", label: "Home / room" },
         ] as const).map((option) => (
           <button
@@ -215,7 +218,15 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
           className="cl-input"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder={kind === "book" ? "e.g. Introduction to Algorithms" : kind === "device" ? "e.g. Dell Latitude 5420, 16GB RAM" : "e.g. Furnished room near campus"}
+          placeholder={kind === "book"
+            ? "e.g. Introduction to Algorithms"
+            : kind === "device"
+              ? deviceType === "mobile"
+                ? "e.g. iPhone 13, 128 GB"
+                : deviceType === "tablet"
+                  ? "e.g. Samsung Galaxy Tab S8"
+                  : "e.g. Dell Latitude 5420, 16 GB RAM"
+              : "e.g. Furnished room near campus"}
           required
         />
       </label>
@@ -246,6 +257,20 @@ export function SellForm({ initialKind }: { initialKind: SellKind }) {
           <input className="cl-input" value={edition} onChange={(event) => setEdition(event.target.value)} placeholder={kind === "book" ? "Edition / year" : "Laptop, phone, calculator…"} />
         </label>
       </div> : null}
+      {kind === "device" ? (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] tracking-wider text-white/40 uppercase">Device type</span>
+          <select
+            className="cl-input"
+            value={deviceType}
+            onChange={(event) => setDeviceType(event.target.value as DeviceCategory)}
+          >
+            {DEVICE_CATEGORIES.map((category) => (
+              <option key={category.value} value={category.value}>{category.label}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       {kind !== "home" ? <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">{kind === "book" ? "Subject" : "Description / specs"}</span>
         <input className="cl-input" value={subject} onChange={(event) => setSubject(event.target.value)} placeholder={kind === "book" ? "e.g. Computer Science" : "e.g. 16 GB RAM, 512 GB SSD"} />
