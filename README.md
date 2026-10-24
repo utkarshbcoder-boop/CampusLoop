@@ -37,11 +37,11 @@ The browser tests cover marketplace browsing, saving a listing, sign-in validati
 
 ## Data and publishing
 
-- The default data provider serves sample records for local browsing.
+- The default data provider serves sample records for local browsing. These records are not automatically copied into Firebase.
 - Firebase Authentication and Firestore are used for account-based item and property listings. Configure the Firebase values in `.env.local` to enable those features.
 - Deploy `firestore.rules` with `firebase deploy --only firestore:rules` when the rules change. A code deployment does not deploy Firestore rules.
 - Listing photos use Firebase Storage. Deploy `storage.rules` with `firebase deploy --only storage` before enabling photo uploads; rules restrict uploads to the owner, images, and 5 MB per file.
-- Sample book and device cards are labelled **Sample listing**. Use **Admin → Seed Data** to add sample listings; those controls skip IDs already present.
+- Sample book and device cards are labelled **Sample listing**. Firebase-backed deployments show records already stored in Firestore; there is no bulk sample-data seeding page.
 - Supabase is available as an optional data provider for the seeded data. Its schema is in [`supabase/schema.sql`](supabase/schema.sql); review and configure access policies before using real data.
 - Sample listings are for preview. Confirm the identity, availability, condition, location, and terms directly with the lister before paying or making a commitment. The site does not provide escrow or transaction guarantees.
 
