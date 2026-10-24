@@ -129,7 +129,7 @@ export default function SeedPage() {
           disabled={status.devices === "seeding"}
           className="cl-btn cl-btn-ghost px-5 py-2.5 text-sm"
         >
-          {status.devices === "seeding" ? "Adding devices…" : "📱 Seed new devices only"}
+          {status.devices === "seeding" ? "Adding devices…" : `📱 Seed ${DEVICE_LISTINGS.length} sample devices only`}
         </button>
       </div>
 

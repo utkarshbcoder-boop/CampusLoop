@@ -1,4 +1,5 @@
 import type { Listing } from "@/lib/types";
+import { deviceListings } from "@/lib/data/deviceListings";
 
 /** Seeded book listings plus sample second-hand devices for the device marketplace. */
 export const listings: Listing[] = [
@@ -888,4 +889,5 @@ export const listings: Listing[] = [
     saves: 13,
     boosted: false,
   },
+  ...deviceListings,
 ];
