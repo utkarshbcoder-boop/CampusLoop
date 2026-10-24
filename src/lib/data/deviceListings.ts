@@ -73,6 +73,39 @@ const tablets: DeviceSeed[] = [
   { title: "Nokia T21", brand: "Nokia", specs: "128 GB · Wi-Fi", price: 12500, mrp: 18999, condition: "good", tags: ["10.4-inch display", "Expandable storage"] },
 ];
 
+const additionalMobilePhones: DeviceSeed[] = [
+  { title: "Google Pixel 7", brand: "Google", specs: "128 GB · 8 GB RAM", price: 24500, mrp: 59999, condition: "good", tags: ["5G", "Google Tensor"] },
+  { title: "Samsung Galaxy S22 Ultra", brand: "Samsung", specs: "256 GB · 12 GB RAM", price: 39000, mrp: 109999, condition: "good", tags: ["S Pen included", "AMOLED display"] },
+  { title: "Samsung Galaxy A55 5G", brand: "Samsung", specs: "128 GB · 8 GB RAM", price: 23500, mrp: 39999, condition: "like_new", tags: ["5G", "Expandable storage"] },
+  { title: "OnePlus 12R", brand: "OnePlus", specs: "256 GB · 16 GB RAM", price: 34500, mrp: 45999, condition: "like_new", tags: ["5G", "AMOLED display"] },
+  { title: "Nothing Phone (2)", brand: "Nothing", specs: "256 GB · 12 GB RAM", price: 31500, mrp: 49999, condition: "good", tags: ["5G", "Glyph Interface"] },
+  { title: "Motorola Edge 50 Pro", brand: "Motorola", specs: "256 GB · 12 GB RAM", price: 28500, mrp: 35999, condition: "good", tags: ["5G", "pOLED display"] },
+  { title: "Xiaomi 13T", brand: "Xiaomi", specs: "256 GB · 12 GB RAM", price: 29500, mrp: 47999, condition: "like_new", tags: ["5G", "Leica camera"] },
+  { title: "iPhone 13 mini", brand: "Apple", specs: "128 GB", price: 32500, mrp: 64900, condition: "good", tags: ["iOS", "Compact design"] },
+];
+
+const additionalLaptops: DeviceSeed[] = [
+  { title: "HP Envy x360 14", brand: "HP", specs: "Ryzen 5 · 16 GB RAM", price: 51000, mrp: 89990, condition: "like_new", tags: ["2-in-1 touchscreen", "512 GB SSD"] },
+  { title: "Lenovo Yoga Slim 7", brand: "Lenovo", specs: "Intel Core Ultra 5 · 16 GB RAM", price: 62000, mrp: 104990, condition: "good", tags: ["OLED display", "1 TB SSD"] },
+  { title: "Lenovo Legion 5", brand: "Lenovo", specs: "Ryzen 7 · 16 GB RAM", price: 76000, mrp: 124990, condition: "good", tags: ["RTX graphics", "165 Hz display"] },
+  { title: "ASUS ROG Zephyrus G14", brand: "ASUS", specs: "Ryzen 7 · 16 GB RAM", price: 89000, mrp: 149990, condition: "like_new", tags: ["RTX graphics", "Compact gaming laptop"] },
+  { title: "Acer Chromebook Plus 514", brand: "Acer", specs: "Intel Core i3 · 8 GB RAM", price: 22000, mrp: 39990, condition: "good", tags: ["ChromeOS", "512 GB SSD"] },
+  { title: "Dell Latitude 5440", brand: "Dell", specs: "Intel Core i5 · 16 GB RAM", price: 47000, mrp: 92990, condition: "good", tags: ["512 GB SSD", "Fingerprint reader"] },
+  { title: "MSI Katana 15", brand: "MSI", specs: "Intel Core i7 · 16 GB RAM", price: 72000, mrp: 119990, condition: "good", tags: ["RTX graphics", "144 Hz display"] },
+  { title: "Apple MacBook Pro 14 M1 Pro", brand: "Apple", specs: "16 GB RAM · 512 GB SSD", price: 99000, mrp: 194900, condition: "like_new", tags: ["Apple silicon", "Liquid Retina display"] },
+];
+
+const additionalTablets: DeviceSeed[] = [
+  { title: "Apple iPad 9th Generation", brand: "Apple", specs: "64 GB · Wi-Fi", price: 17500, mrp: 30900, condition: "good", tags: ["10.2-inch display", "Apple Pencil support"] },
+  { title: "Apple iPad Air 4th Generation", brand: "Apple", specs: "256 GB · Wi-Fi", price: 31500, mrp: 59900, condition: "good", tags: ["10.9-inch display", "USB-C"] },
+  { title: "Samsung Galaxy Tab S9", brand: "Samsung", specs: "256 GB · Wi-Fi", price: 51000, mrp: 73999, condition: "like_new", tags: ["S Pen included", "AMOLED display"] },
+  { title: "Samsung Galaxy Tab A9+", brand: "Samsung", specs: "128 GB · Wi-Fi", price: 15500, mrp: 23999, condition: "good", tags: ["11-inch display", "Expandable storage"] },
+  { title: "OnePlus Pad 2", brand: "OnePlus", specs: "256 GB · Wi-Fi", price: 39000, mrp: 42999, condition: "like_new", tags: ["144 Hz display", "Stylus support"] },
+  { title: "Lenovo Tab M11", brand: "Lenovo", specs: "128 GB · Wi-Fi", price: 13500, mrp: 19999, condition: "good", tags: ["Pen included", "11-inch display"] },
+  { title: "Xiaomi Redmi Pad Pro", brand: "Xiaomi", specs: "128 GB · Wi-Fi", price: 20500, mrp: 24999, condition: "good", tags: ["12.1-inch display", "120 Hz display"] },
+  { title: "Amazon Fire HD 10", brand: "Amazon", specs: "64 GB · Wi-Fi", price: 8500, mrp: 14999, condition: "like_new", tags: ["10.1-inch display", "Expandable storage"] },
+];
+
 const sellers = [
   "prof_02", "prof_04", "prof_07", "prof_09", "prof_11", "prof_12",
   "prof_14", "prof_15", "prof_16", "prof_18", "prof_19", "prof_20",
@@ -107,7 +140,7 @@ function makeListings(
       price: product.price,
       mrp: product.mrp,
       negotiable: true,
-      seller_id: sellers[index],
+      seller_id: sellers[index % sellers.length],
       college_id: colleges[number % colleges.length],
       pickup_location: "Campus pickup",
       status: "available",
@@ -128,4 +161,7 @@ export const deviceListings: Listing[] = [
   ...makeListings(mobilePhones, "mobile", 7),
   ...makeListings(laptops, "laptop", 25),
   ...makeListings(tablets, "tablet", 43),
+  ...makeListings(additionalMobilePhones, "mobile", 61),
+  ...makeListings(additionalLaptops, "laptop", 69),
+  ...makeListings(additionalTablets, "tablet", 77),
 ];
