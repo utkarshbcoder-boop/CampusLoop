@@ -44,20 +44,6 @@ import type {
 } from "@/lib/types";
 
 /* ------------------------------------------------------------------ */
-/* Check if Firestore has been seeded                                  */
-/* ------------------------------------------------------------------ */
-
-/** Quick check — if the `colleges` collection has at least 1 doc we consider Firestore seeded. */
-export async function isFirestoreSeeded(): Promise<boolean> {
-  try {
-    const snap = await getDocs(query(collection(db, "colleges"), fbLimit(1)));
-    return !snap.empty;
-  } catch {
-    return false;
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /* Generic Firestore table                                             */
 /* ------------------------------------------------------------------ */
 

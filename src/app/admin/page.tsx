@@ -156,16 +156,6 @@ export default function AdminDashboard() {
             <p className="text-[10px] text-white/35">Moderate property listings</p>
           </div>
         </Link>
-        <Link
-          href="/admin/seed"
-          className="cl-panel cl-panel-hover flex items-center gap-3 p-4 transition"
-        >
-          <span className="text-lg">🌱</span>
-          <div>
-            <p className="text-xs font-semibold text-white">Seed Data</p>
-            <p className="text-[10px] text-white/35">Re-populate collections</p>
-          </div>
-        </Link>
       </div>
 
       {/* Collection grid */}

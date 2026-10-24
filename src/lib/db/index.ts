@@ -1,5 +1,4 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
 import { getMockProvider } from "./mock";
 import type { DataProvider } from "./provider";
 
@@ -23,25 +22,13 @@ export function supabaseEnabled(): boolean {
 }
 
 let _provider: DataProvider | null = null;
-const isSeededCached = unstable_cache(
-  async (): Promise<boolean> => {
-    const { isFirestoreSeeded } = await import("@/lib/firebase/firestore");
-    return isFirestoreSeeded();
-  },
-  ["firestore-seeded"],
-  { revalidate: 3600 },
-);
 
 export async function getDataProvider(): Promise<DataProvider> {
   if (_provider) return _provider;
   if (firebaseEnabled()) {
     const { getFirestoreProvider } = await import("@/lib/firebase/firestore");
-    const seeded = await isSeededCached();
-    if (seeded) {
-      _provider = getFirestoreProvider();
-      return _provider;
-    }
-    return getMockProvider();
+    _provider = getFirestoreProvider();
+    return _provider;
   }
   if (supabaseEnabled()) {
     const { getSupabaseProvider } = await import("./supabase");

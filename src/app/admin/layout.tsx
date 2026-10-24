@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Dashboard", emoji: "📊" },
-  { href: "/admin/seed", label: "Seed Data", emoji: "🌱" },
   { href: "/admin/colleges", label: "Colleges", emoji: "🏛️" },
   { href: "/admin/profiles", label: "Profiles", emoji: "👤" },
   { href: "/admin/listings", label: "Books & Devices", emoji: "📚" },
