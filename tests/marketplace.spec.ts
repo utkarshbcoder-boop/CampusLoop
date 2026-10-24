@@ -25,6 +25,20 @@ test("unrelated business pages redirect and used devices have their own browse p
   await expect(page.getByRole("heading", { name: "Phones, laptops & tablets" })).toBeVisible();
   await expect(page.getByRole("link", { name: "List a phone, laptop or tablet" })).toHaveAttribute("href", "/sell?type=device");
   await expect(page.getByRole("button", { name: "Add to favorites" }).first()).toBeVisible();
+
+  const deviceType = page.getByLabel("Filter by device type");
+  for (const [category, label] of [
+    ["mobile", "Mobile phones"],
+    ["laptop", "Laptops"],
+    ["tablet", "Tablets"],
+  ]) {
+    await deviceType.selectOption(category);
+    const cards = page.locator("main article");
+    await expect(cards).toHaveCount(2);
+    for (let index = 0; index < await cards.count(); index += 1) {
+      await expect(cards.nth(index)).toContainText(label);
+    }
+  }
 });
 
 test("visitor can browse books, save a listing, and find it again", async ({ page }) => {
