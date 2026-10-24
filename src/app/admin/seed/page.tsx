@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { doc, setDoc, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, collection, getDoc, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
 // Import all mock data using the actual export names
@@ -30,9 +30,12 @@ const SEED_COLLECTIONS: SeedCollection[] = [
   { name: "listings", label: "Second-hand items", emoji: "🛍️", data: listings as unknown as Record<string, unknown>[] },
 ];
 
+const DEVICE_LISTINGS = listings.filter((listing) => listing.item_type === "device");
+
 export default function SeedPage() {
   const [status, setStatus] = useState<Record<string, "idle" | "seeding" | "done" | "error">>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [deviceSeedResult, setDeviceSeedResult] = useState("");
   const [seeding, setSeeding] = useState(false);
   const [completed, setCompleted] = useState(false);
 
@@ -60,6 +63,30 @@ export default function SeedPage() {
     }
     setSeeding(false);
     setCompleted(true);
+  };
+
+  const seedDevices = async () => {
+    setStatus((prev) => ({ ...prev, devices: "seeding" }));
+    setDeviceSeedResult("");
+    let added = 0;
+    let skipped = 0;
+    try {
+      for (const listing of DEVICE_LISTINGS) {
+        const reference = doc(db, "listings", listing.id);
+        if ((await getDoc(reference)).exists()) {
+          skipped += 1;
+          continue;
+        }
+        await setDoc(reference, listing);
+        added += 1;
+      }
+      setStatus((prev) => ({ ...prev, devices: "done" }));
+      setDeviceSeedResult(`Added ${added} device listings; skipped ${skipped} that already existed.`);
+    } catch (err) {
+      console.error("Failed to seed sample device listings:", err);
+      setStatus((prev) => ({ ...prev, devices: "error" }));
+      setDeviceSeedResult("Could not seed device listings. Check the console and Firestore permissions.");
+    }
   };
 
   const checkExisting = async () => {
@@ -96,7 +123,21 @@ export default function SeedPage() {
         >
           📊 Check Existing Counts
         </button>
+        <button
+          type="button"
+          onClick={seedDevices}
+          disabled={status.devices === "seeding"}
+          className="cl-btn cl-btn-ghost px-5 py-2.5 text-sm"
+        >
+          {status.devices === "seeding" ? "Adding devices…" : "📱 Seed new devices only"}
+        </button>
       </div>
+
+      {deviceSeedResult ? (
+        <p role="status" className={`mt-3 text-xs ${status.devices === "error" ? "text-rose-300" : "text-mint-300"}`}>
+          {deviceSeedResult}
+        </p>
+      ) : null}
 
       {completed && (
         <div className="mt-6 rounded-xl border border-mint-400/30 bg-mint-500/10 px-5 py-4">
