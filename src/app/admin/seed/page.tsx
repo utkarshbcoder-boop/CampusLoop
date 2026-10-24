@@ -15,6 +15,7 @@ import { db } from "@/lib/firebase/config";
 // Import all mock data using the actual export names
 import { colleges } from "@/lib/data/colleges";
 import { profiles } from "@/lib/data/profiles";
+import { bookListings } from "@/lib/data/bookListings";
 import { listings } from "@/lib/data/listings";
 
 interface SeedCollection {
@@ -31,11 +32,13 @@ const SEED_COLLECTIONS: SeedCollection[] = [
 ];
 
 const DEVICE_LISTINGS = listings.filter((listing) => listing.item_type === "device");
+const BOOK_LISTINGS = bookListings;
 
 export default function SeedPage() {
   const [status, setStatus] = useState<Record<string, "idle" | "seeding" | "done" | "error">>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [deviceSeedResult, setDeviceSeedResult] = useState("");
+  const [bookSeedResult, setBookSeedResult] = useState("");
   const [seeding, setSeeding] = useState(false);
   const [completed, setCompleted] = useState(false);
 
@@ -89,6 +92,30 @@ export default function SeedPage() {
     }
   };
 
+  const seedBooks = async () => {
+    setStatus((prev) => ({ ...prev, books: "seeding" }));
+    setBookSeedResult("");
+    let added = 0;
+    let skipped = 0;
+    try {
+      for (const listing of BOOK_LISTINGS) {
+        const reference = doc(db, "listings", listing.id);
+        if ((await getDoc(reference)).exists()) {
+          skipped += 1;
+          continue;
+        }
+        await setDoc(reference, listing);
+        added += 1;
+      }
+      setStatus((prev) => ({ ...prev, books: "done" }));
+      setBookSeedResult(`Added ${added} sample books; skipped ${skipped} that already existed.`);
+    } catch (err) {
+      console.error("Failed to seed sample book listings:", err);
+      setStatus((prev) => ({ ...prev, books: "error" }));
+      setBookSeedResult("Could not seed book listings. Check the console and Firestore permissions.");
+    }
+  };
+
   const checkExisting = async () => {
     for (const col of SEED_COLLECTIONS) {
       try {
@@ -131,11 +158,25 @@ export default function SeedPage() {
         >
           {status.devices === "seeding" ? "Adding devices…" : `📱 Seed ${DEVICE_LISTINGS.length} sample devices only`}
         </button>
+        <button
+          type="button"
+          onClick={seedBooks}
+          disabled={status.books === "seeding"}
+          className="cl-btn cl-btn-ghost px-5 py-2.5 text-sm"
+        >
+          {status.books === "seeding" ? "Adding books…" : `📚 Seed ${BOOK_LISTINGS.length} sample books only`}
+        </button>
       </div>
 
       {deviceSeedResult ? (
         <p role="status" className={`mt-3 text-xs ${status.devices === "error" ? "text-rose-300" : "text-mint-300"}`}>
           {deviceSeedResult}
+        </p>
+      ) : null}
+
+      {bookSeedResult ? (
+        <p role="status" className={`mt-3 text-xs ${status.books === "error" ? "text-rose-300" : "text-mint-300"}`}>
+          {bookSeedResult}
         </p>
       ) : null}
 

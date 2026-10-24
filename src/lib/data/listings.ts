@@ -1,4 +1,5 @@
 import type { Listing } from "@/lib/types";
+import { bookListings } from "@/lib/data/bookListings";
 import { deviceListings } from "@/lib/data/deviceListings";
 
 /** Seeded book listings plus sample second-hand devices for the device marketplace. */
@@ -715,6 +716,7 @@ export const listings: Listing[] = [
     saves: 42,
     boosted: true,
   },
+  ...bookListings,
   {
     id: "lst_device_01",
     item_type: "device",

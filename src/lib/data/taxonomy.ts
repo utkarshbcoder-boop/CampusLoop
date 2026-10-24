@@ -190,6 +190,10 @@ export const BOOK_SUBJECTS = [
   "Mathematics",
   "Physics",
   "Chemistry",
+  "Literature",
+  "Personal Development",
+  "Competitive Exams",
+  "General Knowledge",
 ] as const;
 
 export const AVAILABILITY_SLOTS = [
