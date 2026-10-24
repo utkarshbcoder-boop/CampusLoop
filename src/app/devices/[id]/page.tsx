@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ListingInterestButton } from "@/components/ListingInterestButton";
@@ -7,6 +8,7 @@ import { getListing } from "@/lib/queries";
 import { rupees } from "@/lib/format";
 import { DEVICE_CATEGORIES, getDeviceCategory } from "@/lib/marketplaceCategories";
 import type { Listing } from "@/lib/types";
+import { isSampleListing } from "@/lib/listingUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -28,14 +30,19 @@ function DeviceListing({ listing }: { listing: Listing }) {
         <span className="truncate text-white/70">{listing.title}</span>
       </nav>
       <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="cl-panel cl-panel-solid flex min-h-64 items-center justify-center p-8">
-          <span className="text-8xl" aria-hidden>{listing.emoji || "💻"}</span>
+        <div className="cl-panel cl-panel-solid relative flex min-h-64 items-center justify-center overflow-hidden p-8">
+          {listing.image_urls?.[0] ? (
+            <Image src={listing.image_urls[0]} alt={listing.title} fill sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" unoptimized />
+          ) : (
+            <span className="text-8xl" aria-hidden>{listing.emoji || "💻"}</span>
+          )}
         </div>
         <div className="cl-panel cl-panel-solid p-6">
           <div className="flex flex-wrap gap-2">
             <span className="cl-chip cl-chip-brand">{deviceCategory?.label ?? "Second-hand device"}</span>
             <span className="cl-chip">{listing.status === "available" ? "Available" : listing.status}</span>
             <span className="cl-chip">{listing.condition.replaceAll("_", " ")}</span>
+            {isSampleListing(listing) ? <span className="cl-chip">Sample listing</span> : null}
           </div>
           <h1 className="mt-4 text-2xl font-bold text-white">{listing.title}</h1>
           <p className="mt-2 text-sm text-white/55">{listing.author} · {listing.edition}</p>

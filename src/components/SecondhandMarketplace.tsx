@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ListingCard } from "@/components/cards";
+import { ListingGrid } from "@/components/ListingGrid";
 import { EmptyState } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import {
@@ -179,9 +179,7 @@ export function SecondhandMarketplace({
       </div>
 
       {visibleListings.length ? (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {visibleListings.map((listing) => <ListingCard key={listing.id} listing={listing} colleges={colleges} />)}
-        </div>
+        <ListingGrid listings={visibleListings} colleges={colleges} />
       ) : (
         <EmptyState
           title="No listings match these filters"

@@ -118,6 +118,10 @@ export interface Listing {
   item_type?: MarketplaceItemType;
   /** Missing on older device records; inferred from the listing text when possible. */
   device_type?: DeviceCategory;
+  /** Seed data is explicitly marked so visitors can distinguish examples from real sellers. */
+  is_sample?: boolean;
+  /** Public Firebase Storage URLs for listing photos. */
+  image_urls?: string[];
   title: string;
   author: string;
   edition: string;

@@ -1,6 +1,7 @@
 import { getDataProvider, type ListOptions } from "@/lib/db";
-import type { College, Equipment, EquipmentCategory, Listing, MarketplaceItemType, PGListing, Profile } from "@/lib/types";
+import type { College, DeviceCategory, Equipment, EquipmentCategory, Listing, MarketplaceItemType, PGListing, Profile } from "@/lib/types";
 import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
+import { getDeviceCategory } from "@/lib/marketplaceCategories";
 
 /**
  * Read-side query helpers used by the app pages.
@@ -114,6 +115,127 @@ export async function getListings(filters: ListingFilters): Promise<Listing[]> {
   }
 
   return bookRows;
+}
+
+const BOOK_PAGE_SIZE = 20;
+const LISTING_BATCH_SIZE = 50;
+
+export async function getBookListingsPage(
+  filters: ListingFilters,
+  { after = "", page = 1 }: { after?: string; page?: number } = {},
+): Promise<{ listings: Listing[]; hasMore: boolean; nextAfter: string; nextPage: number }> {
+  const provider = await getDataProvider();
+  const options: ListOptions = {
+    orderBy: LISTING_SORTS[filters.sort] ?? LISTING_SORTS.recent,
+    limit: LISTING_BATCH_SIZE,
+  };
+
+  const isCursorProvider = provider.kind === "firebase";
+  let cursor = isCursorProvider ? after : "";
+  let offset = 0;
+  let skippedBooks = 0;
+  const matches: Listing[] = [];
+  let exhausted = false;
+  const term = filters.q.trim().toLowerCase();
+
+  while (matches.length <= BOOK_PAGE_SIZE && !exhausted) {
+    const rows = await provider.listings.list({
+      ...options,
+      ...(isCursorProvider && cursor ? { startAfterId: cursor } : { offset }),
+    });
+    if (rows.length === 0) break;
+    offset += rows.length;
+    cursor = rows[rows.length - 1].id;
+    exhausted = rows.length < LISTING_BATCH_SIZE;
+
+    for (const listing of rows) {
+      if (listing.item_type && listing.item_type !== "book") continue;
+      if (filters.college && filters.college !== "all" && listing.college_id !== filters.college) continue;
+      if (filters.kind && filters.kind !== "all" && listing.kind !== filters.kind) continue;
+      if (filters.subject && filters.subject !== "all" && listing.subject !== filters.subject) continue;
+      if (filters.condition && filters.condition !== "all" && listing.condition !== filters.condition) continue;
+      if (filters.maxPrice && listing.price > filters.maxPrice) continue;
+      if (term && ![
+        listing.title,
+        listing.author,
+        listing.subject,
+        listing.semester,
+        listing.condition,
+        listing.kind,
+        ...listing.tags,
+      ].join(" ").toLowerCase().includes(term)) continue;
+      if (!isCursorProvider && skippedBooks < (page - 1) * BOOK_PAGE_SIZE) {
+        skippedBooks += 1;
+        continue;
+      }
+      matches.push(listing);
+      if (matches.length > BOOK_PAGE_SIZE) break;
+    }
+  }
+
+  const pageListings = matches.slice(0, BOOK_PAGE_SIZE);
+  return {
+    listings: pageListings,
+    hasMore: matches.length > BOOK_PAGE_SIZE,
+    nextAfter: isCursorProvider ? pageListings.at(-1)?.id ?? "" : "",
+    nextPage: page + 1,
+  };
+}
+
+export async function getDeviceListingsPage(
+  { q, category }: { q: string; category: DeviceCategory | "all" },
+  { after = "", page = 1 }: { after?: string; page?: number } = {},
+): Promise<{ listings: Listing[]; hasMore: boolean; nextAfter: string; nextPage: number }> {
+  const provider = await getDataProvider();
+  const isCursorProvider = provider.kind === "firebase";
+  const options: ListOptions = {
+    orderBy: { column: "created_at", ascending: false },
+    limit: LISTING_BATCH_SIZE,
+  };
+  let cursor = isCursorProvider ? after : "";
+  let offset = 0;
+  let skippedDevices = 0;
+  const matches: Listing[] = [];
+  let exhausted = false;
+  const term = q.trim().toLowerCase();
+
+  while (matches.length <= BOOK_PAGE_SIZE && !exhausted) {
+    const rows = await provider.listings.list({
+      ...options,
+      ...(isCursorProvider && cursor ? { startAfterId: cursor } : { offset }),
+    });
+    if (rows.length === 0) break;
+    offset += rows.length;
+    cursor = rows[rows.length - 1].id;
+    exhausted = rows.length < LISTING_BATCH_SIZE;
+
+    for (const listing of rows) {
+      if (listing.kind !== "sell" || listing.item_type !== "device") continue;
+      if (category !== "all" && getDeviceCategory(listing) !== category) continue;
+      if (term && ![
+        listing.title,
+        listing.author,
+        listing.edition,
+        listing.subject,
+        listing.description,
+        listing.pickup_location ?? "",
+      ].join(" ").toLowerCase().includes(term)) continue;
+      if (!isCursorProvider && skippedDevices < (page - 1) * BOOK_PAGE_SIZE) {
+        skippedDevices += 1;
+        continue;
+      }
+      matches.push(listing);
+      if (matches.length > BOOK_PAGE_SIZE) break;
+    }
+  }
+
+  const pageListings = matches.slice(0, BOOK_PAGE_SIZE);
+  return {
+    listings: pageListings,
+    hasMore: matches.length > BOOK_PAGE_SIZE,
+    nextAfter: isCursorProvider ? pageListings.at(-1)?.id ?? "" : "",
+    nextPage: page + 1,
+  };
 }
 
 export async function getListing(id: string): Promise<Listing | null> {

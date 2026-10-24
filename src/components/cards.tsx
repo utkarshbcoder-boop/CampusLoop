@@ -5,6 +5,7 @@ import { PinIcon, ClockIcon, StarIcon } from "@/components/Icon";
 import { equipmentCategoryLabel } from "@/lib/data/equipmentCategories";
 import { getDeviceCategory, DEVICE_CATEGORIES } from "@/lib/marketplaceCategories";
 import { campusNameById } from "@/lib/data/campusOptions";
+import { isSampleListing } from "@/lib/listingUtils";
 import { Avatar, ScoreBreakdown, ScoreRing, StarRating, TagList, Thumbnail } from "@/components/ui";
 import { formatDate, formatTime, relativeDay, rupees, rupeesShort, timeAgo, titleCase } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,7 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
   return (
     <article className="cl-panel cl-panel-hover group flex h-full flex-col overflow-hidden">
       <div className="flex items-start gap-3 p-4 pb-3">
-        <Thumbnail hue={listing.hue} emoji={listing.emoji} label={listing.title} />
+        <Thumbnail hue={listing.hue} emoji={listing.emoji} label={listing.title} imageUrl={listing.image_urls?.[0]} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="cl-line-clamp-2 text-sm leading-snug font-semibold text-white">
@@ -52,6 +53,9 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
 
       <div className="flex flex-wrap items-center gap-1.5 px-4">
         <span className="cl-chip cl-chip-brand">{titleCase(listing.kind)}</span>
+        {isSampleListing(listing) ? (
+          <span className="cl-chip">Sample listing</span>
+        ) : null}
         {listing.item_type === "device" ? (
           <span className="cl-chip">
             {DEVICE_CATEGORIES.find((category) => category.value === getDeviceCategory(listing))?.label ?? "Other devices"}

@@ -10,7 +10,12 @@ import {
   customCampusId,
   OTHER_CAMPUS_VALUE,
 } from "@/lib/data/campusOptions";
-import { createHomeMarketplaceListing, createMarketplaceListing } from "@/lib/firebase/marketplace";
+import {
+  createHomeMarketplaceListing,
+  createMarketplaceListing,
+  deleteListingImages,
+  uploadListingImages,
+} from "@/lib/firebase/marketplace";
 import { rupees } from "@/lib/format";
 import { DEVICE_CATEGORIES } from "@/lib/marketplaceCategories";
 import { readSettingsPreferences } from "@/lib/settingsPreferences";
@@ -39,6 +44,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
   const [edition, setEdition] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [collegeId, setCollegeId] = useState(colleges[0]?.id ?? "");
   const [customCollegeName, setCustomCollegeName] = useState("");
   const [otherCampusSelected, setOtherCampusSelected] = useState(false);
@@ -67,6 +73,8 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
 
     setBusy(true);
     setError("");
+    let uploadedImagePaths: string[] = [];
+    let imageUploadCompleted = false;
     try {
       const now = new Date().toISOString();
       if (kind === "home") {
@@ -93,8 +101,14 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
         return;
       }
       const itemType = kind === "device" ? "device" : "book";
+      const uploadedImages = imageFiles.length
+        ? await uploadListingImages(imageFiles, user.uid)
+        : { urls: [], paths: [] };
+      imageUploadCompleted = true;
+      uploadedImagePaths = uploadedImages.paths;
       const id = await createMarketplaceListing({
         item_type: itemType,
+        ...(uploadedImages.urls.length ? { image_urls: uploadedImages.urls } : {}),
         ...(itemType === "device" ? { device_type: deviceType } : {}),
         title: title.trim(),
         author: author.trim() || (itemType === "device" ? "Device" : "Student listing"),
@@ -122,10 +136,22 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
         created_at: now,
       });
       setCreatedId(id);
+      uploadedImagePaths = [];
       router.refresh();
     } catch (cause) {
       console.error("Failed to create marketplace listing:", cause);
-      setError("Your listing could not be saved. Check your connection and try again.");
+      if (uploadedImagePaths.length) {
+        try {
+          await deleteListingImages(uploadedImagePaths);
+        } catch (cleanupError) {
+          console.error("Failed to clean up listing photos after listing creation failed:", cleanupError);
+        }
+      }
+      setError(
+        imageFiles.length && !imageUploadCompleted
+          ? "Photos could not be uploaded. Check that Firebase Storage is enabled and its security rules are deployed."
+          : "Your listing could not be saved. Check your connection and try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -282,6 +308,37 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
       {kind !== "home" ? <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">More details</span>
         <textarea className="cl-input min-h-20 resize-y" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Add details buyers should know." />
+      </label> : null}
+      {kind !== "home" ? <label className="flex flex-col gap-1.5">
+        <span className="text-[11px] tracking-wider text-white/40 uppercase">Photos (up to 5, 5 MB each)</span>
+        <input
+          className="cl-input file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-xs file:text-white"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          onChange={(event) => {
+            const files = Array.from(event.target.files ?? []);
+            if (files.length > 5) {
+              setError("Choose up to 5 photos.");
+              event.target.value = "";
+              setImageFiles([]);
+              return;
+            }
+            const invalid = files.find((file) =>
+              !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024,
+            );
+            if (invalid) {
+              setError("Photos must be JPG, PNG, or WebP and no larger than 5 MB each.");
+              event.target.value = "";
+              setImageFiles([]);
+              return;
+            }
+            setError("");
+            setImageFiles(files);
+          }}
+          aria-label="Listing photos"
+        />
+        <span className="text-[11px] text-white/40">{imageFiles.length} of 5 photos selected</span>
       </label> : null}
       {kind !== "home" ? <label className="flex flex-col gap-1.5">
         <span className="text-[11px] tracking-wider text-white/40 uppercase">Campus</span>

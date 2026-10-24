@@ -5,8 +5,9 @@ import {
   setDoc,
   type DocumentData,
 } from "firebase/firestore";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import type { Listing, HomeListingMode, HomeListingType } from "@/lib/types";
-import { db } from "./config";
+import { db, getFirebaseStorage } from "./config";
 
 export interface HomeMarketplaceListing {
   id: string;
@@ -32,6 +33,33 @@ export async function createMarketplaceListing(
   const reference = doc(collection(db, "listings"));
   await setDoc(reference, { ...listing, id: reference.id } satisfies DocumentData);
   return reference.id;
+}
+
+export async function uploadListingImages(
+  files: File[],
+  ownerId: string,
+): Promise<{ urls: string[]; paths: string[] }> {
+  const storage = getFirebaseStorage();
+  const paths: string[] = [];
+  const urls: string[] = [];
+  try {
+    for (const file of files) {
+      const path = `listing-images/${ownerId}/${crypto.randomUUID()}`;
+      const imageRef = ref(storage, path);
+      await uploadBytes(imageRef, file, { contentType: file.type });
+      paths.push(path);
+      urls.push(await getDownloadURL(imageRef));
+    }
+    return { urls, paths };
+  } catch (cause) {
+    await Promise.allSettled(paths.map((path) => deleteObject(ref(storage, path))));
+    throw cause;
+  }
+}
+
+export async function deleteListingImages(paths: string[]): Promise<void> {
+  const storage = getFirebaseStorage();
+  await Promise.all(paths.map((path) => deleteObject(ref(storage, path))));
 }
 
 export async function createHomeMarketplaceListing(

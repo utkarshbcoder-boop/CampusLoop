@@ -38,6 +38,8 @@ export interface ListOptions {
   orderBy?: { column: string; ascending: boolean };
   limit?: number;
   offset?: number;
+  /** Firestore document ID cursor for stable, server-side listing pages. */
+  startAfterId?: string;
 }
 
 export interface Table<T extends { id: string }> {
@@ -56,7 +58,7 @@ export interface WritableTable<T extends { id: string }> extends Table<T> {
   remove(id: string): Promise<boolean>;
 }
 
-export type ProviderKind = "mock" | "supabase";
+export type ProviderKind = "mock" | "supabase" | "firebase";
 
 /**
  * The complete data interface. Swapping providers means returning a different

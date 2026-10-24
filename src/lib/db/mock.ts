@@ -160,6 +160,10 @@ function applyQuery(rows: readonly Row[], options: ListOptions | undefined): Row
   }
 
   if (options.offset) out = out.slice(options.offset);
+  if (options.startAfterId) {
+    const cursor = out.findIndex((row) => row.id === options.startAfterId);
+    if (cursor >= 0) out = out.slice(cursor + 1);
+  }
   if (options.limit !== undefined) out = out.slice(0, options.limit);
 
   return out;

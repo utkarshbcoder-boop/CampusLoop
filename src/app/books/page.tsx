@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BookIcon, FilterIcon } from "@/components/Icon";
 import { ActiveFilters, FilterBar, type FilterDef } from "@/components/FilterBar";
-import { ListingCard } from "@/components/cards";
+import { ListingGrid } from "@/components/ListingGrid";
 import { EmptyState, GhostLink, PageHeader, Section } from "@/components/ui";
 import { rupees } from "@/lib/format";
 import { BOOK_SUBJECTS } from "@/lib/data/taxonomy";
 import { campusOptions } from "@/lib/data/campusOptions";
-import { getColleges, getListings, parseListingFilters, type SearchParams } from "@/lib/queries";
+import { getBookListingsPage, getColleges, parseListingFilters, sp, type SearchParams } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,11 @@ const SORTS = [
 export default async function BooksPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
   const filters = parseListingFilters(params);
-  const [listings, colleges] = await Promise.all([getListings(filters), getColleges()]);
+  const page = Number.parseInt(sp(params.page), 10);
+  const [{ listings, hasMore, nextAfter, nextPage }, colleges] = await Promise.all([
+    getBookListingsPage(filters, { after: sp(params.after), page: Number.isFinite(page) && page > 0 ? page : 1 }),
+    getColleges(),
+  ]);
 
   const barFilters: FilterDef[] = [
     { kind: "select", key: "kind", label: "Listing type", defaultValue: "all", options: KINDS },
@@ -95,7 +99,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       >
         <div className="cl-panel px-4 py-3">
           <p className="text-2xl font-black text-white">{listings.length}</p>
-          <p className="text-[11px] text-white/45">live listings</p>
+          <p className="text-[11px] text-white/45">on this page</p>
         </div>
         <div className="cl-panel px-4 py-3">
           <p className="text-2xl font-black text-white">{cheapest ? rupees(cheapest) : "—"}</p>
@@ -112,7 +116,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
           <FilterBar
             filters={barFilters}
             placeholder="Search a title, author or subject — try “Cormen” or “entrance exam”"
-            resultLabel={`${listings.length} ${listings.length === 1 ? "result" : "results"}`}
+            resultLabel={`Showing ${listings.length}${hasMore ? "+" : ""} results`}
           />
           <ActiveFilters labels={activeLabels} />
         </div>
@@ -144,12 +148,27 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
             }
           />
         ) : (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {listings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} colleges={colleges} />
-            ))}
-          </div>
+          <ListingGrid listings={listings} colleges={colleges} />
         )}
+
+        {hasMore ? (() => {
+          const nextParams = new URLSearchParams();
+          for (const [key, value] of Object.entries(params)) {
+            if (key === "after" || key === "page") continue;
+            for (const entry of Array.isArray(value) ? value : value ? [value] : []) {
+              nextParams.append(key, entry);
+            }
+          }
+          if (nextAfter) nextParams.set("after", nextAfter);
+          else nextParams.set("page", String(nextPage));
+          return (
+            <nav className="mt-8 flex justify-center" aria-label="Book listing pages">
+              <Link href={`/books?${nextParams.toString()}`} className="cl-btn cl-btn-ghost">
+                Next page
+              </Link>
+            </nav>
+          );
+        })() : null}
 
         <div className="mt-10 cl-panel flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { StarIcon } from "@/components/Icon";
@@ -126,11 +127,13 @@ export function Thumbnail({
   emoji,
   size = "md",
   label,
+  imageUrl,
 }: {
   hue: number;
   emoji: string;
   size?: "sm" | "md" | "lg";
   label?: string;
+  imageUrl?: string;
 }) {
   const sizes = {
     sm: "h-11 w-11 text-lg rounded-lg",
@@ -154,9 +157,20 @@ export function Thumbnail({
         }}
         aria-hidden
       />
-      <span className="relative drop-shadow-lg" aria-hidden>
-        {emoji}
-      </span>
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={label ?? ""}
+          fill
+          sizes={size === "lg" ? "100vw" : "56px"}
+          className="object-cover"
+          unoptimized
+        />
+      ) : (
+        <span className="relative drop-shadow-lg" aria-hidden>
+          {emoji}
+        </span>
+      )}
     </div>
   );
 }

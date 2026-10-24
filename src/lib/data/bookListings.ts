@@ -78,6 +78,7 @@ export const bookListings: Listing[] = books.map((book, index) => {
   return {
     id: `lst_sample_book_${String(number).padStart(2, "0")}`,
     item_type: "book",
+    is_sample: true,
     title: book.title,
     author: book.author,
     edition: book.edition,

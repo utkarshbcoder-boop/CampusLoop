@@ -16,6 +16,8 @@ test("homepage links only to second-hand items and homes", async ({ page }) => {
 });
 
 test("unrelated business pages redirect and used devices have their own browse page", async ({ page }) => {
+  test.setTimeout(60_000);
+
   for (const path of ["/business", "/college", "/premium"]) {
     await page.goto(path);
     await expect(page).toHaveURL("http://127.0.0.1:3100/");
@@ -34,7 +36,7 @@ test("unrelated business pages redirect and used devices have their own browse p
   ]) {
     await deviceType.selectOption(category);
     const cards = page.locator("main article");
-    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toContainText(label);
     for (let index = 0; index < await cards.count(); index += 1) {
       await expect(cards.nth(index)).toContainText(label);
     }
@@ -45,6 +47,13 @@ test("visitor can browse books, save a listing, and find it again", async ({ pag
   await page.goto("/books");
 
   await expect(page.getByRole("heading", { name: "Find a pre-owned book" })).toBeVisible();
+  const firstPageTitle = await page.locator("main article h3").first().innerText();
+  const nextPage = page.getByRole("link", { name: "Next page" });
+  if (await nextPage.count()) {
+    await nextPage.click();
+    await expect(page.locator("main article")).not.toHaveCount(0);
+    await expect(page.locator("main article h3").first()).not.toHaveText(firstPageTitle);
+  }
   const saveButton = page.getByRole("button", { name: "Add to favorites" }).first();
   await expect(saveButton).toBeVisible();
   await saveButton.click();

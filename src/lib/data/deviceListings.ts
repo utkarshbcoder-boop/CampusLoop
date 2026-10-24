@@ -95,6 +95,7 @@ function makeListings(
       id: `lst_device_${String(number).padStart(2, "0")}`,
       item_type: "device",
       device_type: category,
+      is_sample: true,
       title: product.title,
       author: product.brand,
       edition: product.specs,

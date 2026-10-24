@@ -54,8 +54,12 @@ service cloud.firestore {
           'id', 'item_type', 'title', 'author', 'edition', 'subject', 'semester',
           'branch', 'kind', 'condition', 'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit',
           'seller_id', 'college_id', 'pickup_location', 'status', 'description',
-          'highlights', 'tags', 'hue', 'emoji', 'boosted', 'views', 'saves', 'created_at', 'device_type'
+          'highlights', 'tags', 'hue', 'emoji', 'boosted', 'views', 'saves', 'created_at',
+          'device_type', 'image_urls', 'is_sample'
         ])
+        && !('is_sample' in request.resource.data)
+        && (!('image_urls' in request.resource.data)
+          || (request.resource.data.image_urls is list && request.resource.data.image_urls.size() <= 5))
         && (!('device_type' in request.resource.data)
           || (request.resource.data.item_type == 'device'
             && request.resource.data.device_type in ['mobile', 'laptop', 'tablet', 'other']))

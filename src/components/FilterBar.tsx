@@ -83,6 +83,8 @@ export function FilterBar({
     (mutate: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParams.toString());
       mutate(params);
+      params.delete("after");
+      params.delete("page");
       // Drop filters whose value is back at the default so URLs stay clean.
       params.forEach((value, key) => {
         const def = filters.find((f) => f.key === key);
@@ -340,6 +342,8 @@ export function ActiveFilters({ labels }: { labels: { key: string; label: string
   function remove(key: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.delete(key);
+    params.delete("after");
+    params.delete("page");
     const qs = params.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false });
   }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRightIcon, BookIcon, ClockIcon, ShieldIcon } from "@/components/Icon";
@@ -9,6 +10,7 @@ import { Callout, KeyValue, Section, TagList } from "@/components/ui";
 import { campusNameById } from "@/lib/data/campusOptions";
 import { formatDateTime, rupees, timeAgo, titleCase } from "@/lib/format";
 import { getColleges, getCurrentProfile, getListing, getListings } from "@/lib/queries";
+import { isSampleListing } from "@/lib/listingUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -71,9 +73,11 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 }}
                 aria-hidden
               />
-              <span className="relative text-8xl drop-shadow-2xl" aria-hidden>
-                {listing.emoji}
-              </span>
+              {listing.image_urls?.[0] ? (
+                <Image src={listing.image_urls[0]} alt={listing.title} fill sizes="(max-width: 1024px) 100vw, 55vw" className="object-cover" unoptimized />
+              ) : (
+                <span className="relative text-8xl drop-shadow-2xl" aria-hidden>{listing.emoji}</span>
+              )}
               {listing.boosted ? (
                 <span className="absolute top-4 left-4 rounded-full bg-flare-400 px-3 py-1 text-[11px] font-bold text-ink-950">
                   ★ Boosted listing
@@ -112,6 +116,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             <div className="cl-panel cl-panel-solid p-5">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="cl-chip cl-chip-brand">{titleCase(listing.kind)}</span>
+                {isSampleListing(listing) ? <span className="cl-chip">Sample listing</span> : null}
                 <span className="cl-chip">{titleCase(listing.condition)}</span>
                 <span className="cl-chip">{campusShortName}</span>
                 {listing.status !== "available" ? (

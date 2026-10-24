@@ -39,6 +39,8 @@ export default function SeedPage() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [deviceSeedResult, setDeviceSeedResult] = useState("");
   const [bookSeedResult, setBookSeedResult] = useState("");
+  const [countError, setCountError] = useState("");
+  const [collectionErrors, setCollectionErrors] = useState<Record<string, string>>({});
   const [seeding, setSeeding] = useState(false);
   const [completed, setCompleted] = useState(false);
 
@@ -52,13 +54,16 @@ export default function SeedPage() {
       }
       setStatus((prev) => ({ ...prev, [col.name]: "done" }));
       setCounts((prev) => ({ ...prev, [col.name]: col.data.length }));
+      setCollectionErrors((prev) => ({ ...prev, [col.name]: "" }));
     } catch (err) {
       console.error(`Failed to seed ${col.name}:`, err);
       setStatus((prev) => ({ ...prev, [col.name]: "error" }));
+      setCollectionErrors((prev) => ({ ...prev, [col.name]: "Seeding failed. Check the console and Firestore permissions." }));
     }
   };
 
   const seedAll = async () => {
+    if (!window.confirm("Seed all collections? Existing sample documents with matching IDs will be overwritten.")) return;
     setSeeding(true);
     setCompleted(false);
     for (const col of SEED_COLLECTIONS) {
@@ -117,12 +122,15 @@ export default function SeedPage() {
   };
 
   const checkExisting = async () => {
+    setCountError("");
     for (const col of SEED_COLLECTIONS) {
       try {
         const snap = await getDocs(collection(db, col.name));
         setCounts((prev) => ({ ...prev, [col.name]: snap.size }));
-      } catch {
-        setCounts((prev) => ({ ...prev, [col.name]: 0 }));
+      } catch (err) {
+        console.error(`Failed to check ${col.name} count:`, err);
+        setCountError("Could not check collection counts. Verify your connection and Firestore permissions.");
+        return;
       }
     }
   };
@@ -153,7 +161,7 @@ export default function SeedPage() {
         <button
           type="button"
           onClick={seedDevices}
-          disabled={status.devices === "seeding"}
+          disabled={seeding || status.devices === "seeding"}
           className="cl-btn cl-btn-ghost px-5 py-2.5 text-sm"
         >
           {status.devices === "seeding" ? "Adding devices…" : `📱 Seed ${DEVICE_LISTINGS.length} sample devices only`}
@@ -161,12 +169,14 @@ export default function SeedPage() {
         <button
           type="button"
           onClick={seedBooks}
-          disabled={status.books === "seeding"}
+          disabled={seeding || status.books === "seeding"}
           className="cl-btn cl-btn-ghost px-5 py-2.5 text-sm"
         >
           {status.books === "seeding" ? "Adding books…" : `📚 Seed ${BOOK_LISTINGS.length} sample books only`}
         </button>
       </div>
+
+      {countError ? <p role="alert" className="mt-3 text-xs text-rose-300">{countError}</p> : null}
 
       {deviceSeedResult ? (
         <p role="status" className={`mt-3 text-xs ${status.devices === "error" ? "text-rose-300" : "text-mint-300"}`}>
@@ -210,6 +220,7 @@ export default function SeedPage() {
                   {col.data.length} documents to seed
                   {count !== undefined && ` · ${count} in Firestore`}
                 </p>
+                {collectionErrors[col.name] ? <p className="mt-1 text-[10px] text-rose-300">{collectionErrors[col.name]}</p> : null}
               </div>
               <span className="text-sm">
                 {s === "idle" && "⏳"}

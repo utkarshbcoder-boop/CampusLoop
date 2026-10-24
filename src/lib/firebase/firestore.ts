@@ -18,6 +18,7 @@ import {
   query,
   where,
   orderBy,
+  startAfter,
   limit as fbLimit,
   type QueryConstraint,
   type DocumentData,
@@ -110,6 +111,14 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
         );
       }
 
+      if (options?.startAfterId) {
+        const cursor = await getDoc(doc(db, collectionName, options.startAfterId));
+        if (!cursor.exists()) {
+          throw new Error(`[CampusLoop/Firestore] Pagination cursor ${options.startAfterId} was not found in ${collectionName}.`);
+        }
+        constraints.push(startAfter(cursor));
+      }
+
       // Limit
       if (options?.limit) {
         constraints.push(fbLimit(options.limit));
@@ -118,7 +127,10 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
       let q;
       try {
         q = query(colRef(), ...constraints);
-      } catch {
+      } catch (cause) {
+        if (options?.limit !== undefined || options?.startAfterId) {
+          throw new Error(`[CampusLoop/Firestore] Could not build paginated query for ${collectionName}.`, { cause });
+        }
         // Firestore composite index may not exist yet — fall back to
         // fetching everything and filtering in memory.
         q = query(colRef());
@@ -128,7 +140,10 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
       let usedFallback = false;
       try {
         snapshot = await getDocs(q);
-      } catch {
+      } catch (cause) {
+        if (options?.limit !== undefined || options?.startAfterId) {
+          throw new Error(`[CampusLoop/Firestore] Paginated query failed for ${collectionName}.`, { cause });
+        }
         // Missing composite index etc. — fetch the whole collection and
         // apply every filter/sort client-side below.
         snapshot = await getDocs(query(colRef()));
@@ -170,9 +185,6 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
             );
           }
         }
-        if (options?.limit) {
-          results = results.slice(0, options.limit);
-        }
       }
 
       // Client-side search fallback
@@ -201,10 +213,16 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
         });
       }
 
+      if (usedFallback && options?.startAfterId) {
+        const cursorIndex = results.findIndex((row) => row.id === options.startAfterId);
+        if (cursorIndex >= 0) results = results.slice(cursorIndex + 1);
+      }
+
       // Client-side offset
       if (options?.offset) {
         results = results.slice(options.offset);
       }
+      if (options?.limit !== undefined) results = results.slice(0, options.limit);
 
       return results;
   }
@@ -260,7 +278,7 @@ export function getFirestoreProvider(): DataProvider {
   if (_provider) return _provider;
 
   _provider = {
-    kind: "supabase" as const, // re-using the type — it means "remote"
+    kind: "firebase" as const,
     label: "Firebase Firestore",
     isMock: false,
 
