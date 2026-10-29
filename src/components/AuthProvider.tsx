@@ -9,7 +9,7 @@ import {
 } from "react";
 import type { User } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { onAuthChange, isAdmin, signOutUser } from "@/lib/firebase/auth";
+import { completeGoogleRedirect, onAuthChange, isAdmin, signOutUser } from "@/lib/firebase/auth";
 import { db } from "@/lib/firebase/config";
 
 interface AuthState {
@@ -29,40 +29,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // One-time migration: sessions kept under the old flag bypass the
-    // per-session login requirement, so sign those users out once.
-    try {
-      if (localStorage.getItem("campusloop_visited")) {
-        localStorage.removeItem("campusloop_visited");
-        sessionStorage.removeItem("campusloop_visited");
-        signOutUser().catch(() => {});
-      }
-    } catch {}
+    let cancelled = false;
+    let unsub: (() => void) | undefined;
 
-    const unsub = onAuthChange(async (u) => {
-      setUser(u);
-      setLoading(false);
-      if (u) {
-        try {
-          const ref = doc(db, "profiles", u.uid);
-          const snap = await getDoc(ref);
-          if (!snap.exists()) {
-            await setDoc(ref, {
-              id: u.uid,
-              name: u.displayName || "",
-              email: u.email || "",
-              photo_url: u.photoURL || "",
-              handle: (u.email || "").split("@")[0],
-              college_id: "",
-              created_at: new Date().toISOString(),
-            });
-          }
-        } catch (e) {
-          console.error("Failed to create profile:", e);
-        }
+    const initializeAuth = async () => {
+      let redirectedUser: User | null = null;
+      try {
+        redirectedUser = await completeGoogleRedirect();
+      } catch (error) {
+        console.error("Google redirect sign-in failed:", error);
       }
-    });
-    return unsub;
+
+      if (cancelled) return;
+
+      // One-time migration: sessions kept under the old flag bypass the
+      // per-session login requirement, so sign those users out once.
+      if (!redirectedUser) {
+        try {
+          if (localStorage.getItem("campusloop_visited")) {
+            localStorage.removeItem("campusloop_visited");
+            sessionStorage.removeItem("campusloop_visited");
+            signOutUser().catch(() => {});
+          }
+        } catch {}
+      }
+
+      unsub = onAuthChange(async (u) => {
+        setUser(u);
+        setLoading(false);
+        if (u) {
+          try {
+            const ref = doc(db, "profiles", u.uid);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) {
+              await setDoc(ref, {
+                id: u.uid,
+                name: u.displayName || "",
+                email: u.email || "",
+                photo_url: u.photoURL || "",
+                handle: (u.email || "").split("@")[0],
+                college_id: "",
+                created_at: new Date().toISOString(),
+              });
+            }
+          } catch (e) {
+            console.error("Failed to create profile:", e);
+          }
+        }
+      });
+    };
+
+    void initializeAuth();
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }, []);
 
   return (

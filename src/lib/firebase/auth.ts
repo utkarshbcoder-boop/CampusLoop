@@ -7,6 +7,7 @@
 
 import {
   GoogleAuthProvider,
+  getRedirectResult,
   signInWithPopup,
   signInWithRedirect,
   signOut as firebaseSignOut,
@@ -25,11 +26,20 @@ import { auth } from "./config";
 
 /** The one and only admin email. */
 export const ADMIN_EMAIL = "utkarshbcoder@gmail.com";
+let redirectResultPromise: Promise<User | null> | undefined;
 
 /** Whether the given user is the site admin. */
 export function isAdmin(user: User | null): boolean {
   if (!user?.email || !user.emailVerified) return false;
   return user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+}
+
+/** Complete a pending Google redirect once when the app returns from Google. */
+export function completeGoogleRedirect(): Promise<User | null> {
+  if (!redirectResultPromise) {
+    redirectResultPromise = getRedirectResult(auth).then((result) => result?.user ?? null);
+  }
+  return redirectResultPromise;
 }
 
 /** Sign in with Google, using a redirect on mobile browsers. */
