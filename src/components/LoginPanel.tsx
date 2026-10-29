@@ -19,6 +19,9 @@ function authErrorMessage(error: unknown, provider: "email" | "google"): string 
   if (code === "auth/weak-password") {
     return "Password should be at least 6 characters.";
   }
+  if (code === "auth/network-request-failed") {
+    return "Could not reach Firebase Authentication. Check your internet connection, disable any VPN or ad blocker, and try again.";
+  }
 
   return error instanceof Error ? error.message : "Sign-in failed. Try again.";
 }

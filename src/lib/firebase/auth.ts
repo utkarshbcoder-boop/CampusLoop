@@ -8,6 +8,7 @@
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -31,11 +32,15 @@ export function isAdmin(user: User | null): boolean {
   return user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 }
 
-/** Sign in with Google popup. */
-export async function signInWithGoogle(keepLoggedIn = false): Promise<User> {
+/** Sign in with Google, using a redirect on mobile browsers. */
+export async function signInWithGoogle(keepLoggedIn = false): Promise<User | null> {
   await setPersistence(auth, keepLoggedIn ? browserLocalPersistence : browserSessionPersistence);
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
+  if (typeof navigator !== "undefined" && /(Android|iPhone|iPad|iPod|Mobile)/i.test(navigator.userAgent)) {
+    await signInWithRedirect(auth, provider);
+    return null;
+  }
   const result = await signInWithPopup(auth, provider);
   return result.user;
 }
