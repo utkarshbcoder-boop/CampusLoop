@@ -2,13 +2,35 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { signInWithGoogle, signOutUser } from "@/lib/firebase/auth";
 
 export function LoginButton() {
   const { user, loading, isAdmin } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (event.target instanceof Node && !menuRef.current?.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menuOpen]);
 
   if (loading) {
     return (
@@ -27,9 +49,13 @@ export function LoginButton() {
             🛡️ Admin
           </Link>
         )}
-        <div className="group relative">
+        <div ref={menuRef} className="relative">
           <button
             type="button"
+            aria-label="Account menu"
+            aria-expanded={menuOpen}
+            aria-controls="account-menu"
+            onClick={() => setMenuOpen((open) => !open)}
             className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-white/20 hover:bg-white/8"
           >
             {user.photoURL ? (
@@ -49,7 +75,11 @@ export function LoginButton() {
             )}
             <span className="hidden sm:inline">{user.displayName?.split(" ")[0] ?? "User"}</span>
           </button>
-          <div className="invisible absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-xl border border-white/10 bg-ink-850 p-2 opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
+          <div
+            id="account-menu"
+            hidden={!menuOpen}
+            className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-xl border border-white/10 bg-ink-850 p-2 shadow-2xl"
+          >
             <p className="px-2 py-1 text-[11px] text-white/45">
               {user.email}
             </p>
@@ -61,13 +91,17 @@ export function LoginButton() {
             <div className="my-1 h-px bg-white/8" />
             <Link
               href="/my-listings"
+              onClick={() => setMenuOpen(false)}
               className="block w-full rounded-lg px-2 py-1.5 text-left text-xs text-white/70 transition hover:bg-white/8 hover:text-white"
             >
               My Listings
             </Link>
             <button
               type="button"
-              onClick={() => signOutUser()}
+              onClick={() => {
+                setMenuOpen(false);
+                void signOutUser();
+              }}
               className="w-full rounded-lg px-2 py-1.5 text-left text-xs text-white/70 transition hover:bg-white/8 hover:text-white"
             >
               Sign out
