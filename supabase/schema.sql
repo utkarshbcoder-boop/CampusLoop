@@ -171,17 +171,28 @@ create index pg_rent_idx    on pg_listings(rent);
 -- ---------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------
--- Demo posture: read access is public, writes are anon-permitted so the
--- prototype works without an auth flow. Tighten these before any real
--- deployment — every commented policy is the correct production rule.
+-- Production posture: reads are public for the seeded catalogue; ALL writes
+-- are DENIED by default (RLS default-deny) because no insert/update/delete
+-- policies exist below. Before enabling this provider with real data:
+--   * tighten the profiles select policy — it currently exposes email/phone
+--     to anyone holding the anon key (column-level masking or Supabase Auth
+--     policies required);
+--   * add owner-scoped write policies (examples are commented out).
+-- Never describe this file as "anon-writable" — it is not.
 
-alter table profiles enable row level security;
-alter table listings enable row level security;
+alter table colleges    enable row level security;
+alter table profiles    enable row level security;
+alter table listings    enable row level security;
 alter table pg_listings enable row level security;
 
-create policy "profiles are public"   on profiles for select using (true);
-create policy "listings are public"   on listings for select using (true);
-create policy "rooms are public"      on pg_listings for select using (true);
+create policy "colleges are public"  on colleges for select using (true);
+create policy "profiles are public"  on profiles for select using (true);
+create policy "listings are public"  on listings for select using (true);
+create policy "rooms are public"     on pg_listings for select using (true);
+
+-- NOTE: the profiles policy above exposes every column, including email and
+-- phone, to the anon role. Restrict it (or mask those columns) before this
+-- provider is used with real user data.
 
 -- Production: a student may only edit their own profile.
 -- create policy "own profile only" on profiles for update using (auth.uid() = id);
@@ -195,7 +206,10 @@ create policy "rooms are public"      on pg_listings for select using (true);
 -- ---------------------------------------------------------------------
 
 -- Engagement per college, for the /college admin dashboard.
-create or replace view college_engagement as
+-- security_invoker: the view runs with the caller's RLS privileges instead
+-- of the view owner's, so it cannot bypass row-level security.
+create or replace view college_engagement
+with (security_invoker = true) as
 select
   c.id,
   c.name,

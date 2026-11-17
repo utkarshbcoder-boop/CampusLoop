@@ -100,7 +100,9 @@ export function LoginButton() {
               type="button"
               onClick={() => {
                 setMenuOpen(false);
-                void signOutUser();
+                signOutUser().catch((err) => {
+                  console.error("Sign-out failed:", err);
+                });
               }}
               className="w-full rounded-lg px-2 py-1.5 text-left text-xs text-white/70 transition hover:bg-white/8 hover:text-white"
             >

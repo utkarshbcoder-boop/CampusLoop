@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { requestPasswordReset, signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/firebase/auth";
+import { useAuth } from "@/components/AuthProvider";
+import { requestPasswordReset, resendVerificationEmail, signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/firebase/auth";
 
 function authErrorMessage(error: unknown, provider: "email" | "google"): string {
   const code = (error as { code?: string } | null)?.code;
@@ -27,12 +28,14 @@ function authErrorMessage(error: unknown, provider: "email" | "google"): string 
 }
 
 export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
+  const { user, refreshUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [resetBusy, setResetBusy] = useState(false);
+  const [verifyBusy, setVerifyBusy] = useState<"resend" | "refresh" | null>(null);
   const [keepMe, setKeepMe] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
@@ -95,6 +98,43 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
       );
     } finally {
       setResetBusy(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    setError(null);
+    setNotice(null);
+    setVerifyBusy("resend");
+    try {
+      await resendVerificationEmail();
+      setNotice("Verification email sent — check your inbox for the link.");
+    } catch (e) {
+      const code = (e as { code?: string } | null)?.code;
+      setError(
+        code === "auth/too-many-requests"
+          ? "Too many emails sent. Wait a minute, then try again."
+          : authErrorMessage(e, "email"),
+      );
+    } finally {
+      setVerifyBusy(null);
+    }
+  };
+
+  const refreshVerification = async () => {
+    setError(null);
+    setNotice(null);
+    setVerifyBusy("refresh");
+    try {
+      await refreshUser();
+      if (user?.emailVerified) {
+        setNotice("Your email is verified — you can publish listings now.");
+      } else {
+        setError("Not verified yet — open the link we emailed you, then refresh again.");
+      }
+    } catch (e) {
+      setError(authErrorMessage(e, "email"));
+    } finally {
+      setVerifyBusy(null);
     }
   };
 
@@ -172,6 +212,32 @@ export function LoginPanel({ onGuest }: { onGuest?: () => void }) {
         {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
         {notice && <p role="status" className="text-xs text-mint-300">{notice}</p>}
       </div>
+
+      {user && !user.emailVerified ? (
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+          <p className="text-xs text-white/70">
+            Verify your email to publish listings. We sent a link to {user.email || "your inbox"}.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-4 text-xs">
+            <button
+              type="button"
+              onClick={resendVerification}
+              disabled={busy || verifyBusy !== null}
+              className="text-brand-300 transition hover:text-brand-200 disabled:opacity-50"
+            >
+              {verifyBusy === "resend" ? "Sending…" : "Resend verification email"}
+            </button>
+            <button
+              type="button"
+              onClick={refreshVerification}
+              disabled={busy || verifyBusy !== null}
+              className="text-brand-300 transition hover:text-brand-200 disabled:opacity-50"
+            >
+              {verifyBusy === "refresh" ? "Checking…" : "I've verified — refresh"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="my-5 flex items-center gap-3 text-[11px] text-white/30 uppercase">
         <span className="h-px flex-1 bg-white/8" /> or <span className="h-px flex-1 bg-white/8" />

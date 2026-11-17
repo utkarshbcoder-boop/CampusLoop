@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
 import { SaveButton } from "@/components/Actions";
 import { useCampusLoop } from "@/lib/store";
+import { db } from "@/lib/firebase/config";
 import { rupees } from "@/lib/format";
 import type { Home } from "@/lib/data/homes";
 import type { Listing } from "@/lib/types";
-import { useCollection } from "@/lib/firebase/hooks";
 import type { HomeMarketplaceListing } from "@/lib/firebase/marketplace";
 
 export function SavedFavorites({
@@ -17,17 +19,50 @@ export function SavedFavorites({
   homes: Home[];
 }) {
   const { saved, hydrated } = useCampusLoop();
-  const liveHomes = useCollection<HomeMarketplaceListing>("home_listings");
+  const [liveHomes, setLiveHomes] = useState<HomeMarketplaceListing[]>([]);
+
+  // Only fetch the saved home documents — never the whole home_listings
+  // collection. Sample homes are already provided via props.
+  const savedHomeIdsKey = JSON.stringify(
+    saved
+      .filter((entry) => entry.startsWith("home:"))
+      .map((entry) => entry.slice("home:".length))
+      .filter((homeId) => !homes.some((home) => home.id === homeId)),
+  );
+
+  useEffect(() => {
+    const ids = JSON.parse(savedHomeIdsKey) as string[];
+    if (ids.length === 0) {
+      setLiveHomes([]);
+      return;
+    }
+    let active = true;
+    void Promise.all(
+      ids.map(async (homeId) => {
+        const snap = await getDoc(doc(db, "home_listings", homeId));
+        if (!snap.exists()) return null;
+        return { id: snap.id, ...snap.data() } as HomeMarketplaceListing;
+      }),
+    )
+      .then((rows) => {
+        if (!active) return;
+        setLiveHomes(rows.filter((row): row is HomeMarketplaceListing => row !== null));
+      })
+      .catch((cause) => {
+        console.error("Failed to load saved home listings:", cause);
+        if (active) setLiveHomes([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [savedHomeIdsKey]);
 
   if (!hydrated) {
     return <div className="cl-panel p-6 text-sm text-white/55">Loading your saved listings…</div>;
   }
 
   const savedItems = listings.filter((listing) => saved.includes(listing.id));
-  const allHomes = [
-    ...homes,
-    ...liveHomes.data.filter((liveHome) => !homes.some((home) => home.id === liveHome.id)),
-  ];
+  const allHomes = [...homes, ...liveHomes];
   const savedHomes = allHomes.filter((home) => saved.includes(`home:${home.id}`));
   const total = savedItems.length + savedHomes.length;
 

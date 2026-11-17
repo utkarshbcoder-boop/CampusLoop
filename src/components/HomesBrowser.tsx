@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { collection, getDocs } from "firebase/firestore";
 import { SaveButton } from "@/components/Actions";
 import { PinIcon } from "@/components/Icon";
+import { db } from "@/lib/firebase/config";
 import { rupees } from "@/lib/format";
+import { effectiveHomeStatus } from "@/lib/expiry";
 import { HOME_TYPE_LABELS, type Home, type HomeType } from "@/lib/data/homes";
-import { useCollection } from "@/lib/firebase/hooks";
 import type { HomeMarketplaceListing } from "@/lib/firebase/marketplace";
 
 const TYPE_OPTIONS: { value: "all" | HomeType; label: string }[] = [
@@ -21,16 +23,43 @@ const TYPE_OPTIONS: { value: "all" | HomeType; label: string }[] = [
 ];
 
 export function HomesBrowser({ homes }: { homes: Home[] }) {
-  const userHomes = useCollection<HomeMarketplaceListing>("home_listings");
+  const [userHomes, setUserHomes] = useState<HomeMarketplaceListing[]>([]);
+  const [homesError, setHomesError] = useState(false);
+
+  // One-time fetch: this browser filters/sorts client-side across every home,
+  // but it doesn't need a permanent unbounded onSnapshot on the whole collection.
+  useEffect(() => {
+    let active = true;
+    getDocs(collection(db, "home_listings"))
+      .then((snapshot) => {
+        if (!active) return;
+        setUserHomes(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as HomeMarketplaceListing)));
+      })
+      .catch((cause) => {
+        console.error("Failed to load home listings:", cause);
+        if (active) setHomesError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const allHomes = useMemo<Home[]>(() => [
     ...homes,
-    ...userHomes.data.map(({ id, title, locality, type, mode, price, beds, baths, furnished, distanceKm, available, owner }) => ({
+    ...userHomes.map(({ id, title, locality, type, mode, price, beds, baths, furnished, distanceKm, available, owner }) => ({
       id, title, locality, type, mode, price, beds, baths, furnished, distanceKm, available, owner,
     })),
-  ], [homes, userHomes.data]);
+  ], [homes, userHomes]);
   const [mode, setMode] = useState<"all" | "rent" | "sale">("all");
   const [type, setType] = useState<"all" | HomeType>("all");
   const [q, setQ] = useState("");
+
+  // Read-time expiry: sample fixtures never expire (no created_at), so only
+  // real Firestore homes past the window get the badge.
+  const expiredHomeIds = useMemo(
+    () => new Set(userHomes.filter((home) => effectiveHomeStatus(home) === "expired").map((home) => home.id)),
+    [userHomes],
+  );
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -68,7 +97,7 @@ export function HomesBrowser({ homes }: { homes: Home[] }) {
       <p className="mt-4 text-xs text-white/40">
         {filtered.length} {filtered.length === 1 ? "home" : "homes"} found
       </p>
-      {userHomes.error ? <p role="alert" className="mt-2 text-xs text-rose-300">Could not load newly listed homes.</p> : null}
+      {homesError ? <p role="alert" className="mt-2 text-xs text-rose-300">Could not load newly listed homes.</p> : null}
 
       {filtered.length === 0 ? (
         <div className="cl-panel mt-4 p-10 text-center text-sm text-white/50">
@@ -80,9 +109,12 @@ export function HomesBrowser({ homes }: { homes: Home[] }) {
             <div key={h.id} className="cl-panel cl-panel-hover flex flex-col gap-3 p-5">
               <div className="flex items-center justify-between gap-2">
                 <span className="cl-chip cl-chip-brand">{HOME_TYPE_LABELS[h.type]}</span>
-                <span className={`cl-chip ${h.mode === "rent" ? "cl-chip-mint" : "cl-chip-flare"}`}>
-                  {h.mode === "rent" ? "For rent" : "For sale"}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {expiredHomeIds.has(h.id) ? <span className="cl-chip">⏳ Expired</span> : null}
+                  <span className={`cl-chip ${h.mode === "rent" ? "cl-chip-mint" : "cl-chip-flare"}`}>
+                    {h.mode === "rent" ? "For rent" : "For sale"}
+                  </span>
+                </div>
               </div>
               <h3 className="text-sm font-semibold leading-snug text-white">
                 <Link href={`/homes/${h.id}`} prefetch={false} className="transition hover:text-brand-200">

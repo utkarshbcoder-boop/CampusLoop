@@ -13,11 +13,12 @@ export default async function SellPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const initialKind = params.type === "device"
+  const typeParam = Array.isArray(params.type) ? params.type[0] : params.type;
+  const initialKind = typeParam === "device"
     ? "device"
-    : params.type === "home"
+    : typeParam === "home"
       ? "home"
-      : params.type === "both"
+      : typeParam === "both"
         ? "both"
         : "book";
 

@@ -13,8 +13,13 @@ service firebase.storage {
 
     match /listing-images/{ownerId}/{fileName} {
       allow read: if true;
+      // The app uploads bare UUID filenames (crypto.randomUUID(), no
+      // extension) — enforce that shape so arbitrary paths can't be written.
+      // Note: per-user file quotas are not expressible in rules; rely on
+      // Firebase App Check / budget alerts for storage-cost abuse.
       allow create, update: if signedIn()
         && request.auth.uid == ownerId
+        && fileName.matches('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
         && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == ownerId);

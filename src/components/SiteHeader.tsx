@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CloseIcon, MenuIcon } from "@/components/Icon";
+import { CloseIcon, MenuIcon, SearchIcon } from "@/components/Icon";
 import { LoginButton } from "@/components/LoginButton";
+import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NAV_MODULES, UTILITY_LINKS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,25 @@ export function SiteHeader() {
               Create listing
             </Link>
 
+            <Link
+              href="/messages"
+              className={cn(
+                "cl-btn hidden gap-1.5 px-4 py-2.5 text-sm md:inline-flex",
+                isActive("/messages") ? "cl-btn-primary" : "cl-btn-ghost",
+              )}
+            >
+              Messages
+            </Link>
+
+            <Link
+              href="/search"
+              aria-label="Search"
+              className="cl-btn cl-btn-ghost px-2.5 py-2.5"
+            >
+              <SearchIcon width={18} height={18} />
+            </Link>
+
+            <NotificationBell />
             <ThemeToggle />
             <LoginButton />
 

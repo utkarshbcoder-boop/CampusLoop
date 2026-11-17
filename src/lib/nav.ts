@@ -39,6 +39,7 @@ export const NAV_MODULES: NavModule[] = [
 ];
 
 export const UTILITY_LINKS = [
+  { href: "/messages", label: "Messages", emoji: "💬" },
   { href: "/my-listings", label: "My Listings", emoji: "📋" },
   { href: "/saved", label: "Saved", emoji: "⭐" },
   { href: "/settings", label: "Settings", emoji: "⚙️" },

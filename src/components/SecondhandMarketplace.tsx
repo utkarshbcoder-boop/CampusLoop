@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ListingGrid } from "@/components/ListingGrid";
 import { EmptyState } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
@@ -18,6 +18,7 @@ import {
   SETTINGS_PREFERENCES_EVENT,
 } from "@/lib/settingsPreferences";
 import { DEVICE_CATEGORIES, getDeviceCategory } from "@/lib/marketplaceCategories";
+import { ITEM_EXPIRY_DAYS } from "@/lib/expiry";
 import type { College, Listing } from "@/lib/types";
 
 type ItemFilter = "all" | "book" | "device";
@@ -33,6 +34,7 @@ export function SecondhandMarketplace({
 }) {
   const { user } = useAuth();
   const userId = user?.uid ?? "guest";
+  const userIdRef = useRef(userId);
   const [itemType, setItemType] = useState<ItemFilter>("all");
   const [deviceType, setDeviceType] = useState<DeviceFilter>("all");
   const [campusId, setCampusId] = useState("");
@@ -41,22 +43,28 @@ export function SecondhandMarketplace({
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const prefs = readSettingsPreferences(userId);
-    setItemType(prefs.marketplaceCategory);
-    if (prefs.marketplaceCategory !== "device") setDeviceType("all");
-    setCampusId(prefs.marketplaceCampusId);
-    setCustomCampus(customCampusName(prefs.marketplaceCampusId));
+    userIdRef.current = userId;
+  }, [userId]);
+
+  // Apply stored preference defaults only once on mount so that auth resolving
+  // (userId flipping from "guest" to the real uid) does not wipe the filters
+  // the visitor chose in-session. Later changes come only from the settings event.
+  useEffect(() => {
+    const applyPreferences = (prefs: ReturnType<typeof readSettingsPreferences>) => {
+      setItemType(prefs.marketplaceCategory);
+      if (prefs.marketplaceCategory !== "device") setDeviceType("all");
+      setCampusId(prefs.marketplaceCampusId);
+      setCustomCampus(customCampusName(prefs.marketplaceCampusId));
+    };
+    applyPreferences(readSettingsPreferences(userIdRef.current));
     const handleChange = (event: Event) => {
       const detail = (event as CustomEvent<{ userId: string; preferences: ReturnType<typeof readSettingsPreferences> }>).detail;
-      if (detail?.userId !== userId) return;
-      setItemType(detail.preferences.marketplaceCategory);
-      if (detail.preferences.marketplaceCategory !== "device") setDeviceType("all");
-      setCampusId(detail.preferences.marketplaceCampusId);
-      setCustomCampus(customCampusName(detail.preferences.marketplaceCampusId));
+      if (detail?.userId !== userIdRef.current) return;
+      applyPreferences(detail.preferences);
     };
     window.addEventListener(SETTINGS_PREFERENCES_EVENT, handleChange);
     return () => window.removeEventListener(SETTINGS_PREFERENCES_EVENT, handleChange);
-  }, [userId]);
+  }, []);
 
   const visibleListings = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -188,7 +196,7 @@ export function SecondhandMarketplace({
         />
       )}
       <p className="mt-6 text-xs text-white/40">
-        Open a listing to register buyer interest. Sellers can see interested buyers in My Listings; only the admin can edit, remove, or mark any listing sold.
+        Open a listing to register buyer interest. Sellers can see interested buyers in My Listings and edit, renew, or remove their own listings; only the admin can moderate anyone else&apos;s. Listings stay live for {ITEM_EXPIRY_DAYS} days before the seller lists them again.
       </p>
     </>
   );

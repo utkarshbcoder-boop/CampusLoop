@@ -5,11 +5,15 @@ import { notFound } from "next/navigation";
 import { ArrowRightIcon, BookIcon, ClockIcon, ShieldIcon } from "@/components/Icon";
 import { BuyButton, RentButton, SaveButton } from "@/components/Actions";
 import { ListingInterestButton } from "@/components/ListingInterestButton";
+import { MessageSellerButton } from "@/components/MessageSellerButton";
+import { ReportButton } from "@/components/ReportButton";
+import { ReviewsSection } from "@/components/ReviewsSection";
 import { ListingCard } from "@/components/cards";
 import { Callout, KeyValue, Section, TagList } from "@/components/ui";
 import { campusNameById } from "@/lib/data/campusOptions";
 import { formatDateTime, rupees, timeAgo, titleCase } from "@/lib/format";
 import { getColleges, getCurrentProfile, getListing, getListings } from "@/lib/queries";
+import { ITEM_EXPIRY_DAYS, effectiveItemStatus } from "@/lib/expiry";
 import { isSampleListing } from "@/lib/listingUtils";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +33,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const seller = listing.seller_id === profile.id ? profile : undefined;
   const campusShortName = campusNameById(listing.college_id) ?? "Campus";
   const discount = listing.mrp > 0 ? Math.round((1 - listing.price / listing.mrp) * 100) : 0;
+  const status = effectiveItemStatus(listing);
+  const expired = status === "expired";
 
   // Real related inventory from the same subject.
   const related = (
@@ -119,8 +125,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {isSampleListing(listing) ? <span className="cl-chip">Sample listing</span> : null}
                 <span className="cl-chip">{titleCase(listing.condition)}</span>
                 <span className="cl-chip">{campusShortName}</span>
-                {listing.status !== "available" ? (
-                  <span className="cl-chip cl-chip-rose">{titleCase(listing.status)}</span>
+                {expired ? (
+                  <span className="cl-chip">Expired</span>
+                ) : status !== "available" ? (
+                  <span className="cl-chip cl-chip-rose">{titleCase(status)}</span>
                 ) : null}
               </div>
 
@@ -148,19 +156,36 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               ) : null}
 
               <div className="mt-5 flex flex-wrap gap-2">
-                {listing.kind === "rent" ? (
+                {listing.kind === "rent" && !expired ? (
                   <RentButton
                     itemId={listing.id}
                     itemName={listing.title}
                     dayRate={listing.rent_per_day ?? Math.round(listing.price / 30)}
                   />
-                ) : listing.kind === "sell" ? (
-                  <ListingInterestButton listingId={listing.id} status={listing.status} />
+                ) : listing.kind === "sell" || expired ? (
+                  <ListingInterestButton listingId={listing.id} status={status} />
                 ) : (
                   <BuyButton listingId={listing.id} title={listing.title} price={listing.price} />
                 )}
                 <SaveButton id={listing.id} />
               </div>
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <MessageSellerButton
+                  targetType="listing"
+                  targetId={listing.id}
+                  targetTitle={listing.title}
+                  status={status}
+                  sample={isSampleListing(listing)}
+                />
+                <ReportButton targetType="listing" targetId={listing.id} />
+              </div>
+
+              {expired ? (
+                <p role="status" className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-white/65">
+                  This listing expired after {ITEM_EXPIRY_DAYS} days. Ask the seller to renew it.
+                </p>
+              ) : null}
 
               <p className="mt-4 flex items-start gap-2 text-[11px] leading-relaxed text-white/45">
                 <ShieldIcon width={14} height={14} className="mt-0.5 shrink-0 text-mint-400" />
@@ -194,6 +219,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             </Callout>
           </div>
         </div>
+      </Section>
+
+      <Section className="pt-0">
+        <ReviewsSection
+          targetType="listing"
+          targetId={listing.id}
+          sellerId={listing.seller_id}
+          sample={isSampleListing(listing)}
+        />
       </Section>
 
       {related.length > 0 ? (

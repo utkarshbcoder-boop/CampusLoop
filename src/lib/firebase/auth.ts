@@ -15,6 +15,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   updateProfile,
   setPersistence,
   browserLocalPersistence,
@@ -74,7 +75,22 @@ export async function signUpWithEmail(name: string, email: string, password: str
   if (name.trim()) {
     await updateProfile(r.user, { displayName: name.trim() });
   }
+  try {
+    await sendEmailVerification(r.user);
+  } catch (cause) {
+    // Listing/interest creation requires a verified email, but a failed send
+    // must not fail account creation — the user can resend from the login panel.
+    console.error("Failed to send verification email:", cause);
+  }
   return r.user;
+}
+
+/** Re-send the email-verification link to the signed-in user. */
+export async function resendVerificationEmail(): Promise<void> {
+  const u = auth.currentUser;
+  if (!u) throw new Error("Sign in first, then resend the verification email.");
+  if (u.emailVerified) throw new Error("Your email is already verified.");
+  await sendEmailVerification(u);
 }
 
 import { doc, deleteDoc } from "firebase/firestore";
@@ -84,14 +100,26 @@ import { db } from "./config";
 export async function deleteCurrentAccount(): Promise<void> {
   const u = auth.currentUser;
   if (!u) throw new Error("No signed-in user");
+  let profileError: unknown = null;
   try {
     await deleteDoc(doc(db, "profiles", u.uid));
-  } catch {}
+  } catch (cause) {
+    profileError = cause;
+    console.error("Failed to delete profile document:", cause);
+  }
   try {
     localStorage.removeItem("campusloop_keep");
     sessionStorage.removeItem("campusloop_session");
   } catch {}
   await deleteUser(u);
+  // The auth user is gone either way, but never hide a profile-deletion
+  // failure (e.g. Firestore rules blocking the delete) from the caller.
+  if (profileError) {
+    throw new Error(
+      "Your account was deleted, but your profile could not be removed from Firestore.",
+      { cause: profileError },
+    );
+  }
 }
 
 /** Sign out the current user. */

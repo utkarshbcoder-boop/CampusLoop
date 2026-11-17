@@ -10,6 +10,7 @@ import {
   customCampusId,
   OTHER_CAMPUS_VALUE,
 } from "@/lib/data/campusOptions";
+import { resendVerificationEmail } from "@/lib/firebase/auth";
 import {
   createHomeMarketplaceListing,
   createMarketplaceListing,
@@ -31,7 +32,7 @@ const CONDITIONS: { value: BookCondition; label: string }[] = [
 type SellKind = "book" | "device" | "home";
 
 export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
   const [kind, setKind] = useState<SellKind>(initialKind === "both" ? "book" : initialKind);
   const [title, setTitle] = useState("");
@@ -53,11 +54,56 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
   const [beds, setBeds] = useState("1");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [verifyBusy, setVerifyBusy] = useState<"" | "resend" | "refresh">("");
+  const [verifyNotice, setVerifyNotice] = useState("");
   const [createdId, setCreatedId] = useState("");
+
+  const resendVerification = async () => {
+    setError("");
+    setVerifyNotice("");
+    setVerifyBusy("resend");
+    try {
+      await resendVerificationEmail();
+      setVerifyNotice("Verification email sent — check your inbox for the link.");
+    } catch (cause) {
+      const code = (cause as { code?: string } | null)?.code;
+      setError(
+        code === "auth/too-many-requests"
+          ? "Too many emails sent. Wait a minute, then try again."
+          : "Could not resend the verification email. Please try again.",
+      );
+      console.error("Failed to resend verification email:", cause);
+    } finally {
+      setVerifyBusy("");
+    }
+  };
+
+  const refreshVerification = async () => {
+    setError("");
+    setVerifyNotice("");
+    setVerifyBusy("refresh");
+    try {
+      await refreshUser();
+      if (user?.emailVerified) {
+        setVerifyNotice("Your email is verified — you can publish your listing now.");
+      } else {
+        setError("Not verified yet — open the link we emailed you, then refresh again.");
+      }
+    } catch (cause) {
+      setError("Could not check verification status. Please try again.");
+      console.error("Failed to refresh verification status:", cause);
+    } finally {
+      setVerifyBusy("");
+    }
+  };
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!user) return;
+    if (!user.emailVerified) {
+      setError("Verify your email to publish listings. Check your inbox for the verification link.");
+      return;
+    }
     const amount = Number(price);
     if (
       !title.trim()
@@ -200,7 +246,6 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
             onClick={() => {
               setKind(option.value);
               window.history.replaceState(null, "", `/sell?type=${option.value}`);
-              window.dispatchEvent(new Event("selltype"));
             }}
             className={`cl-btn justify-center ${kind === option.value ? "cl-btn-primary" : "cl-btn-ghost"} disabled:opacity-40`}
           >
@@ -391,6 +436,32 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
         />
       </label>
       {error ? <p role="alert" className="text-sm text-rose-300">{error}</p> : null}
+      {!user.emailVerified ? (
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <p className="text-xs leading-relaxed text-white/70">
+            Verify your email to publish listings. We sent a link to {user.email || "your inbox"}.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-4 text-xs">
+            <button
+              type="button"
+              onClick={resendVerification}
+              disabled={busy || verifyBusy !== ""}
+              className="text-brand-300 transition hover:text-brand-200 disabled:opacity-50"
+            >
+              {verifyBusy === "resend" ? "Sending…" : "Resend verification email"}
+            </button>
+            <button
+              type="button"
+              onClick={refreshVerification}
+              disabled={busy || verifyBusy !== ""}
+              className="text-brand-300 transition hover:text-brand-200 disabled:opacity-50"
+            >
+              {verifyBusy === "refresh" ? "Checking…" : "I've verified — refresh"}
+            </button>
+          </div>
+          {verifyNotice ? <p role="status" className="mt-2 text-xs text-mint-300">{verifyNotice}</p> : null}
+        </div>
+      ) : null}
       <button type="submit" disabled={busy} className="cl-btn cl-btn-primary justify-center disabled:opacity-50">
         {busy ? "Saving listing…" : kind === "book" ? "Publish book listing" : kind === "device" ? "Publish device listing" : "Publish home / room listing"}
       </button>

@@ -34,6 +34,16 @@ export function useCollection<T extends { id: string }>(
   const whereValueKey = JSON.stringify(constraints?.whereValue);
 
   useEffect(() => {
+    // Guard against a stale subscription writing state after the query
+    // identity changes (e.g. a different signed-in user).
+    let active = true;
+
+    // Reset so the previous query's rows are never shown while the new one
+    // loads — otherwise my-listings briefly renders another user's documents.
+    setData([]);
+    setLoading(true);
+    setError(null);
+
     const qConstraints: QueryConstraint[] = [];
 
     if (constraints?.whereField && constraints?.whereValue !== undefined) {
@@ -49,19 +59,24 @@ export function useCollection<T extends { id: string }>(
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        if (!active) return;
         const docs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as T));
         setData(docs);
         setLoading(false);
         setError(null);
       },
       (err) => {
+        if (!active) return;
         console.error(`Firestore onSnapshot error [${collectionName}]:`, err);
         setError(err.message);
         setLoading(false);
       },
     );
 
-    return unsubscribe;
+    return () => {
+      active = false;
+      unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     collectionName,

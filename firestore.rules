@@ -5,6 +5,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function verified() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+
     function isAdmin() {
       return signedIn()
         && request.auth.token.email == 'utkarshbcoder@gmail.com'
@@ -14,7 +18,7 @@ service cloud.firestore {
     match /listings/{listingId} {
       allow read: if true;
       allow create: if isAdmin() || (
-        signedIn()
+        verified()
         && request.resource.data.id == listingId
         && request.resource.data.seller_id == request.auth.uid
         && request.resource.data.kind == 'sell'
@@ -22,27 +26,34 @@ service cloud.firestore {
         && request.resource.data.status == 'available'
         && request.resource.data.price is number
         && request.resource.data.price > 0
+        && request.resource.data.price <= 1000000000
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 300
         && request.resource.data.author is string
         && request.resource.data.edition is string
         && request.resource.data.subject is string
         && request.resource.data.condition in ['like_new', 'good', 'fair', 'heavy_notes']
         && request.resource.data.mrp is number
+        && request.resource.data.mrp <= 1000000000
         && request.resource.data.negotiable is bool
         && request.resource.data.semester is string
         && request.resource.data.branch is string
         && request.resource.data.college_id is string
         && request.resource.data.pickup_location is string
         && request.resource.data.pickup_location.size() > 0
+        && request.resource.data.pickup_location.size() <= 500
         && request.resource.data.description is string
+        && request.resource.data.description.size() <= 10000
         && request.resource.data.highlights is list
         && request.resource.data.tags is list
         && request.resource.data.hue is number
         && request.resource.data.emoji is string
-        && request.resource.data.boosted is bool
-        && request.resource.data.views is number
-        && request.resource.data.saves is number
+        // Engagement/boost fields are server-managed concepts; clients must
+        // always start them at their neutral values (no fake boosts/views).
+        && request.resource.data.boosted == false
+        && request.resource.data.views == 0
+        && request.resource.data.saves == 0
         && request.resource.data.created_at is string
         && request.resource.data.keys().hasAll([
           'id', 'item_type', 'title', 'author', 'edition', 'subject', 'semester',
@@ -64,16 +75,87 @@ service cloud.firestore {
           || (request.resource.data.item_type == 'device'
             && request.resource.data.device_type in ['mobile', 'laptop', 'tablet', 'other']))
       );
-      allow update, delete: if isAdmin();
+      // Seller self-service: the owner may edit content fields, change status
+      // (available/reserved/sold), and renew (created_at). Immutable: identity,
+      // categorisation, and engagement fields. Admin can do anything.
+      allow update: if isAdmin() || (
+        verified()
+        && resource.data.seller_id == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'id', 'item_type', 'title', 'author', 'edition', 'subject', 'semester',
+          'branch', 'kind', 'condition', 'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit',
+          'seller_id', 'college_id', 'pickup_location', 'status', 'description',
+          'highlights', 'tags', 'hue', 'emoji', 'boosted', 'views', 'saves', 'created_at',
+          'device_type', 'image_urls', 'is_sample'
+        ])
+        && !('is_sample' in request.resource.data)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.seller_id == resource.data.seller_id
+        && request.resource.data.kind == resource.data.kind
+        && request.resource.data.item_type == resource.data.item_type
+        && request.resource.data.college_id == resource.data.college_id
+        && request.resource.data.boosted == resource.data.boosted
+        && request.resource.data.views == resource.data.views
+        && request.resource.data.saves == resource.data.saves
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'author', 'edition', 'subject', 'semester', 'branch', 'condition',
+          'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit', 'pickup_location',
+          'status', 'description', 'highlights', 'tags', 'hue', 'emoji',
+          'device_type', 'image_urls', 'created_at'
+        ])
+        && request.resource.data.status in ['available', 'reserved', 'sold']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 300
+        && request.resource.data.author is string
+        && request.resource.data.edition is string
+        && request.resource.data.subject is string
+        && request.resource.data.semester is string
+        && request.resource.data.branch is string
+        && request.resource.data.condition in ['like_new', 'good', 'fair', 'heavy_notes']
+        && request.resource.data.price is number
+        && request.resource.data.price > 0
+        && request.resource.data.price <= 1000000000
+        && request.resource.data.mrp is number
+        && request.resource.data.mrp <= 1000000000
+        && request.resource.data.negotiable is bool
+        && request.resource.data.pickup_location is string
+        && request.resource.data.pickup_location.size() > 0
+        && request.resource.data.pickup_location.size() <= 500
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 10000
+        && request.resource.data.highlights is list
+        && request.resource.data.tags is list
+        && request.resource.data.hue is number
+        && request.resource.data.emoji is string
+        && request.resource.data.created_at is string
+        && (!('rent_per_day' in request.resource.data) || request.resource.data.rent_per_day is number)
+        && (!('deposit' in request.resource.data) || request.resource.data.deposit is number)
+        && (!('image_urls' in request.resource.data)
+          || (request.resource.data.image_urls is list && request.resource.data.image_urls.size() <= 5))
+        && (!('device_type' in request.resource.data)
+          || (request.resource.data.item_type == 'device'
+            && request.resource.data.device_type in ['mobile', 'laptop', 'tablet', 'other']))
+      );
+      allow delete: if isAdmin() || (verified() && resource.data.seller_id == request.auth.uid);
     }
 
     match /listing_interests/{interestId} {
-      allow read: if isAdmin() || (
+      // get(): must tolerate a NON-EXISTENT doc (the create transaction probes
+      // before writing) — path suffix identifies the buyer without touching
+      // resource.data, which is null for missing docs.
+      allow get: if isAdmin() || (
+        signedIn()
+        && (interestId.matches('.*_' + request.auth.uid + '$')
+          || resource.data.buyer_id == request.auth.uid
+          || resource.data.seller_id == request.auth.uid)
+      );
+      allow list: if isAdmin() || (
         signedIn()
         && (resource.data.buyer_id == request.auth.uid || resource.data.seller_id == request.auth.uid)
       );
       allow create: if isAdmin() || (
-        signedIn()
+        verified()
         && request.resource.data.buyer_id == request.auth.uid
         && interestId == request.resource.data.listing_id + '_' + request.auth.uid
         && request.resource.data.keys().hasAll(['listing_id', 'buyer_id', 'seller_id', 'created_at'])
@@ -92,17 +174,20 @@ service cloud.firestore {
     match /home_listings/{homeId} {
       allow read: if true;
       allow create: if isAdmin() || (
-        signedIn()
+        verified()
         && request.resource.data.id == homeId
         && request.resource.data.owner_id == request.auth.uid
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 300
         && request.resource.data.locality is string
         && request.resource.data.locality.size() > 0
+        && request.resource.data.locality.size() <= 300
         && request.resource.data.type in ['pg', 'separate_room', '1rk', '1bhk', '2bhk', '3bhk', '4bhk']
         && request.resource.data.mode in ['rent', 'sale']
         && request.resource.data.price is number
         && request.resource.data.price > 0
+        && request.resource.data.price <= 1000000000
         && request.resource.data.beds is number
         && request.resource.data.baths is number
         && request.resource.data.furnished in ['Full', 'Semi', 'Unfurnished']
@@ -120,8 +205,48 @@ service cloud.firestore {
         ])
         && (!('description' in request.resource.data)
           || (request.resource.data.description is string && request.resource.data.description.size() <= 2000))
+        && (!('status' in request.resource.data)
+          || request.resource.data.status in ['available', 'rented', 'sold', 'withdrawn'])
       );
-      allow update, delete: if isAdmin();
+      // Owner self-service: edit content, change status, renew (created_at).
+      allow update: if isAdmin() || (
+        verified()
+        && resource.data.owner_id == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'id', 'title', 'locality', 'type', 'mode', 'price', 'beds', 'baths',
+          'furnished', 'distanceKm', 'available', 'owner', 'owner_id', 'created_at',
+          'description', 'status'
+        ])
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.owner_id == resource.data.owner_id
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.mode == resource.data.mode
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'locality', 'price', 'beds', 'baths', 'furnished', 'distanceKm',
+          'available', 'owner', 'description', 'created_at', 'status'
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 300
+        && request.resource.data.locality is string
+        && request.resource.data.locality.size() > 0
+        && request.resource.data.locality.size() <= 300
+        && request.resource.data.price is number
+        && request.resource.data.price > 0
+        && request.resource.data.price <= 1000000000
+        && request.resource.data.beds is number
+        && request.resource.data.baths is number
+        && request.resource.data.furnished in ['Full', 'Semi', 'Unfurnished']
+        && request.resource.data.distanceKm is number
+        && request.resource.data.available is string
+        && request.resource.data.owner is string
+        && request.resource.data.created_at is string
+        && (!('description' in request.resource.data)
+          || (request.resource.data.description is string && request.resource.data.description.size() <= 2000))
+        && (!('status' in request.resource.data)
+          || request.resource.data.status in ['available', 'rented', 'sold', 'withdrawn'])
+      );
+      allow delete: if isAdmin() || (verified() && resource.data.owner_id == request.auth.uid);
     }
 
     match /home_listing_interests/{interestId} {
@@ -137,7 +262,7 @@ service cloud.firestore {
         signedIn()
         && (resource.data.buyer_id == request.auth.uid || resource.data.owner_id == request.auth.uid)
       );
-      allow create: if signedIn()
+      allow create: if verified()
         && request.resource.data.buyer_id == request.auth.uid
         && interestId == request.resource.data.home_listing_id + '_' + request.auth.uid
         && request.resource.data.keys().hasAll([
@@ -157,12 +282,28 @@ service cloud.firestore {
     }
 
     match /profiles/{profileId} {
+      // Profiles contain PII (email, photo_url). Reads are limited to signed-in
+      // users; never expose these documents to unauthenticated clients.
+      allow read: if signedIn();
       allow create: if isAdmin() || (
         signedIn()
         && profileId == request.auth.uid
         && request.resource.data.id == request.auth.uid
+        // Field allowlist: clients cannot self-assign trust signals such as
+        // is_premium, verification, or rating. The set below is the union of
+        // the two legitimate writers: AuthProvider (full bootstrap) and the
+        // settings form (id/name/college_id merge).
+        && request.resource.data.keys().hasAll(['id', 'name', 'college_id'])
+        && request.resource.data.keys().hasOnly([
+          'id', 'name', 'email', 'photo_url', 'handle', 'college_id', 'created_at'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.college_id is string
+        && (!('email' in request.resource.data) || request.resource.data.email is string)
+        && (!('photo_url' in request.resource.data) || request.resource.data.photo_url is string)
+        && (!('handle' in request.resource.data) || request.resource.data.handle is string)
+        && (!('created_at' in request.resource.data) || request.resource.data.created_at is string)
       );
-      allow read: if true;
       allow update: if isAdmin() || (
         signedIn()
         && profileId == request.auth.uid
@@ -171,7 +312,9 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0
         && request.resource.data.college_id is string
       );
-      allow delete: if isAdmin();
+      // Owners may delete their own profile (used by account deletion);
+      // admin can delete any profile.
+      allow delete: if isAdmin() || (signedIn() && profileId == request.auth.uid);
     }
 
     match /bookings/{bookingId} {
@@ -187,7 +330,224 @@ service cloud.firestore {
         signedIn()
         && resource.data.profile_id == request.auth.uid
       );
-      allow write: if isAdmin();
+      // Users notify each other (interest, message, review) — never yourself.
+      allow create: if verified()
+        && request.resource.data.profile_id is string
+        && request.resource.data.profile_id != request.auth.uid
+        && request.resource.data.type in ['interest', 'message', 'review']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string
+        && request.resource.data.body.size() <= 300
+        && request.resource.data.target_id is string
+        && request.resource.data.read == false
+        && request.resource.data.created_at is string
+        && request.resource.data.keys().hasOnly([
+          'profile_id', 'type', 'title', 'body', 'target_id', 'read', 'created_at'
+        ]);
+      // Recipients may only flip their own read flag.
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.profile_id == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool
+      );
+      allow delete: if isAdmin() || (
+        signedIn()
+        && resource.data.profile_id == request.auth.uid
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // Buyer <-> seller messaging
+    // ------------------------------------------------------------------
+    match /conversations/{convId} {
+      // get(): tolerates a missing doc (getOrCreateConversation probes first).
+      // Deterministic ids end with the buyer's uid, which identifies the
+      // reader without reading resource.data (null for missing docs).
+      allow get: if isAdmin()
+        || (signedIn() && convId.matches('.*_' + request.auth.uid + '$'))
+        || (signedIn() && resource.data.buyer_id == request.auth.uid)
+        || (signedIn() && resource.data.seller_id == request.auth.uid);
+      allow list: if isAdmin() || (
+        signedIn()
+        && (resource.data.buyer_id == request.auth.uid || resource.data.seller_id == request.auth.uid)
+      );
+      allow create: if verified()
+        && convId == request.resource.data.target_type + '_' + request.resource.data.target_id + '_' + request.resource.data.buyer_id
+        && request.resource.data.buyer_id == request.auth.uid
+        && request.resource.data.seller_id is string
+        && request.resource.data.seller_id != request.auth.uid
+        && request.resource.data.target_type in ['listing', 'home']
+        && request.resource.data.target_id is string
+        && request.resource.data.target_title is string
+        && request.resource.data.target_title.size() <= 300
+        && request.resource.data.buyer_unread == 0
+        && request.resource.data.seller_unread == 0
+        && request.resource.data.created_at is string
+        && request.resource.data.keys().hasOnly([
+          'target_type', 'target_id', 'target_title', 'buyer_id', 'seller_id',
+          'last_message', 'last_at', 'buyer_unread', 'seller_unread', 'created_at'
+        ])
+        && (request.resource.data.target_type == 'listing'
+          ? (exists(/databases/$(database)/documents/listings/$(request.resource.data.target_id))
+            && get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.seller_id == request.resource.data.seller_id
+            && get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.status == 'available')
+          : (exists(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id))
+            && get(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)).data.owner_id == request.resource.data.seller_id));
+      // Participants may update the preview/unread counters only.
+      allow update: if isAdmin() || (
+        signedIn()
+        && (resource.data.buyer_id == request.auth.uid || resource.data.seller_id == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'last_message', 'last_at', 'buyer_unread', 'seller_unread'
+        ])
+        && request.resource.data.buyer_unread is number
+        && request.resource.data.buyer_unread >= 0
+        && request.resource.data.seller_unread is number
+        && request.resource.data.seller_unread >= 0
+        && (!('last_message' in request.resource.data)
+          || (request.resource.data.last_message is string && request.resource.data.last_message.size() <= 2000))
+        && (!('last_at' in request.resource.data) || request.resource.data.last_at is string)
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /messages/{messageId} {
+      allow read: if isAdmin() || (
+        signedIn()
+        && (resource.data.buyer_id == request.auth.uid || resource.data.seller_id == request.auth.uid)
+      );
+      allow create: if verified()
+        && request.resource.data.sender_id == request.auth.uid
+        && (request.resource.data.buyer_id == request.auth.uid
+          || request.resource.data.seller_id == request.auth.uid)
+        && request.resource.data.conversation_id is string
+        && request.resource.data.buyer_id is string
+        && request.resource.data.seller_id is string
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.read == false
+        && request.resource.data.created_at is string
+        && request.resource.data.keys().hasOnly([
+          'conversation_id', 'sender_id', 'buyer_id', 'seller_id', 'text', 'read', 'created_at'
+        ])
+        && exists(/databases/$(database)/documents/conversations/$(request.resource.data.conversation_id))
+        && get(/databases/$(database)/documents/conversations/$(request.resource.data.conversation_id)).data.buyer_id == request.resource.data.buyer_id
+        && get(/databases/$(database)/documents/conversations/$(request.resource.data.conversation_id)).data.seller_id == request.resource.data.seller_id;
+      // Participants may only flip the read flag.
+      allow update: if isAdmin() || (
+        signedIn()
+        && (resource.data.buyer_id == request.auth.uid || resource.data.seller_id == request.auth.uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool
+      );
+      allow delete: if isAdmin() || (
+        signedIn()
+        && resource.data.sender_id == request.auth.uid
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // Reviews & ratings
+    // ------------------------------------------------------------------
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if verified()
+        && reviewId == request.resource.data.target_type + '_' + request.resource.data.target_id + '_' + request.resource.data.reviewer_id
+        && request.resource.data.id == reviewId
+        && request.resource.data.reviewer_id == request.auth.uid
+        && request.resource.data.seller_id is string
+        && request.resource.data.seller_id != request.auth.uid
+        && request.resource.data.target_type in ['listing', 'home']
+        && request.resource.data.target_id is string
+        && request.resource.data.stars in [1, 2, 3, 4, 5]
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 1000
+        && request.resource.data.created_at is string
+        && request.resource.data.keys().hasOnly([
+          'id', 'target_type', 'target_id', 'seller_id', 'reviewer_id',
+          'stars', 'comment', 'created_at'
+        ])
+        && (request.resource.data.target_type == 'listing'
+          ? (exists(/databases/$(database)/documents/listings/$(request.resource.data.target_id))
+            && get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.seller_id == request.resource.data.seller_id)
+          : (exists(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id))
+            && get(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)).data.owner_id == request.resource.data.seller_id));
+      // Reviewer may edit their own stars/comment only.
+      allow update: if signedIn()
+        && resource.data.reviewer_id == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stars', 'comment'])
+        && request.resource.data.stars in [1, 2, 3, 4, 5]
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 1000;
+      allow delete: if isAdmin() || (signedIn() && resource.data.reviewer_id == request.auth.uid);
+    }
+
+    // ------------------------------------------------------------------
+    // Reports / moderation queue (admin-only reads)
+    // ------------------------------------------------------------------
+    match /reports/{reportId} {
+      // Admin sees everything. A reporter may get() their own report — this
+      // must also cover a NON-EXISTENT doc (duplicate detection probes first;
+      // resource is null then, so match by the deterministic id suffix).
+      allow get: if isAdmin() || (
+        signedIn()
+        && (reportId.matches('.*_' + request.auth.uid + '$')
+          || resource.data.reporter_id == request.auth.uid)
+      );
+      allow list: if isAdmin();
+      allow create: if verified()
+        && reportId == request.resource.data.target_type + '_' + request.resource.data.target_id + '_' + request.resource.data.reporter_id
+        && request.resource.data.reporter_id == request.auth.uid
+        && request.resource.data.target_type in ['listing', 'home', 'review']
+        && request.resource.data.target_id is string
+        && request.resource.data.reason in ['spam', 'scam', 'misleading', 'inappropriate', 'harassment', 'other']
+        && request.resource.data.details is string
+        && request.resource.data.details.size() <= 1000
+        && request.resource.data.status == 'open'
+        && request.resource.data.created_at is string
+        && request.resource.data.keys().hasOnly([
+          'target_type', 'target_id', 'reporter_id', 'reason', 'details', 'status', 'created_at'
+        ])
+        && (request.resource.data.target_type == 'review'
+          ? exists(/databases/$(database)/documents/reviews/$(request.resource.data.target_id))
+          : request.resource.data.target_type == 'listing'
+            ? exists(/databases/$(database)/documents/listings/$(request.resource.data.target_id))
+            : exists(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)));
+      // Admin triage: flip status only.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['open', 'resolved', 'dismissed'];
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // Account-synced wishlist
+    // ------------------------------------------------------------------
+    match /user_saves/{saveId} {
+      // get(): must tolerate a missing doc (addSave/removeSave probe first).
+      // Deterministic ids start with the owner's uid.
+      allow get: if isAdmin() || (
+        signedIn()
+        && (saveId.matches(request.auth.uid + '__.*')
+          || resource.data.user_id == request.auth.uid)
+      );
+      allow list: if isAdmin() || (
+        signedIn()
+        && resource.data.user_id == request.auth.uid
+      );
+      allow create: if signedIn()
+        && request.resource.data.user_id == request.auth.uid
+        && saveId == request.auth.uid + '__' + request.resource.data.item_id
+        && request.resource.data.item_id is string
+        && request.resource.data.item_id.size() > 0
+        && request.resource.data.item_id.size() <= 200
+        && request.resource.data.created_at is string
+        && request.resource.data.keys().hasOnly(['user_id', 'item_id', 'created_at']);
+      allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
     }
 
     match /transactions/{transactionId} {

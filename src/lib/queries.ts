@@ -24,11 +24,21 @@ export function sp(value: string | string[] | undefined): string {
 
 export async function getCurrentProfile(): Promise<Profile> {
   const provider = await getDataProvider();
-  const fromDb = await provider.profiles.byId(DEFAULT_PROFILE_ID);
-  const base =
-    fromDb ??
-    profileById(DEFAULT_PROFILE_ID) ??
-    (await provider.profiles.list())[0];
+  // Firestore profile reads require a signed-in session (rules restrict
+  // them to signed-in users), but this runs in a server component with no
+  // auth state — treat a denied/failed read as "no DB profile" and fall
+  // back to the seeded demo profile below.
+  let fromDb: Profile | null = null;
+  try {
+    fromDb = await provider.profiles.byId(DEFAULT_PROFILE_ID);
+  } catch (cause) {
+    console.error("getCurrentProfile: profile read failed, using seed:", cause);
+  }
+  let firstRow: Profile | null = null;
+  if (!fromDb && !profileById(DEFAULT_PROFILE_ID)) {
+    firstRow = (await provider.profiles.list().catch(() => [] as Profile[]))[0] ?? null;
+  }
+  const base = fromDb ?? profileById(DEFAULT_PROFILE_ID) ?? firstRow;
   if (!base) throw new Error("No profiles found. Run the seed script or check your data provider.");
 
   // Strip Firestore Timestamp objects (created by serverTimestamp()) down

@@ -367,8 +367,8 @@ export function TagList({
   const rest = tags.length - shown.length;
   return (
     <div className="flex flex-wrap gap-1.5">
-      {shown.map((tag) => (
-        <span key={tag} className={toneClass}>
+      {shown.map((tag, i) => (
+        <span key={`${tag}-${i}`} className={toneClass}>
           {tag}
         </span>
       ))}

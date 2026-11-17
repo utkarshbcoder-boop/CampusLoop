@@ -1,30 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/components/AuthProvider";
 import { SaveButton } from "@/components/Actions";
+import { MessageSellerButton } from "@/components/MessageSellerButton";
+import { ReportButton } from "@/components/ReportButton";
+import { ReviewsSection } from "@/components/ReviewsSection";
 import { PinIcon } from "@/components/Icon";
-import { useCollection } from "@/lib/firebase/hooks";
-import { recordHomeListingInterest, type HomeMarketplaceListing } from "@/lib/firebase/marketplace";
+import { db } from "@/lib/firebase/config";
+import {
+  recordHomeListingInterest,
+  type HomeMarketplaceListing,
+} from "@/lib/firebase/marketplace";
+import { resendVerificationEmail } from "@/lib/firebase/auth";
 import { HOME_TYPE_LABELS, type Home } from "@/lib/data/homes";
+import { HOME_EXPIRY_DAYS, effectiveHomeStatus } from "@/lib/expiry";
 import { rupees } from "@/lib/format";
 
 export function HomeListingDetail({ id, sample }: { id: string; sample: Home | undefined }) {
   const { user } = useAuth();
   const router = useRouter();
-  const homes = useCollection<HomeMarketplaceListing>("home_listings");
+  const [liveHome, setLiveHome] = useState<HomeMarketplaceListing | null>(null);
+  const [liveLoading, setLiveLoading] = useState(true);
+  const [liveError, setLiveError] = useState(false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const listing = homes.data.find((home) => home.id === id) ?? sample;
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setLiveLoading(true);
+    setLiveError(false);
+    getDoc(doc(db, "home_listings", id))
+      .then((snap) => {
+        if (!active) return;
+        setLiveHome(snap.exists() ? ({ id: snap.id, ...snap.data() } as HomeMarketplaceListing) : null);
+        setLiveLoading(false);
+      })
+      .catch((cause) => {
+        console.error(`Failed to load home listing ${id}:`, cause);
+        if (!active) return;
+        setLiveError(true);
+        setLiveLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const listing = liveHome ?? sample;
 
   if (!listing) {
     return (
       <section className="mx-auto w-full max-w-4xl px-4 py-16">
-        {homes.loading ? (
+        {liveLoading ? (
           <p className="text-sm text-white/55">Loading property details…</p>
-        ) : homes.error ? (
+        ) : liveError ? (
           <p role="alert" className="text-sm text-rose-300">Could not load property details. Please try again.</p>
         ) : (
           <div className="cl-panel p-6">
@@ -38,10 +72,16 @@ export function HomeListingDetail({ id, sample }: { id: string; sample: Home | u
 
   const liveListing = "owner_id" in listing && listing.owner_id ? listing : null;
   const isOwner = Boolean(liveListing && user?.uid === liveListing.owner_id);
+  // Expiry is read-time for live homes only — sample fixtures never expire.
+  const homeExpired = liveHome ? effectiveHomeStatus(liveHome) === "expired" : false;
 
   async function registerInterest() {
     if (!user) {
       router.push(`/login?returnTo=${encodeURIComponent(`/homes/${id}`)}`);
+      return;
+    }
+    if (!user.emailVerified) {
+      setMessage("Verify your email to register interest — check your inbox for the verification link.");
       return;
     }
     setBusy(true);
@@ -62,6 +102,20 @@ export function HomeListingDetail({ id, sample }: { id: string; sample: Home | u
       setMessage("Could not send your interest. Please try again.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function resendVerification() {
+    setResending(true);
+    setMessage("");
+    try {
+      await resendVerificationEmail();
+      setMessage("Verification email resent — check your inbox for the link.");
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+      setMessage("Could not resend the verification email. Please try again.");
+    } finally {
+      setResending(false);
     }
   }
 
@@ -112,18 +166,49 @@ export function HomeListingDetail({ id, sample }: { id: string; sample: Home | u
             <button
               type="button"
               onClick={registerInterest}
-              disabled={busy || Boolean(isOwner)}
+              disabled={busy || Boolean(isOwner) || homeExpired}
               className="cl-btn cl-btn-primary justify-center disabled:opacity-50"
             >
-              {busy ? "Sending…" : isOwner ? "Your listing" : listing.mode === "sale" ? "I want to buy" : "I'm interested"}
+              {busy ? "Sending…" : isOwner ? "Your listing" : homeExpired ? "Not available" : listing.mode === "sale" ? "I want to buy" : "I'm interested"}
             </button>
           ) : (
             <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-white/55">
               This is a sample listing. Interest requests are available on listings posted by their owners.
             </p>
           )}
+          {homeExpired ? (
+            <p role="status" className="text-xs leading-relaxed text-white/65">
+              This listing expired after {HOME_EXPIRY_DAYS} days. Ask the lister to renew it.
+            </p>
+          ) : null}
           {message ? <p role="status" className="text-xs leading-relaxed text-white/65">{message}</p> : null}
-          {homes.error ? <p role="alert" className="text-xs text-rose-300">Could not check live listing details.</p> : null}
+          {liveListing && user && !user.emailVerified ? (
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-white/55">
+              <p>Verify your email to register interest in this listing.</p>
+              <button
+                type="button"
+                onClick={resendVerification}
+                disabled={resending}
+                className="mt-2 text-brand-300 transition hover:text-brand-200 disabled:opacity-50"
+              >
+                {resending ? "Sending…" : "Resend verification email"}
+              </button>
+            </div>
+          ) : null}
+          {liveError ? <p role="alert" className="text-xs text-rose-300">Could not check live listing details.</p> : null}
+          {liveListing ? (
+            <>
+              <div className="border-t border-white/8 pt-4">
+                <MessageSellerButton
+                  targetType="home"
+                  targetId={id}
+                  targetTitle={listing.title}
+                  status="available"
+                />
+              </div>
+              <ReportButton targetType="home" targetId={id} />
+            </>
+          ) : null}
           <div className="border-t border-white/8 pt-4">
             <SaveButton id={`home:${listing.id}`} label="Save this listing" className="w-full justify-center" />
           </div>
@@ -132,6 +217,15 @@ export function HomeListingDetail({ id, sample }: { id: string; sample: Home | u
           </p>
           <Link href="/homes" className="cl-btn cl-btn-ghost justify-center">Back to all homes</Link>
         </aside>
+      </div>
+
+      <div className="mt-8">
+        <ReviewsSection
+          targetType="home"
+          targetId={id}
+          sellerId={liveListing ? String(liveListing.owner_id) : ""}
+          sample={!liveListing}
+        />
       </div>
     </section>
   );

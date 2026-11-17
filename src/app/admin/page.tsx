@@ -18,12 +18,20 @@ const COLLECTIONS: CollectionInfo[] = [
   { key: "profiles", label: "Users", emoji: "👤", href: "/admin/profiles", description: "Student accounts & info" },
   { key: "listings", label: "Second-hand items", emoji: "🛍️", href: "/admin/listings", description: "Used item listings" },
   { key: "home_listings", label: "Rooms & homes", emoji: "🏠", href: "/admin/home_listings", description: "Rooms, flats & PG listings" },
+  { key: "pg_listings", label: "PG & Rooms", emoji: "🏠", href: "/admin/pg_listings", description: "PG & shared flat listings" },
   { key: "listing_interests", label: "Buyer interest", emoji: "🙋", href: "/admin/listing_interests", description: "Interest in item listings" },
+  { key: "reports", label: "Reports", emoji: "🚩", href: "/admin/reports", description: "Flagged listings & reviews" },
 ];
 
-function CollectionCard({ info }: { info: CollectionInfo }) {
-  const { data, loading } = useCollection(info.key);
-
+function CollectionCard({
+  info,
+  count,
+  loading,
+}: {
+  info: CollectionInfo;
+  count: number;
+  loading: boolean;
+}) {
   return (
     <Link href={info.href} className="cl-panel cl-panel-hover group flex flex-col p-5 transition">
       <div className="flex items-start justify-between">
@@ -33,13 +41,13 @@ function CollectionCard({ info }: { info: CollectionInfo }) {
         {loading ? (
           <span className="h-8 w-12 animate-pulse rounded bg-white/8" />
         ) : (
-          <span className="text-2xl font-black text-white">{data.length}</span>
+          <span className="text-2xl font-black text-white">{count}</span>
         )}
       </div>
       <h3 className="mt-3 text-sm font-semibold text-white">{info.label}</h3>
       <p className="mt-0.5 text-[10px] text-white/35">{info.description}</p>
       <p className="mt-1 text-[11px] text-white/40">
-        {loading ? "Loading…" : `${data.length} documents`}
+        {loading ? "Loading…" : `${count} documents`}
       </p>
       <div className="mt-auto pt-3">
         <span className="text-xs font-medium text-brand-300 transition group-hover:text-brand-200">
@@ -52,10 +60,24 @@ function CollectionCard({ info }: { info: CollectionInfo }) {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const { data: colleges } = useCollection<College>("colleges");
-  const { data: profiles } = useCollection("profiles");
-  const { data: listings } = useCollection("listings");
-  const { data: homeListings } = useCollection("home_listings");
+  const { data: colleges, loading: collegesLoading } = useCollection<College>("colleges");
+  const { data: profiles, loading: profilesLoading } = useCollection("profiles");
+  const { data: listings, loading: listingsLoading } = useCollection("listings");
+  const { data: homeListings, loading: homeListingsLoading } = useCollection("home_listings");
+  const { data: pgListings, loading: pgListingsLoading } = useCollection("pg_listings");
+  const { data: listingInterests, loading: listingInterestsLoading } = useCollection("listing_interests");
+  const { data: reports, loading: reportsLoading } = useCollection("reports");
+
+  // Each collection is subscribed to exactly once; counts are passed down to the cards.
+  const collectionCounts: Record<string, { count: number; loading: boolean }> = {
+    colleges: { count: colleges.length, loading: collegesLoading },
+    profiles: { count: profiles.length, loading: profilesLoading },
+    listings: { count: listings.length, loading: listingsLoading },
+    home_listings: { count: homeListings.length, loading: homeListingsLoading },
+    pg_listings: { count: pgListings.length, loading: pgListingsLoading },
+    listing_interests: { count: listingInterests.length, loading: listingInterestsLoading },
+    reports: { count: reports.length, loading: reportsLoading },
+  };
 
   const totalStudents = colleges.reduce((sum, c) => sum + c.campusloop_students, 0);
 
@@ -162,7 +184,12 @@ export default function AdminDashboard() {
       <h2 className="mb-4 text-lg font-bold text-white">All Collections</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {COLLECTIONS.map((info) => (
-          <CollectionCard key={info.key} info={info} />
+          <CollectionCard
+            key={info.key}
+            info={info}
+            count={collectionCounts[info.key].count}
+            loading={collectionCounts[info.key].loading}
+          />
         ))}
       </div>
     </div>

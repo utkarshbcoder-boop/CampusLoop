@@ -5,6 +5,7 @@ import { PinIcon, ClockIcon, StarIcon } from "@/components/Icon";
 import { equipmentCategoryLabel } from "@/lib/data/equipmentCategories";
 import { getDeviceCategory, DEVICE_CATEGORIES } from "@/lib/marketplaceCategories";
 import { campusNameById } from "@/lib/data/campusOptions";
+import { effectiveItemStatus } from "@/lib/expiry";
 import { isSampleListing } from "@/lib/listingUtils";
 import { Avatar, ScoreBreakdown, ScoreRing, StarRating, TagList, Thumbnail } from "@/components/ui";
 import { formatDate, formatTime, relativeDay, rupees, rupeesShort, timeAgo, titleCase } from "@/lib/format";
@@ -33,10 +34,14 @@ const shortCollege = (colleges: College[], id: string | null | undefined): strin
 
 export function ListingCard({ listing, colleges }: { listing: Listing; colleges: College[] }) {
   const discount = listing.mrp > 0 ? Math.round((1 - listing.price / listing.mrp) * 100) : 0;
+  const itemStatus = effectiveItemStatus(listing);
+  const expired = itemStatus === "expired";
   return (
     <article className="cl-panel cl-panel-hover group flex h-full flex-col overflow-hidden">
       <div className="flex items-start gap-3 p-4 pb-3">
-        <Thumbnail hue={listing.hue} emoji={listing.emoji} label={listing.title} imageUrl={listing.image_urls?.[0]} />
+        <div className={cn("shrink-0", expired && "opacity-60")}>
+          <Thumbnail hue={listing.hue} emoji={listing.emoji} label={listing.title} imageUrl={listing.image_urls?.[0]} />
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="cl-line-clamp-2 text-sm leading-snug font-semibold text-white">
@@ -46,7 +51,7 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
             </h3>
           </div>
           <p className="mt-1 text-xs text-white/45">
-            {listing.author} Â· {listing.edition}
+            {listing.author} · {listing.edition}
           </p>
         </div>
       </div>
@@ -62,9 +67,11 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
           </span>
         ) : null}
         <span className="cl-chip">{titleCase(listing.condition)}</span>
-        {listing.status !== "available" ? (
-          <span className={cn("cl-chip", listing.status === "sold" ? "cl-chip-rose" : "cl-chip-flare")}>
-            {titleCase(listing.status)}
+        {itemStatus === "expired" ? (
+          <span className="cl-chip">⏳ Expired</span>
+        ) : itemStatus !== "available" ? (
+          <span className={cn("cl-chip", itemStatus === "sold" ? "cl-chip-rose" : "cl-chip-flare")}>
+            {titleCase(itemStatus)}
           </span>
         ) : null}
         {listing.boosted ? (
@@ -78,7 +85,7 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
         <TagList tags={[listing.subject, listing.semester, ...listing.tags]} max={3} />
         <div className="flex items-end justify-between gap-2">
           <div>
-            <p className="text-lg font-bold text-white">
+            <p className={cn("text-lg font-bold", expired ? "text-white/60" : "text-white")}>
               {rupees(listing.price)}
               {listing.rent_per_day ? (
                 <span className="text-xs font-medium text-white/40"> /{rupees(listing.rent_per_day)}day</span>
@@ -96,7 +103,7 @@ export function ListingCard({ listing, colleges }: { listing: Listing; colleges:
               <PinIcon width={11} height={11} />
               {shortCollege(colleges, listing.college_id)}
             </p>
-            <p>{timeAgo(listing.created_at)}</p>
+            <p suppressHydrationWarning>{timeAgo(listing.created_at)}</p>
           </div>
         </div>
         <div className="relative z-10 flex items-center gap-2 border-t border-white/8 pt-3">
@@ -138,7 +145,7 @@ export function EquipmentCard({ item, colleges, owner }: { item: Equipment; coll
           </Link>
         </h3>
         <p className="mt-1 text-xs text-white/45">
-          {item.brand} Â· {shortCollege(colleges, item.college_id)}
+          {item.brand} · {shortCollege(colleges, item.college_id)}
         </p>
 
         <ul className="mt-3 flex flex-col gap-1">
@@ -163,7 +170,7 @@ export function EquipmentCard({ item, colleges, owner }: { item: Equipment; coll
                 <span className="text-xs font-medium text-white/40"> /day</span>
               </p>
               <p className="text-[11px] text-white/35">
-                {rupees(item.week_rate)}/week Â· {rupees(item.deposit)} deposit
+                {rupees(item.week_rate)}/week · {rupees(item.deposit)} deposit
               </p>
             </div>
             <StarRating rating={item.rating} count={item.rating_count} />
@@ -171,7 +178,7 @@ export function EquipmentCard({ item, colleges, owner }: { item: Equipment; coll
           {owner ? (
             <div className="flex items-center gap-2 border-t border-white/8 pt-3 text-[11px] text-white/40">
               <Avatar initials={owner.initials} size={22} premium={owner.is_premium} />
-              {owner.name} Â· {item.rentals_count} rentals
+              {owner.name} · {item.rentals_count} rentals
             </div>
           ) : null}
         </div>
@@ -207,7 +214,7 @@ export function PGCard({ pg, colleges }: { pg: PGListing; colleges: College[] })
         </h3>
         <p className="mt-1 flex items-center gap-1 text-xs text-white/45">
           <PinIcon width={12} height={12} />
-          {pg.locality} Â· {pg.distance_km} km from {shortCollege(colleges, pg.college_id)}
+          {pg.locality} · {pg.distance_km} km from {shortCollege(colleges, pg.college_id)}
         </p>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -227,7 +234,7 @@ export function PGCard({ pg, colleges }: { pg: PGListing; colleges: College[] })
                 <span className="text-xs font-medium text-white/40"> /month</span>
               </p>
               <p className="text-[11px] text-white/35">
-                {rupees(pg.deposit)} deposit{pg.bills_included ? " Â· bills included" : " Â· bills extra"}
+                {rupees(pg.deposit)} deposit{pg.bills_included ? " · bills included" : " · bills extra"}
               </p>
             </div>
             <p className="text-right text-[11px] text-white/40">
@@ -272,7 +279,7 @@ export function TeammateCard({
             <span className="cl-chip cl-chip-mint">{rupeesShort(post.prize_pool)} prize</span>
           ) : null}
         </div>
-        <span className="shrink-0 text-[11px] text-white/35">{timeAgo(post.created_at)}</span>
+        <span className="shrink-0 text-[11px] text-white/35" suppressHydrationWarning>{timeAgo(post.created_at)}</span>
       </div>
 
       <h3 className="mt-3 cl-line-clamp-2 text-[15px] leading-snug font-semibold text-white">
@@ -281,7 +288,7 @@ export function TeammateCard({
         </Link>
       </h3>
       <p className="mt-1 text-xs text-white/45">
-        {post.event_name} Â· {shortCollege(colleges, post.college_id)}
+        {post.event_name} · {shortCollege(colleges, post.college_id)}
       </p>
 
       <p className="cl-line-clamp-3 mt-2.5 text-xs leading-relaxed text-white/50">{post.description}</p>
@@ -297,7 +304,7 @@ export function TeammateCard({
                 </span>
               ))}
             </span>
-            <span className="shrink-0 text-white/35">Ã—{role.count}</span>
+            <span className="shrink-0 text-white/35">×{role.count}</span>
           </div>
         ))}
       </div>
@@ -321,7 +328,7 @@ export function TeammateCard({
         {owner ? (
           <div className="flex items-center gap-2 text-[11px] text-white/40">
             <Avatar initials={owner.initials} size={20} premium={owner.is_premium} />
-            Posted by {owner.name} Â· {titleCase(owner.branch.split(",")[0])} Y{owner.year_of_study}
+            Posted by {owner.name} · {titleCase(owner.branch.split(",")[0])} Y{owner.year_of_study}
           </div>
         ) : null}
       </div>
@@ -365,7 +372,7 @@ export function SkillCard({
         </Link>
       </h3>
       <p className="mt-1 text-xs text-white/45">
-        {titleCase(skill.category)} Â· {skill.duration_weeks} weeks Â· {titleCase(skill.mode)}
+        {titleCase(skill.category)} · {skill.duration_weeks} weeks · {titleCase(skill.mode)}
       </p>
 
       <p className="cl-line-clamp-3 mt-2.5 text-xs leading-relaxed text-white/50">{skill.description}</p>
@@ -389,7 +396,7 @@ export function SkillCard({
               <span className="text-xs font-medium text-white/40"> credit/session</span>
             </p>
             <p className="text-[11px] text-white/35">
-              {skill.credit_rate * skill.duration_weeks} credits total Â· {skill.slots.length} weekly slots
+              {skill.credit_rate * skill.duration_weeks} credits total · {skill.slots.length} weekly slots
             </p>
           </div>
           <StarRating rating={skill.rating} count={skill.sessions_completed} />
@@ -397,7 +404,7 @@ export function SkillCard({
         {owner ? (
           <div className="flex items-center gap-2 border-t border-white/8 pt-3 text-[11px] text-white/40">
             <Avatar initials={owner.initials} size={22} premium={owner.is_premium} />
-            {owner.name} Â· {shortCollege(colleges, owner.college_id)} Â· {owner.credits} credits
+            {owner.name} · {shortCollege(colleges, owner.college_id)} · {owner.credits} credits
           </div>
         ) : null}
       </div>
@@ -417,7 +424,7 @@ export function EventCard({ event, colleges }: { event: CampusEvent; colleges: C
         <Thumbnail hue={event.hue} emoji={event.emoji} size="lg" label={event.title} />
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
           <span className="rounded-full bg-ink-950/80 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-            {formatDate(event.starts_at)} Â· {formatTime(event.starts_at)}
+            {formatDate(event.starts_at)} · {formatTime(event.starts_at)}
           </span>
           {event.featured ? (
             <span className="rounded-full bg-flare-400 px-2.5 py-0.5 text-[10px] font-bold text-ink-950">Featured</span>
@@ -442,7 +449,7 @@ export function EventCard({ event, colleges }: { event: CampusEvent; colleges: C
         </h3>
         <p className="mt-1.5 flex items-center gap-1 text-xs text-white/45">
           <PinIcon width={12} height={12} />
-          {event.is_online ? "Online + campus" : event.venue} Â· {shortCollege(colleges, event.college_id)}
+          {event.is_online ? "Online + campus" : event.venue} · {shortCollege(colleges, event.college_id)}
         </p>
 
         <p className="cl-line-clamp-3 mt-2.5 text-xs leading-relaxed text-white/50">{event.description}</p>
@@ -486,8 +493,8 @@ export function ServiceCard({ service, colleges }: { service: CampusService; col
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="cl-chip cl-chip-brand">{titleCase(service.category)}</span>
-            {service.verified ? <span className="cl-chip cl-chip-mint">âœ“ Verified</span> : null}
-            {service.premium_only ? <span className="cl-chip cl-chip-flare">â˜… Premium</span> : null}
+            {service.verified ? <span className="cl-chip cl-chip-mint">✓ Verified</span> : null}
+            {service.premium_only ? <span className="cl-chip cl-chip-flare">★ Premium</span> : null}
           </div>
           <h3 className="mt-1.5 cl-line-clamp-2 text-sm leading-snug font-semibold text-white">
             <Link href={`/services/${service.id}`} className="after:absolute after:inset-0">
@@ -495,7 +502,7 @@ export function ServiceCard({ service, colleges }: { service: CampusService; col
             </Link>
           </h3>
           <p className="mt-0.5 text-xs text-white/45">
-            {service.provider_name} Â· {shortCollege(colleges, service.college_id)} Â· since {service.provider_since}
+            {service.provider_name} · {shortCollege(colleges, service.college_id)} · since {service.provider_since}
           </p>
         </div>
       </div>
@@ -528,7 +535,7 @@ export function ServiceCard({ service, colleges }: { service: CampusService; col
 }
 
 /* ------------------------------------------------------------------ */
-/* Match result card â€” used across the Match Lab and detail pages       */
+/* Match result card — used across the Match Lab and detail pages       */
 /* ------------------------------------------------------------------ */
 
 export function MatchResultCard({

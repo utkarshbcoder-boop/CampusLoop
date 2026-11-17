@@ -139,7 +139,10 @@ export function FilterBar({
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
-    setValue("q", search.trim());
+    const next = search.trim();
+    const current = searchParams.get("q") ?? "";
+    if (next === current) return;
+    setValue("q", next);
   }
 
   return (

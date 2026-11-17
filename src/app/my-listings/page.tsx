@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/components/AuthProvider";
@@ -9,8 +10,25 @@ import { db } from "@/lib/firebase/config";
 import { rupees, titleCase } from "@/lib/format";
 import { HOME_TYPE_LABELS } from "@/lib/data/homes";
 import { DEVICE_CATEGORIES, getDeviceCategory } from "@/lib/marketplaceCategories";
-import type { HomeMarketplaceListing } from "@/lib/firebase/marketplace";
-import type { Listing } from "@/lib/types";
+import {
+  deleteHomeListing,
+  deleteMarketplaceListing,
+  markListingSold,
+  renewHomeListing,
+  renewListing,
+  setHomeListingStatus,
+  type HomeListingStatus,
+  type HomeMarketplaceListing,
+} from "@/lib/firebase/marketplace";
+import { ListingEditDialog } from "@/components/ListingEditDialog";
+import {
+  HOME_EXPIRY_DAYS,
+  ITEM_EXPIRY_DAYS,
+  effectiveHomeStatus,
+  effectiveItemStatus,
+} from "@/lib/expiry";
+import { isSampleListing } from "@/lib/listingUtils";
+import type { Listing, ListingStatus } from "@/lib/types";
 
 interface ListingInterest {
   id: string;
@@ -25,6 +43,355 @@ interface HomeListingInterest {
   owner_id: string;
   buyer_id: string;
   intent: "rental" | "purchase";
+}
+
+const ITEM_STATUS_ACTIONS: { value: ListingStatus; label: string }[] = [
+  { value: "available", label: "Mark available" },
+  { value: "reserved", label: "Mark reserved" },
+  { value: "sold", label: "Mark sold" },
+];
+
+const HOME_STATUS_OPTIONS: { value: HomeListingStatus; label: string }[] = [
+  { value: "available", label: "Available" },
+  { value: "rented", label: "Rented" },
+  { value: "sold", label: "Sold" },
+  { value: "withdrawn", label: "Withdrawn" },
+];
+
+/** Surface friendly Errors thrown by our helpers; fall back for Firestore failures. */
+function friendlyError(cause: unknown, fallback: string): string {
+  if (cause instanceof Error && cause.message.length > 0 && !("code" in cause)) {
+    return cause.message;
+  }
+  return fallback;
+}
+
+function ListingRow({
+  listing,
+  sellerId,
+  interestCount,
+  buyers,
+  buyerNames,
+  onDeleted,
+}: {
+  listing: Listing;
+  sellerId: string;
+  interestCount: number;
+  buyers: string[];
+  buyerNames: Record<string, string>;
+  onDeleted: (message: string) => void;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<"" | "status" | "delete" | "renew">("");
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+
+  const sample = isSampleListing(listing);
+  const itemStatus = effectiveItemStatus(listing);
+  const expired = itemStatus === "expired";
+  const createdMs = Date.parse(listing.created_at);
+  const daysLeft = Number.isNaN(createdMs)
+    ? null
+    : Math.ceil(ITEM_EXPIRY_DAYS - (Date.now() - createdMs) / 86_400_000);
+  const showDaysLeft = !sample && !expired && daysLeft !== null && daysLeft > 0 && daysLeft <= 15;
+
+  async function changeStatus(next: ListingStatus) {
+    setBusy("status");
+    setNotice("");
+    setError("");
+    try {
+      await markListingSold(listing.id, sellerId, next);
+      setNotice(`Listing marked ${titleCase(next)}.`);
+      router.refresh();
+    } catch (cause) {
+      console.error("Failed to update listing status:", cause);
+      setError(friendlyError(cause, "Could not update the listing. Please try again."));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function renew() {
+    setBusy("renew");
+    setNotice("");
+    setError("");
+    try {
+      await renewListing(listing.id, sellerId);
+      setNotice(`Listed again — good for ${ITEM_EXPIRY_DAYS} more days.`);
+      router.refresh();
+    } catch (cause) {
+      console.error("Failed to renew listing:", cause);
+      setError(friendlyError(cause, "Could not renew the listing. Please try again."));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function remove() {
+    if (!window.confirm("Delete this listing permanently? This cannot be undone.")) return;
+    setBusy("delete");
+    setNotice("");
+    setError("");
+    try {
+      await deleteMarketplaceListing(listing.id, sellerId);
+      onDeleted("Listing deleted.");
+      router.refresh();
+    } catch (cause) {
+      console.error("Failed to delete listing:", cause);
+      setError(friendlyError(cause, "Could not delete the listing. Please try again."));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <article className="cl-panel cl-panel-solid flex flex-wrap items-center justify-between gap-4 p-5">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="truncate text-base font-semibold text-white">{listing.title}</h2>
+          <span className={`cl-chip ${itemStatus === "sold" ? "cl-chip-rose" : itemStatus === "available" ? "cl-chip-mint" : "cl-chip-flare"}`}>
+            {titleCase(itemStatus)}
+          </span>
+          <span className="cl-chip">
+            {listing.item_type === "device"
+              ? DEVICE_CATEGORIES.find((category) => category.value === getDeviceCategory(listing))?.label ?? "Other devices"
+              : "Book"}
+          </span>
+          {expired ? <span className="cl-chip">Expired</span> : null}
+          {showDaysLeft ? (
+            <span className="cl-chip" suppressHydrationWarning>{daysLeft} days left</span>
+          ) : null}
+        </div>
+        <p className="mt-2 text-sm text-white/55">{rupees(listing.price)} · Pickup: {listing.pickup_location || "Not provided"}</p>
+        <p className="mt-1 text-xs text-white/40">{interestCount} buyers interested</p>
+        {buyers.length > 0 ? (
+          <p className="mt-1 text-xs text-white/50">
+            Interested: {buyers.map((buyerId) => buyerNames[buyerId] ?? "Loading buyer…").join(", ")}
+          </p>
+        ) : null}
+        {notice ? <p role="status" className="mt-2 text-xs text-mint-300">{notice}</p> : null}
+        {error ? <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p> : null}
+      </div>
+      <div className="flex flex-col items-start gap-2 sm:items-end">
+        <Link href={listing.item_type === "device" ? `/devices/${listing.id}` : `/books/${listing.id}`} className="cl-btn cl-btn-ghost">
+          View listing
+        </Link>
+        {sample ? (
+          <p className="text-[11px] text-white/40">Sample listings cannot be edited.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              disabled={busy !== ""}
+              className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs disabled:opacity-50"
+            >
+              Edit
+            </button>
+            {ITEM_STATUS_ACTIONS.filter((action) => action.value !== listing.status).map((action) => (
+              <button
+                key={action.value}
+                type="button"
+                onClick={() => void changeStatus(action.value)}
+                disabled={busy !== ""}
+                className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs disabled:opacity-50"
+              >
+                {action.label}
+              </button>
+            ))}
+            {expired ? (
+              <button
+                type="button"
+                onClick={() => void renew()}
+                disabled={busy !== ""}
+                className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs disabled:opacity-50"
+              >
+                Renew
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void remove()}
+              disabled={busy !== ""}
+              className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs text-rose-300 disabled:opacity-50"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+      {editing ? (
+        <ListingEditDialog
+          target={{ kind: "item", sellerId, listing }}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setNotice("Changes saved.");
+            router.refresh();
+          }}
+        />
+      ) : null}
+    </article>
+  );
+}
+
+function HomeRow({
+  home,
+  ownerId,
+  interestCount,
+  buyers,
+  buyerNames,
+  onDeleted,
+}: {
+  home: HomeMarketplaceListing;
+  ownerId: string;
+  interestCount: number;
+  buyers: HomeListingInterest[];
+  buyerNames: Record<string, string>;
+  onDeleted: (message: string) => void;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<"" | "status" | "delete" | "renew">("");
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+
+  const homeStatus = effectiveHomeStatus(home);
+  const homeExpired = homeStatus === "expired";
+
+  async function changeStatus(next: HomeListingStatus) {
+    setBusy("status");
+    setNotice("");
+    setError("");
+    try {
+      await setHomeListingStatus(home.id, ownerId, next);
+      setNotice(`Status updated to ${titleCase(next)}.`);
+      router.refresh();
+    } catch (cause) {
+      console.error("Failed to update home listing status:", cause);
+      setError(friendlyError(cause, "Could not update the status. Please try again."));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function renew() {
+    setBusy("renew");
+    setNotice("");
+    setError("");
+    try {
+      await renewHomeListing(home.id, ownerId);
+      setNotice(`Listed again — good for ${HOME_EXPIRY_DAYS} more days.`);
+      router.refresh();
+    } catch (cause) {
+      console.error("Failed to renew home listing:", cause);
+      setError(friendlyError(cause, "Could not renew the listing. Please try again."));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function remove() {
+    if (!window.confirm("Delete this property listing permanently? This cannot be undone.")) return;
+    setBusy("delete");
+    setNotice("");
+    setError("");
+    try {
+      await deleteHomeListing(home.id, ownerId);
+      onDeleted("Property listing deleted.");
+      router.refresh();
+    } catch (cause) {
+      console.error("Failed to delete home listing:", cause);
+      setError(friendlyError(cause, "Could not delete the listing. Please try again."));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <article className="cl-panel cl-panel-solid flex flex-wrap items-center justify-between gap-4 p-5">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="truncate text-base font-semibold text-white">{home.title}</h2>
+          <span className="cl-chip">{HOME_TYPE_LABELS[home.type]}</span>
+          <span className={`cl-chip ${home.mode === "rent" ? "cl-chip-mint" : "cl-chip-flare"}`}>
+            {home.mode === "rent" ? "For rent" : "For sale"}
+          </span>
+          {homeExpired ? <span className="cl-chip">Expired</span> : null}
+        </div>
+        <p className="mt-2 text-sm text-white/55">{rupees(home.price)} · {home.locality}</p>
+        <p className="mt-1 text-xs text-white/40">{interestCount} people interested</p>
+        {buyers.length > 0 ? (
+          <ul className="mt-2 space-y-1 text-xs text-white/50">
+            {buyers.map((interest) => (
+              <li key={interest.id}>
+                {buyerNames[interest.buyer_id] ?? "Loading buyer…"} · {interest.intent === "purchase" ? "Interested in buying" : "Interested in renting"}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {notice ? <p role="status" className="mt-2 text-xs text-mint-300">{notice}</p> : null}
+        {error ? <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p> : null}
+      </div>
+      <div className="flex flex-col items-start gap-2 sm:items-end">
+        <Link href={`/homes/${home.id}`} className="cl-btn cl-btn-ghost">View property</Link>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <label className="flex items-center gap-1.5 text-[11px] text-white/50">
+            Status
+            <select
+              className="cl-input w-auto px-2 py-1 text-xs"
+              aria-label={`Status for ${home.title}`}
+              value={home.status ?? "available"}
+              disabled={busy !== ""}
+              onChange={(event) => void changeStatus(event.target.value as HomeListingStatus)}
+            >
+              {HOME_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} className="bg-ink-900">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            disabled={busy !== ""}
+            className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs disabled:opacity-50"
+          >
+            Edit
+          </button>
+          {homeExpired ? (
+            <button
+              type="button"
+              onClick={() => void renew()}
+              disabled={busy !== ""}
+              className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs disabled:opacity-50"
+            >
+              Renew
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void remove()}
+            disabled={busy !== ""}
+            className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs text-rose-300 disabled:opacity-50"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+      {editing ? (
+        <ListingEditDialog
+          target={{ kind: "home", ownerId, home }}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setNotice("Changes saved.");
+            router.refresh();
+          }}
+        />
+      ) : null}
+    </article>
+  );
 }
 
 function SellerListings({ sellerId }: { sellerId: string }) {
@@ -46,6 +413,7 @@ function SellerListings({ sellerId }: { sellerId: string }) {
   });
   const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
   const [buyerProfileError, setBuyerProfileError] = useState("");
+  const [rowNotice, setRowNotice] = useState("");
   const buyerIdsKey = JSON.stringify([...new Set([
     ...interests.data.map((interest) => interest.buyer_id),
     ...homeInterests.data.map((interest) => interest.buyer_id),
@@ -105,57 +473,28 @@ function SellerListings({ sellerId }: { sellerId: string }) {
 
   return (
     <div className="mt-6 grid gap-4">
+      {rowNotice ? <p role="status" className="text-xs text-mint-300">{rowNotice}</p> : null}
       {listings.data.map((listing) => (
-        <article key={listing.id} className="cl-panel cl-panel-solid flex flex-wrap items-center justify-between gap-4 p-5">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-base font-semibold text-white">{listing.title}</h2>
-              <span className={`cl-chip ${listing.status === "sold" ? "cl-chip-rose" : listing.status === "available" ? "cl-chip-mint" : "cl-chip-flare"}`}>
-                {titleCase(listing.status)}
-              </span>
-              <span className="cl-chip">
-                {listing.item_type === "device"
-                  ? DEVICE_CATEGORIES.find((category) => category.value === getDeviceCategory(listing))?.label ?? "Other devices"
-                  : "Book"}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-white/55">{rupees(listing.price)} · Pickup: {listing.pickup_location || "Not provided"}</p>
-            <p className="mt-1 text-xs text-white/40">{interestCounts.get(listing.id) ?? 0} buyers interested</p>
-            {(listingBuyers.get(listing.id)?.length ?? 0) > 0 ? (
-              <p className="mt-1 text-xs text-white/50">
-                Interested: {listingBuyers.get(listing.id)?.map((buyerId) => buyerNames[buyerId] ?? "Loading buyer…").join(", ")}
-              </p>
-            ) : null}
-          </div>
-          <Link href={listing.item_type === "device" ? `/devices/${listing.id}` : `/books/${listing.id}`} className="cl-btn cl-btn-ghost">
-            View listing
-          </Link>
-        </article>
+        <ListingRow
+          key={listing.id}
+          listing={listing}
+          sellerId={sellerId}
+          interestCount={interestCounts.get(listing.id) ?? 0}
+          buyers={listingBuyers.get(listing.id) ?? []}
+          buyerNames={buyerNames}
+          onDeleted={(message) => setRowNotice(message)}
+        />
       ))}
       {homes.data.map((home) => (
-        <article key={home.id} className="cl-panel cl-panel-solid flex flex-wrap items-center justify-between gap-4 p-5">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-base font-semibold text-white">{home.title}</h2>
-              <span className="cl-chip">{HOME_TYPE_LABELS[home.type]}</span>
-              <span className={`cl-chip ${home.mode === "rent" ? "cl-chip-mint" : "cl-chip-flare"}`}>
-                {home.mode === "rent" ? "For rent" : "For sale"}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-white/55">{rupees(home.price)} · {home.locality}</p>
-            <p className="mt-1 text-xs text-white/40">{homeInterestCounts.get(home.id) ?? 0} people interested</p>
-            {(homeListingBuyers.get(home.id)?.length ?? 0) > 0 ? (
-              <ul className="mt-2 space-y-1 text-xs text-white/50">
-                {homeListingBuyers.get(home.id)?.map((interest) => (
-                  <li key={interest.id}>
-                    {buyerNames[interest.buyer_id] ?? "Loading buyer…"} · {interest.intent === "purchase" ? "Interested in buying" : "Interested in renting"}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-          <Link href={`/homes/${home.id}`} className="cl-btn cl-btn-ghost">View property</Link>
-        </article>
+        <HomeRow
+          key={home.id}
+          home={home}
+          ownerId={sellerId}
+          interestCount={homeInterestCounts.get(home.id) ?? 0}
+          buyers={homeListingBuyers.get(home.id) ?? []}
+          buyerNames={buyerNames}
+          onDeleted={(message) => setRowNotice(message)}
+        />
       ))}
       {buyerProfileError ? <p role="alert" className="text-xs text-rose-300">{buyerProfileError}</p> : null}
     </div>

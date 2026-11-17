@@ -10,23 +10,37 @@ import {
 import type { User } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { completeGoogleRedirect, onAuthChange, isAdmin, signOutUser } from "@/lib/firebase/auth";
-import { db } from "@/lib/firebase/config";
+import { auth, db } from "@/lib/firebase/config";
 
 interface AuthState {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  /** Re-fetch the current user (e.g. after verifying their email) and re-render consumers. */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
   isAdmin: false,
+  refreshUser: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [, forceAuthRender] = useState(0);
+
+  // `User.reload()` mutates the existing instance in place, so bump a
+  // counter to re-render the provider (and every context consumer) with the
+  // refreshed `emailVerified` flag.
+  const refreshUser = async () => {
+    if (!auth.currentUser) return;
+    await auth.currentUser.reload();
+    setUser(auth.currentUser);
+    forceAuthRender((n) => n + 1);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         isAdmin: isAdmin(user),
+        refreshUser,
       }}
     >
       {children}

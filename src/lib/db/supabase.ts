@@ -99,13 +99,29 @@ function applyFilters(chain: PostgrestChain, options: ListOptions | undefined): 
 }
 
 function createTable<T extends { id: string }>(client: SupabaseClient, table: TableName): WritableTable<T> {
+  /**
+   * Fill safe defaults for fields older rows may be missing (NULL / never
+   * written), matching the Firestore provider's `mapDoc` so callers can
+   * spread `listing.tags` / `listing.highlights` without crashing.
+   */
+  const mapRow = (row: unknown): T => {
+    const record = row as Record<string, unknown>;
+    for (const field of ["tags", "highlights", "image_urls", "specs"]) {
+      if (!Array.isArray(record[field])) record[field] = [];
+    }
+    for (const field of ["author", "edition", "subject"]) {
+      record[field] = record[field] ?? "";
+    }
+    return record as T;
+  };
+
   const read = async (options?: ListOptions): Promise<T[]> => {
     const chain = applyFilters(startChain(client, table, false), options);
     const result = (await chain) as SelectResult;
     if (result.error) {
       throw new Error(`[CampusLoop/Supabase] select from ${table}: ${result.error.message}`);
     }
-    return (result.data ?? []) as T[];
+    return (result.data ?? []).map(mapRow);
   };
 
   return {

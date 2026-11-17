@@ -3,11 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ListingInterestButton } from "@/components/ListingInterestButton";
+import { MessageSellerButton } from "@/components/MessageSellerButton";
+import { ReportButton } from "@/components/ReportButton";
+import { ReviewsSection } from "@/components/ReviewsSection";
 import { KeyValue, Section } from "@/components/ui";
 import { getListing } from "@/lib/queries";
 import { rupees } from "@/lib/format";
 import { DEVICE_CATEGORIES, getDeviceCategory } from "@/lib/marketplaceCategories";
 import type { Listing } from "@/lib/types";
+import { ITEM_EXPIRY_DAYS, effectiveItemStatus } from "@/lib/expiry";
 import { isSampleListing } from "@/lib/listingUtils";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +26,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 function DeviceListing({ listing }: { listing: Listing }) {
   const deviceCategory = DEVICE_CATEGORIES.find((category) => category.value === getDeviceCategory(listing));
+  const status = effectiveItemStatus(listing);
+  const expired = status === "expired";
   return (
     <Section className="py-8">
       <nav className="mb-6 flex items-center gap-2 text-xs text-white/40" aria-label="Breadcrumb">
@@ -40,7 +46,7 @@ function DeviceListing({ listing }: { listing: Listing }) {
         <div className="cl-panel cl-panel-solid p-6">
           <div className="flex flex-wrap gap-2">
             <span className="cl-chip cl-chip-brand">{deviceCategory?.label ?? "Second-hand device"}</span>
-            <span className="cl-chip">{listing.status === "available" ? "Available" : listing.status}</span>
+            <span className="cl-chip">{status === "available" ? "Available" : status === "expired" ? "Expired" : status}</span>
             <span className="cl-chip">{listing.condition.replaceAll("_", " ")}</span>
             {isSampleListing(listing) ? <span className="cl-chip">Sample listing</span> : null}
           </div>
@@ -53,12 +59,35 @@ function DeviceListing({ listing }: { listing: Listing }) {
             <KeyValue label="Pickup address" value={listing.pickup_location || "Contact seller"} />
           </dl>
           <div className="mt-6">
-            <ListingInterestButton listingId={listing.id} status={listing.status} />
+            <ListingInterestButton listingId={listing.id} status={status} />
+          </div>
+          {expired ? (
+            <p role="status" className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs leading-relaxed text-white/65">
+              This listing expired after {ITEM_EXPIRY_DAYS} days. Ask the seller to renew it.
+            </p>
+          ) : null}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <MessageSellerButton
+              targetType="listing"
+              targetId={listing.id}
+              targetTitle={listing.title}
+              status={status}
+              sample={isSampleListing(listing)}
+            />
+            <ReportButton targetType="listing" targetId={listing.id} />
           </div>
           <p className="mt-4 text-xs text-white/45">
             Agree on price, payment, and handover directly with the seller.
           </p>
         </div>
+      </div>
+      <div className="mt-8">
+        <ReviewsSection
+          targetType="listing"
+          targetId={listing.id}
+          sellerId={listing.seller_id}
+          sample={isSampleListing(listing)}
+        />
       </div>
     </Section>
   );

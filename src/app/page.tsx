@@ -7,7 +7,13 @@ import { HOMES } from "@/lib/data/homes";
 export const revalidate = 3600;
 
 export default async function LandingPage() {
-  const listings = await getSecondhandListings();
+  // Static render must not fail when Firestore is unreachable (e.g. before
+  // security rules are deployed) — fall back to an empty list; revalidate
+  // retries hourly and the count recovers on the next render.
+  const listings = await getSecondhandListings().catch((cause: unknown) => {
+    console.error("Landing page: failed to load listings:", cause);
+    return [];
+  });
   const roomCount = HOMES.length;
 
   return (

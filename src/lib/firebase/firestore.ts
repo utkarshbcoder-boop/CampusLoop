@@ -51,6 +51,27 @@ function makeId(): string {
   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** Array fields that documents written via the admin free-form JSON editor may omit. */
+const ARRAY_DEFAULTS = ["tags", "highlights", "image_urls", "specs"] as const;
+/** String fields that documents written via the admin free-form JSON editor may omit. */
+const STRING_DEFAULTS = ["author", "edition", "subject"] as const;
+
+/**
+ * Map a raw Firestore document onto the app's row shape, filling safe
+ * defaults for fields the admin JSON editor may have left out so callers can
+ * spread `listing.tags` / `listing.highlights` without crashing.
+ */
+function mapDoc<T extends { id: string }>(data: DocumentData, id: string): T {
+  const row = { id, ...data } as Record<string, unknown>;
+  for (const field of ARRAY_DEFAULTS) {
+    if (!Array.isArray(row[field])) row[field] = [];
+  }
+  for (const field of STRING_DEFAULTS) {
+    row[field] = row[field] ?? "";
+  }
+  return row as unknown as T;
+}
+
 function firestoreTable<T extends { id: string }>(collectionName: string): WritableTable<T> {
   const colRef = () => collection(db, collectionName);
 
@@ -99,10 +120,11 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
 
       if (options?.startAfterId) {
         const cursor = await getDoc(doc(db, collectionName, options.startAfterId));
-        if (!cursor.exists()) {
-          throw new Error(`[CampusLoop/Firestore] Pagination cursor ${options.startAfterId} was not found in ${collectionName}.`);
+        if (cursor.exists()) {
+          constraints.push(startAfter(cursor));
         }
-        constraints.push(startAfter(cursor));
+        // A deleted cursor (e.g. a bookmarked ?after=<id> for a removed doc)
+        // falls back to the first page instead of erroring the whole route.
       }
 
       // Limit
@@ -136,7 +158,7 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
         usedFallback = true;
       }
 
-      let results = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as T));
+      let results = snapshot.docs.map((d) => mapDoc<T>(d.data(), d.id));
 
       if (usedFallback) {
         if (options?.where) {
@@ -221,7 +243,7 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
     async byId(id: string): Promise<T | null> {
       const snap = await getDoc(doc(db, collectionName, id));
       if (!snap.exists()) return null;
-      return { id: snap.id, ...snap.data() } as T;
+      return mapDoc<T>(snap.data(), snap.id);
     },
 
     async count(options?: ListOptions): Promise<number> {
@@ -241,7 +263,7 @@ function firestoreTable<T extends { id: string }>(collectionName: string): Writa
       const snap = await getDoc(ref);
       if (!snap.exists()) return null;
       await updateDoc(ref, patch as DocumentData);
-      return { id, ...snap.data(), ...patch } as T;
+      return mapDoc<T>({ ...snap.data(), ...patch }, id);
     },
 
     async remove(id: string): Promise<boolean> {

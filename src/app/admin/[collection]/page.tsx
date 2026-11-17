@@ -21,6 +21,15 @@ const COLLECTION_META: Record<string, { label: string; emoji: string; keyFields:
   listings:       { label: "Second-hand items", emoji: "🛍️", keyFields: ["title", "item_type", "seller_id", "price", "condition", "status"] },
   listing_interests: { label: "Buyer interest", emoji: "🙋", keyFields: ["listing_id", "buyer_id", "seller_id", "created_at"] },
   home_listings:  { label: "Home & room listings", emoji: "🏠", keyFields: ["title", "owner_id", "mode", "price", "locality"] },
+  pg_listings:   { label: "PG & room listings", emoji: "🏠", keyFields: ["title", "type", "rent", "locality", "college_id", "owner_name"] },
+  reports:       { label: "Reports", emoji: "🚩", keyFields: ["target_type", "target_id", "reporter_id", "reason", "status"] },
+};
+
+/** Reports are status-triage only (rules: admin may update `status` alone). */
+const REPORT_STATUS_CHIP: Record<string, string> = {
+  open: "inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300",
+  resolved: "inline-flex items-center gap-1 rounded-full border border-mint-400/30 bg-mint-500/10 px-2 py-0.5 text-[11px] font-medium text-mint-300",
+  dismissed: "inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[11px] font-medium text-white/50",
 };
 
 /* ------------------------------------------------------------------ */
@@ -275,11 +284,14 @@ function DocumentViewer({
   onClose,
   onEdit,
   onDelete,
+  hideEdit,
 }: {
   row: Record<string, unknown>;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  /** Reports forbid full-document edits (rules only allow `status`). */
+  hideEdit?: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -295,13 +307,15 @@ function DocumentViewer({
             📄 {String(row.name || row.title || row.handle || row.id)}
           </h2>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onEdit}
-              className="rounded-md px-2.5 py-1 text-[11px] font-medium text-brand-300 transition hover:bg-brand-500/15"
-            >
-              ✏️ Edit
-            </button>
+            {!hideEdit ? (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="rounded-md px-2.5 py-1 text-[11px] font-medium text-brand-300 transition hover:bg-brand-500/15"
+              >
+                ✏️ Edit
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onDelete}
@@ -367,6 +381,20 @@ function ConfirmDelete({
   onClose: () => void;
 }) {
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteDoc(doc(db, collectionName, docId));
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -389,6 +417,11 @@ function ConfirmDelete({
           ⚠️ This action is permanent and immediately affects all users worldwide.
           {collectionName === "profiles" && " This will remove the user from CampusLoop."}
         </p>
+        {error && (
+          <div role="alert" className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-center text-xs text-rose-300">
+            ❌ {error}
+          </div>
+        )}
         <div className="mt-6 flex justify-center gap-3">
           <button
             type="button"
@@ -400,11 +433,7 @@ function ConfirmDelete({
           <button
             type="button"
             disabled={deleting}
-            onClick={async () => {
-              setDeleting(true);
-              await deleteDoc(doc(db, collectionName, docId));
-              onClose();
-            }}
+            onClick={() => void handleDelete()}
             className="cl-btn px-4 py-2 text-xs font-semibold text-white"
             style={{
               background: "linear-gradient(135deg, #f43f5e, #e11d48)",
@@ -430,14 +459,18 @@ function DocCard({
   onDelete,
   onView,
   onMarkSold,
+  triage,
   formatCell,
 }: {
   row: Record<string, unknown>;
   columns: string[];
-  onEdit: () => void;
+  /** Hidden when the collection forbids full-document edits (reports). */
+  onEdit?: () => void;
   onDelete: () => void;
   onView: () => void;
   onMarkSold?: () => void;
+  /** Replacement row actions for status-triage collections (reports). */
+  triage?: React.ReactNode;
   formatCell: (val: unknown) => string;
 }) {
   return (
@@ -456,13 +489,16 @@ function DocCard({
               ✓ Sold
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={onEdit}
-            className="rounded-md px-2 py-1 text-[11px] font-medium text-brand-300 transition hover:bg-brand-500/15"
-          >
-            ✏️ Edit
-          </button>
+          {onEdit ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-md px-2 py-1 text-[11px] font-medium text-brand-300 transition hover:bg-brand-500/15"
+            >
+              ✏️ Edit
+            </button>
+          ) : null}
+          {triage}
           <button
             type="button"
             onClick={onDelete}
@@ -498,6 +534,7 @@ export default function AdminCollectionPage() {
   const router = useRouter();
   const collectionName = params.collection as string;
   const meta = COLLECTION_META[collectionName];
+  const isReports = collectionName === "reports";
 
   const { data, loading, error } = useCollection<{ id: string } & Record<string, unknown>>(
     collectionName,
@@ -509,10 +546,74 @@ export default function AdminCollectionPage() {
   const [viewDoc, setViewDoc] = useState<Record<string, unknown> | null>(null);
   const [viewType, setViewType] = useState<"table" | "cards">("table");
   const [actionError, setActionError] = useState("");
+  const [actionSuccess, setActionSuccess] = useState("");
+  const [clearing, setClearing] = useState(false);
+  const [triaging, setTriaging] = useState<string | null>(null);
+
+  /**
+   * Report triage: Firestore rules only allow an admin to change a report's
+   * `status` (affectedKeys: ["status"]), so we never open the full-document
+   * editor for reports — we flip the status directly.
+   */
+  const setReportStatus = async (
+    reportId: string,
+    status: "open" | "resolved" | "dismissed",
+  ) => {
+    setActionError("");
+    setActionSuccess("");
+    setTriaging(reportId);
+    try {
+      await updateDoc(doc(db, "reports", reportId), { status });
+      setActionSuccess(`Report ${reportId} marked as ${status}.`);
+    } catch (err) {
+      console.error("Failed to update report status:", err);
+      setActionError(
+        err instanceof Error
+          ? `Could not update the report: ${err.message}`
+          : "Could not update the report. Please try again.",
+      );
+    } finally {
+      setTriaging(null);
+    }
+  };
+
+  /** Resolve / Dismiss / Reopen — only the transitions away from the current status. */
+  const reportActions = (row: Record<string, unknown>) => {
+    const id = String(row.id);
+    const current = typeof row.status === "string" ? row.status : "open";
+    const targets = (["resolved", "dismissed", "open"] as const).filter((s) => s !== current);
+    return (
+      <>
+        {targets.map((status) => (
+          <button
+            key={status}
+            type="button"
+            disabled={triaging === id}
+            onClick={() => void setReportStatus(id, status)}
+            title={`Mark this report as ${status}`}
+            className={`rounded-md px-2 py-1 text-[11px] font-medium transition disabled:opacity-50 ${
+              status === "resolved"
+                ? "text-mint-300 hover:bg-mint-500/15"
+                : status === "dismissed"
+                  ? "text-white/55 hover:bg-white/8 hover:text-white/75"
+                  : "text-amber-300 hover:bg-amber-500/15"
+            }`}
+          >
+            {status === "resolved"
+              ? "✅ Resolve"
+              : status === "dismissed"
+                ? "🚫 Dismiss"
+                : "↩ Reopen"}
+          </button>
+        ))}
+      </>
+    );
+  };
 
   const markListingSold = async (listingId: string) => {
     if (!confirm("Mark this listing as sold? It will no longer accept buyer interest.")) return;
     setActionError("");
+    setActionSuccess("");
     try {
       await updateDoc(doc(db, "listings", listingId), { status: "sold" });
     } catch (error) {
@@ -559,6 +660,10 @@ export default function AdminCollectionPage() {
   }, []);
 
   const getDocPreview = (row: Record<string, unknown>) => {
+    // Reports carry no title — surface the flagged target instead.
+    if (row.target_type && row.target_id) {
+      return `Flags ${String(row.target_type)} · ${String(row.target_id)}`;
+    }
     const nameField = row.name || row.title || row.handle || row.description;
     return nameField ? String(nameField) : undefined;
   };
@@ -595,13 +700,15 @@ export default function AdminCollectionPage() {
               ▦ Cards
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setEditDoc("new")}
-            className="cl-btn cl-btn-primary px-4 py-2 text-xs"
-          >
-            ➕ Add New
-          </button>
+          {!isReports ? (
+            <button
+              type="button"
+              onClick={() => setEditDoc("new")}
+              className="cl-btn cl-btn-primary px-4 py-2 text-xs"
+            >
+              ➕ Add New
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -611,6 +718,7 @@ export default function AdminCollectionPage() {
         </div>
       )}
       {actionError ? <p role="alert" className="mb-4 text-sm text-rose-300">{actionError}</p> : null}
+      {actionSuccess ? <p role="status" className="mb-4 text-sm text-mint-300">{actionSuccess}</p> : null}
 
       {/* Admin tip for profiles */}
       {collectionName === "profiles" && !loading && (
@@ -619,6 +727,21 @@ export default function AdminCollectionPage() {
           <p className="mt-1 text-[11px] text-white/50">
             You have full control over user profiles. Delete any abusive user, edit their info,
             or add new users. Changes apply instantly for everyone.
+          </p>
+        </div>
+      )}
+
+      {/* Admin tip for reports */}
+      {isReports && !loading && (
+        <div className="mb-4 rounded-xl border border-white/8 bg-white/3 px-5 py-3">
+          <p className="text-xs font-semibold text-white">🚩 Moderation queue</p>
+          <p className="mt-1 text-[11px] text-white/50">
+            Reports are created by users, never admins — so there is no &quot;Add New&quot; or
+            &quot;Clear All&quot; here. Firestore rules only let an admin change a report&apos;s{" "}
+            <code className="rounded bg-white/8 px-1">status</code>, so use the Resolve / Dismiss /
+            Reopen actions on each row instead of the JSON editor. Each row flags a target shown as{" "}
+            <code className="rounded bg-white/8 px-1">target_type</code> +{" "}
+            <code className="rounded bg-white/8 px-1">target_id</code> (open a row for full details).
           </p>
         </div>
       )}
@@ -662,10 +785,11 @@ export default function AdminCollectionPage() {
               key={row.id}
               row={row}
               columns={columns}
-              onEdit={() => setEditDoc(row)}
+              onEdit={isReports ? undefined : () => setEditDoc(row)}
               onDelete={() => setDeleteId(row.id)}
               onView={() => setViewDoc(row as Record<string, unknown>)}
               onMarkSold={collectionName === "listings" && row.status === "available" ? () => void markListingSold(row.id) : undefined}
+              triage={isReports ? reportActions(row) : undefined}
               formatCell={formatCell}
             />
           ))}
@@ -702,19 +826,29 @@ export default function AdminCollectionPage() {
                         key={col}
                         className="max-w-[200px] truncate px-4 py-2.5 text-xs text-white/70"
                       >
-                        {formatCell((row as Record<string, unknown>)[col])}
+                        {isReports && col === "status" ? (
+                          <span className={REPORT_STATUS_CHIP[String((row as Record<string, unknown>)[col])]}>
+                            {String((row as Record<string, unknown>)[col])}
+                          </span>
+                        ) : (
+                          formatCell((row as Record<string, unknown>)[col])
+                        )}
                       </td>
                     ))}
                         <td className="px-4 py-2.5">
                       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => setEditDoc(row)}
-                          className="rounded-md px-2 py-1 text-[11px] font-medium text-brand-300 transition hover:bg-brand-500/15"
-                          title="Edit this document"
-                        >
-                          ✏️ Edit
-                        </button>
+                        {isReports ? (
+                          reportActions(row)
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setEditDoc(row)}
+                            className="rounded-md px-2 py-1 text-[11px] font-medium text-brand-300 transition hover:bg-brand-500/15"
+                            title="Edit this document"
+                          >
+                            ✏️ Edit
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setDeleteId(row.id)}
@@ -746,8 +880,8 @@ export default function AdminCollectionPage() {
         </div>
       )}
 
-      {/* Bulk actions bar */}
-      {!loading && data.length > 0 && (
+      {/* Bulk actions bar (suppressed for reports — status triage only) */}
+      {!isReports && !loading && data.length > 0 && (
         <div className="mt-6 rounded-xl border border-white/8 bg-white/3 px-5 py-3">
           <p className="text-[10px] font-semibold tracking-wider text-white/40 uppercase mb-2">
             Admin Actions
@@ -762,14 +896,35 @@ export default function AdminCollectionPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (confirm(`⚠️ Delete ALL ${data.length} documents in "${collectionName}"? This cannot be undone!`)) {
-                  Promise.all(data.map((d) => deleteDoc(doc(db, collectionName, d.id))));
+              disabled={clearing}
+              onClick={async () => {
+                if (!confirm(`⚠️ Delete ALL ${data.length} documents in "${collectionName}"? This cannot be undone!`)) return;
+                setClearing(true);
+                setActionError("");
+                setActionSuccess("");
+                try {
+                  const results = await Promise.allSettled(
+                    data.map((d) => deleteDoc(doc(db, collectionName, d.id))),
+                  );
+                  const failed = results.filter((r) => r.status === "rejected").length;
+                  const succeeded = results.length - failed;
+                  if (failed > 0) {
+                    setActionError(
+                      `Deleted ${succeeded} of ${results.length} documents — ${failed} failed. Please try again.`,
+                    );
+                  } else {
+                    setActionSuccess(`Deleted all ${succeeded} documents.`);
+                  }
+                } catch (err) {
+                  console.error("Failed to clear collection:", err);
+                  setActionError("Could not delete all documents. Please try again.");
+                } finally {
+                  setClearing(false);
                 }
               }}
               className="rounded-lg border border-rose-500/20 px-3 py-1.5 text-xs text-rose-400/60 transition hover:bg-rose-500/10 hover:text-rose-300"
             >
-              🗑️ Clear All
+              {clearing ? "Deleting…" : "🗑️ Clear All"}
             </button>
           </div>
         </div>
@@ -780,6 +935,7 @@ export default function AdminCollectionPage() {
         <DocumentViewer
           row={viewDoc}
           onClose={() => setViewDoc(null)}
+          hideEdit={isReports}
           onEdit={() => {
             setEditDoc(viewDoc);
             setViewDoc(null);
