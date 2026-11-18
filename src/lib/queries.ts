@@ -1,4 +1,4 @@
-import { getDataProvider, type ListOptions } from "@/lib/db";
+import { getDataProvider, getMockProvider, type DataProvider, type ListOptions } from "@/lib/db";
 import type { College, DeviceCategory, Equipment, EquipmentCategory, Listing, MarketplaceItemType, PGListing, Profile } from "@/lib/types";
 import { DEFAULT_PROFILE_ID, profileById } from "@/lib/data/profiles";
 import { getDeviceCategory } from "@/lib/marketplaceCategories";
@@ -19,11 +19,50 @@ export function sp(value: string | string[] | undefined): string {
 }
 
 /* ------------------------------------------------------------------ */
+/* Graceful degradation                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Run a read against the active data provider, falling back to the seeded
+ * sample store when the live backend rejects it — e.g. Firestore security
+ * rules are not deployed yet, so every read is permission-denied and used
+ * to 500 the force-dynamic pages (`/marketplace`, `/books`, `/devices`, …).
+ *
+ * Sample mode never falls back (the active provider already *is* the sample
+ * store), so a failure there still surfaces as a real error. Every fallback
+ * is logged so the underlying cause stays visible in server logs.
+ */
+async function readWithFallback<T>(label: string, read: (provider: DataProvider) => Promise<T>): Promise<T> {
+  let provider: DataProvider;
+  try {
+    provider = await getDataProvider();
+  } catch (cause) {
+    console.error(`${label}: data provider unavailable, serving sample data:`, cause);
+    return read(getMockProvider());
+  }
+  // Sample mode: the active provider already *is* the sample store, so a
+  // failure there is a real bug — let it propagate instead of masking it.
+  if (provider.isMock) return read(provider);
+  try {
+    return await read(provider);
+  } catch (cause) {
+    console.error(`${label}: live read failed, serving sample data:`, cause);
+    return read(getMockProvider());
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /* Current demo user                                                   */
 /* ------------------------------------------------------------------ */
 
 export async function getCurrentProfile(): Promise<Profile> {
-  const provider = await getDataProvider();
+  let provider: DataProvider;
+  try {
+    provider = await getDataProvider();
+  } catch (cause) {
+    console.error("getCurrentProfile: data provider unavailable, using seed:", cause);
+    provider = getMockProvider();
+  }
   // Firestore profile reads require a signed-in session (rules restrict
   // them to signed-in users), but this runs in a server component with no
   // auth state — treat a denied/failed read as "no DB profile" and fall
@@ -56,8 +95,9 @@ export async function getCurrentProfile(): Promise<Profile> {
 }
 
 export async function getColleges(): Promise<College[]> {
-  const provider = await getDataProvider();
-  return provider.colleges.list({ orderBy: { column: "campusloop_students", ascending: false } });
+  return readWithFallback("getColleges", (provider) =>
+    provider.colleges.list({ orderBy: { column: "campusloop_students", ascending: false } }),
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -96,35 +136,36 @@ const LISTING_SORTS: Record<string, { column: string; ascending: boolean }> = {
 };
 
 export async function getListings(filters: ListingFilters): Promise<Listing[]> {
-  const provider = await getDataProvider();
-  const options: ListOptions = {};
+  return readWithFallback("getListings", async (provider) => {
+    const options: ListOptions = {};
 
-  if (filters.college && filters.college !== "all") options.where = { college_id: filters.college };
-  if (filters.kind && filters.kind !== "all") options.where = { ...options.where, kind: filters.kind };
-  if (filters.subject && filters.subject !== "all") options.where = { ...options.where, subject: filters.subject };
-  if (filters.condition && filters.condition !== "all")
-    options.where = { ...options.where, condition: filters.condition };
-  if (filters.maxPrice) options.lte = { price: filters.maxPrice };
+    if (filters.college && filters.college !== "all") options.where = { college_id: filters.college };
+    if (filters.kind && filters.kind !== "all") options.where = { ...options.where, kind: filters.kind };
+    if (filters.subject && filters.subject !== "all") options.where = { ...options.where, subject: filters.subject };
+    if (filters.condition && filters.condition !== "all")
+      options.where = { ...options.where, condition: filters.condition };
+    if (filters.maxPrice) options.lte = { price: filters.maxPrice };
 
-  const rows = await provider.listings.list({
-    ...options,
-    orderBy: LISTING_SORTS[filters.sort] ?? LISTING_SORTS.recent,
+    const rows = await provider.listings.list({
+      ...options,
+      orderBy: LISTING_SORTS[filters.sort] ?? LISTING_SORTS.recent,
+    });
+    const bookRows = rows.filter((listing) => !listing.item_type || listing.item_type === "book");
+
+    // Free-text is matched in memory across several fields so that searching an
+    // author ("Cormen") or a subject finds the book, not just a title hit.
+    if (filters.q) {
+      const term = filters.q.trim().toLowerCase();
+      return bookRows.filter((l) =>
+        [l.title, l.author, l.subject, l.semester, l.condition, l.kind, ...l.tags]
+          .join(" ")
+          .toLowerCase()
+          .includes(term),
+      );
+    }
+
+    return bookRows;
   });
-  const bookRows = rows.filter((listing) => !listing.item_type || listing.item_type === "book");
-
-  // Free-text is matched in memory across several fields so that searching an
-  // author ("Cormen") or a subject finds the book, not just a title hit.
-  if (filters.q) {
-    const term = filters.q.trim().toLowerCase();
-    return bookRows.filter((l) =>
-      [l.title, l.author, l.subject, l.semester, l.condition, l.kind, ...l.tags]
-        .join(" ")
-        .toLowerCase()
-        .includes(term),
-    );
-  }
-
-  return bookRows;
 }
 
 const BOOK_PAGE_SIZE = 20;
@@ -134,135 +175,137 @@ export async function getBookListingsPage(
   filters: ListingFilters,
   { after = "", page = 1 }: { after?: string; page?: number } = {},
 ): Promise<{ listings: Listing[]; hasMore: boolean; nextAfter: string; nextPage: number }> {
-  const provider = await getDataProvider();
-  const options: ListOptions = {
-    orderBy: LISTING_SORTS[filters.sort] ?? LISTING_SORTS.recent,
-    limit: LISTING_BATCH_SIZE,
-  };
+  return readWithFallback("getBookListingsPage", async (provider) => {
+    const options: ListOptions = {
+      orderBy: LISTING_SORTS[filters.sort] ?? LISTING_SORTS.recent,
+      limit: LISTING_BATCH_SIZE,
+    };
 
-  const isCursorProvider = provider.kind === "firebase";
-  let cursor = isCursorProvider ? after : "";
-  let offset = 0;
-  let skippedBooks = 0;
-  const matches: Listing[] = [];
-  let exhausted = false;
-  const term = filters.q.trim().toLowerCase();
+    const isCursorProvider = provider.kind === "firebase";
+    let cursor = isCursorProvider ? after : "";
+    let offset = 0;
+    let skippedBooks = 0;
+    const matches: Listing[] = [];
+    let exhausted = false;
+    const term = filters.q.trim().toLowerCase();
 
-  while (matches.length <= BOOK_PAGE_SIZE && !exhausted) {
-    const rows = await provider.listings.list({
-      ...options,
-      ...(isCursorProvider && cursor ? { startAfterId: cursor } : { offset }),
-    });
-    if (rows.length === 0) break;
-    offset += rows.length;
-    cursor = rows[rows.length - 1].id;
-    exhausted = rows.length < LISTING_BATCH_SIZE;
+    while (matches.length <= BOOK_PAGE_SIZE && !exhausted) {
+      const rows = await provider.listings.list({
+        ...options,
+        ...(isCursorProvider && cursor ? { startAfterId: cursor } : { offset }),
+      });
+      if (rows.length === 0) break;
+      offset += rows.length;
+      cursor = rows[rows.length - 1].id;
+      exhausted = rows.length < LISTING_BATCH_SIZE;
 
-    for (const listing of rows) {
-      if (listing.item_type && listing.item_type !== "book") continue;
-      if (filters.college && filters.college !== "all" && listing.college_id !== filters.college) continue;
-      if (filters.kind && filters.kind !== "all" && listing.kind !== filters.kind) continue;
-      if (filters.subject && filters.subject !== "all" && listing.subject !== filters.subject) continue;
-      if (filters.condition && filters.condition !== "all" && listing.condition !== filters.condition) continue;
-      if (filters.maxPrice && listing.price > filters.maxPrice) continue;
-      if (term && ![
-        listing.title,
-        listing.author,
-        listing.subject,
-        listing.semester,
-        listing.condition,
-        listing.kind,
-        ...listing.tags,
-      ].join(" ").toLowerCase().includes(term)) continue;
-      if (!isCursorProvider && skippedBooks < (page - 1) * BOOK_PAGE_SIZE) {
-        skippedBooks += 1;
-        continue;
+      for (const listing of rows) {
+        if (listing.item_type && listing.item_type !== "book") continue;
+        if (filters.college && filters.college !== "all" && listing.college_id !== filters.college) continue;
+        if (filters.kind && filters.kind !== "all" && listing.kind !== filters.kind) continue;
+        if (filters.subject && filters.subject !== "all" && listing.subject !== filters.subject) continue;
+        if (filters.condition && filters.condition !== "all" && listing.condition !== filters.condition) continue;
+        if (filters.maxPrice && listing.price > filters.maxPrice) continue;
+        if (term && ![
+          listing.title,
+          listing.author,
+          listing.subject,
+          listing.semester,
+          listing.condition,
+          listing.kind,
+          ...listing.tags,
+        ].join(" ").toLowerCase().includes(term)) continue;
+        if (!isCursorProvider && skippedBooks < (page - 1) * BOOK_PAGE_SIZE) {
+          skippedBooks += 1;
+          continue;
+        }
+        matches.push(listing);
+        if (matches.length > BOOK_PAGE_SIZE) break;
       }
-      matches.push(listing);
-      if (matches.length > BOOK_PAGE_SIZE) break;
     }
-  }
 
-  const pageListings = matches.slice(0, BOOK_PAGE_SIZE);
-  return {
-    listings: pageListings,
-    hasMore: matches.length > BOOK_PAGE_SIZE,
-    nextAfter: isCursorProvider ? pageListings.at(-1)?.id ?? "" : "",
-    nextPage: page + 1,
-  };
+    const pageListings = matches.slice(0, BOOK_PAGE_SIZE);
+    return {
+      listings: pageListings,
+      hasMore: matches.length > BOOK_PAGE_SIZE,
+      nextAfter: isCursorProvider ? pageListings.at(-1)?.id ?? "" : "",
+      nextPage: page + 1,
+    };
+  });
 }
 
 export async function getDeviceListingsPage(
   { q, category }: { q: string; category: DeviceCategory | "all" },
   { after = "", page = 1 }: { after?: string; page?: number } = {},
 ): Promise<{ listings: Listing[]; hasMore: boolean; nextAfter: string; nextPage: number }> {
-  const provider = await getDataProvider();
-  const isCursorProvider = provider.kind === "firebase";
-  const options: ListOptions = {
-    orderBy: { column: "created_at", ascending: false },
-    limit: LISTING_BATCH_SIZE,
-  };
-  let cursor = isCursorProvider ? after : "";
-  let offset = 0;
-  let skippedDevices = 0;
-  const matches: Listing[] = [];
-  let exhausted = false;
-  const term = q.trim().toLowerCase();
+  return readWithFallback("getDeviceListingsPage", async (provider) => {
+    const isCursorProvider = provider.kind === "firebase";
+    const options: ListOptions = {
+      orderBy: { column: "created_at", ascending: false },
+      limit: LISTING_BATCH_SIZE,
+    };
+    let cursor = isCursorProvider ? after : "";
+    let offset = 0;
+    let skippedDevices = 0;
+    const matches: Listing[] = [];
+    let exhausted = false;
+    const term = q.trim().toLowerCase();
 
-  while (matches.length <= BOOK_PAGE_SIZE && !exhausted) {
-    const rows = await provider.listings.list({
-      ...options,
-      ...(isCursorProvider && cursor ? { startAfterId: cursor } : { offset }),
-    });
-    if (rows.length === 0) break;
-    offset += rows.length;
-    cursor = rows[rows.length - 1].id;
-    exhausted = rows.length < LISTING_BATCH_SIZE;
+    while (matches.length <= BOOK_PAGE_SIZE && !exhausted) {
+      const rows = await provider.listings.list({
+        ...options,
+        ...(isCursorProvider && cursor ? { startAfterId: cursor } : { offset }),
+      });
+      if (rows.length === 0) break;
+      offset += rows.length;
+      cursor = rows[rows.length - 1].id;
+      exhausted = rows.length < LISTING_BATCH_SIZE;
 
-    for (const listing of rows) {
-      if (listing.kind !== "sell" || listing.item_type !== "device") continue;
-      if (category !== "all" && getDeviceCategory(listing) !== category) continue;
-      if (term && ![
-        listing.title,
-        listing.author,
-        listing.edition,
-        listing.subject,
-        listing.description,
-        listing.pickup_location ?? "",
-      ].join(" ").toLowerCase().includes(term)) continue;
-      if (!isCursorProvider && skippedDevices < (page - 1) * BOOK_PAGE_SIZE) {
-        skippedDevices += 1;
-        continue;
+      for (const listing of rows) {
+        if (listing.kind !== "sell" || listing.item_type !== "device") continue;
+        if (category !== "all" && getDeviceCategory(listing) !== category) continue;
+        if (term && ![
+          listing.title,
+          listing.author,
+          listing.edition,
+          listing.subject,
+          listing.description,
+          listing.pickup_location ?? "",
+        ].join(" ").toLowerCase().includes(term)) continue;
+        if (!isCursorProvider && skippedDevices < (page - 1) * BOOK_PAGE_SIZE) {
+          skippedDevices += 1;
+          continue;
+        }
+        matches.push(listing);
+        if (matches.length > BOOK_PAGE_SIZE) break;
       }
-      matches.push(listing);
-      if (matches.length > BOOK_PAGE_SIZE) break;
     }
-  }
 
-  const pageListings = matches.slice(0, BOOK_PAGE_SIZE);
-  return {
-    listings: pageListings,
-    hasMore: matches.length > BOOK_PAGE_SIZE,
-    nextAfter: isCursorProvider ? pageListings.at(-1)?.id ?? "" : "",
-    nextPage: page + 1,
-  };
+    const pageListings = matches.slice(0, BOOK_PAGE_SIZE);
+    return {
+      listings: pageListings,
+      hasMore: matches.length > BOOK_PAGE_SIZE,
+      nextAfter: isCursorProvider ? pageListings.at(-1)?.id ?? "" : "",
+      nextPage: page + 1,
+    };
+  });
 }
 
 export async function getListing(id: string): Promise<Listing | null> {
-  const provider = await getDataProvider();
-  return provider.listings.byId(id);
+  return readWithFallback("getListing", (provider) => provider.listings.byId(id));
 }
 
 export async function getSecondhandListings(itemType?: MarketplaceItemType): Promise<Listing[]> {
-  const provider = await getDataProvider();
-  const rows = await provider.listings.list({
-    orderBy: { column: "created_at", ascending: false },
-  });
-  return rows.filter((listing) => {
-    if (listing.kind !== "sell") return false;
-    if (!itemType) return !listing.item_type || listing.item_type === "book" || listing.item_type === "device";
-    if (itemType === "book") return !listing.item_type || listing.item_type === "book";
-    return listing.item_type === itemType;
+  return readWithFallback("getSecondhandListings", async (provider) => {
+    const rows = await provider.listings.list({
+      orderBy: { column: "created_at", ascending: false },
+    });
+    return rows.filter((listing) => {
+      if (listing.kind !== "sell") return false;
+      if (!itemType) return !listing.item_type || listing.item_type === "book" || listing.item_type === "device";
+      if (itemType === "book") return !listing.item_type || listing.item_type === "book";
+      return listing.item_type === itemType;
+    });
   });
 }
 
@@ -294,32 +337,32 @@ export function parseEquipmentFilters(params: SearchParams): EquipmentFilters {
 }
 
 export async function getEquipment(filters: EquipmentFilters): Promise<Equipment[]> {
-  const provider = await getDataProvider();
-  const options: ListOptions = {
-    orderBy: EQUIPMENT_SORTS[filters.sort] ?? EQUIPMENT_SORTS.rate_asc,
-  };
-  if (filters.category && filters.category !== "all") {
-    options.where = { category: filters.category as EquipmentCategory };
-  }
-  if (filters.college && filters.college !== "all") {
-    options.where = { ...options.where, college_id: filters.college };
-  }
-  if (filters.maxDayRate) options.lte = { day_rate: filters.maxDayRate };
+  return readWithFallback("getEquipment", async (provider) => {
+    const options: ListOptions = {
+      orderBy: EQUIPMENT_SORTS[filters.sort] ?? EQUIPMENT_SORTS.rate_asc,
+    };
+    if (filters.category && filters.category !== "all") {
+      options.where = { category: filters.category as EquipmentCategory };
+    }
+    if (filters.college && filters.college !== "all") {
+      options.where = { ...options.where, college_id: filters.college };
+    }
+    if (filters.maxDayRate) options.lte = { day_rate: filters.maxDayRate };
 
-  const rows = await provider.equipment.list(options);
-  if (!filters.q) return rows;
-  const term = filters.q.trim().toLowerCase();
-  return rows.filter((item) =>
-    [item.name, item.brand, item.category, item.description, ...item.specs]
-      .join(" ")
-      .toLowerCase()
-      .includes(term),
-  );
+    const rows = await provider.equipment.list(options);
+    if (!filters.q) return rows;
+    const term = filters.q.trim().toLowerCase();
+    return rows.filter((item) =>
+      [item.name, item.brand, item.category, item.description, ...item.specs]
+        .join(" ")
+        .toLowerCase()
+        .includes(term),
+    );
+  });
 }
 
 export async function getEquipmentItem(id: string): Promise<Equipment | null> {
-  const provider = await getDataProvider();
-  return provider.equipment.byId(id);
+  return readWithFallback("getEquipmentItem", (provider) => provider.equipment.byId(id));
 }
 
 export interface PGFilters {
@@ -353,41 +396,43 @@ export function parsePGFilters(params: SearchParams): PGFilters {
 }
 
 export async function getPGListings(filters: PGFilters): Promise<PGListing[]> {
-  const provider = await getDataProvider();
-  const options: ListOptions = { orderBy: PG_SORTS[filters.sort] ?? PG_SORTS.rent_asc };
-  if (filters.type && filters.type !== "all") options.where = { type: filters.type };
-  if (filters.gender && filters.gender !== "all") options.where = { ...options.where, gender: filters.gender };
-  if (filters.maxRent) options.lte = { rent: filters.maxRent };
-  if (filters.maxDistance) options.lte = { ...options.lte, distance_km: filters.maxDistance };
-  if (filters.q) options.search = { column: "title", term: filters.q };
-  return provider.pg_listings.list(options);
+  return readWithFallback("getPGListings", async (provider) => {
+    const options: ListOptions = { orderBy: PG_SORTS[filters.sort] ?? PG_SORTS.rent_asc };
+    if (filters.type && filters.type !== "all") options.where = { type: filters.type };
+    if (filters.gender && filters.gender !== "all") options.where = { ...options.where, gender: filters.gender };
+    if (filters.maxRent) options.lte = { rent: filters.maxRent };
+    if (filters.maxDistance) options.lte = { ...options.lte, distance_km: filters.maxDistance };
+    if (filters.q) options.search = { column: "title", term: filters.q };
+    return provider.pg_listings.list(options);
+  });
 }
 
 export async function loadMatchContext() {
-  const provider = await getDataProvider();
-  const [colleges, profiles, listings, equipment, pgListings, teammatePosts, skillProfiles, services, events] =
-    await Promise.all([
-      provider.colleges.list(),
-      provider.profiles.list(),
-      provider.listings.list({ where: { status: "available" } }).then((rows) =>
-        rows.filter((listing) => !listing.item_type || listing.item_type === "book"),
-      ),
-      provider.equipment.list(),
-      provider.pg_listings.list(),
-      provider.teammate_posts.list(),
-      provider.skill_profiles.list(),
-      provider.services.list(),
-      provider.events.list(),
-    ]);
-  return {
-    colleges,
-    profiles,
-    listings,
-    equipment,
-    pgListings,
-    teammatePosts,
-    skillProfiles,
-    services,
-    events,
-  };
+  return readWithFallback("loadMatchContext", async (provider) => {
+    const [colleges, profiles, listings, equipment, pgListings, teammatePosts, skillProfiles, services, events] =
+      await Promise.all([
+        provider.colleges.list(),
+        provider.profiles.list(),
+        provider.listings.list({ where: { status: "available" } }).then((rows) =>
+          rows.filter((listing) => !listing.item_type || listing.item_type === "book"),
+        ),
+        provider.equipment.list(),
+        provider.pg_listings.list(),
+        provider.teammate_posts.list(),
+        provider.skill_profiles.list(),
+        provider.services.list(),
+        provider.events.list(),
+      ]);
+    return {
+      colleges,
+      profiles,
+      listings,
+      equipment,
+      pgListings,
+      teammatePosts,
+      skillProfiles,
+      services,
+      events,
+    };
+  });
 }
