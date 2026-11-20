@@ -85,6 +85,8 @@ export function SecondhandMarketplace({
         listing.subject,
         listing.description,
         listing.pickup_location ?? "",
+        listing.shop_name ?? "",
+        listing.shop_address ?? "",
       ].join(" ").toLowerCase().includes(term);
     });
   }, [campusId, deviceType, itemType, listings, search, status]);

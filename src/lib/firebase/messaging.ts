@@ -20,6 +20,7 @@ import {
   onSnapshot,
   query,
   runTransaction,
+  setDoc,
   where,
   writeBatch,
   type DocumentData,
@@ -113,6 +114,55 @@ export async function getOrCreateConversation(input: {
     } satisfies DocumentData);
     return { status: "created", conversationId: convId };
   });
+}
+
+/**
+ * Open (or create) a conversation the SELLER starts towards an interested
+ * buyer (Shop dashboard). The deterministic id still ends with the buyer's
+ * uid, so the buyer's get()/list rules keep working unchanged.
+ *
+ * Existence is checked with a list query on `seller_id` (sellers can always
+ * list their own conversations) rather than a `get()` on the conversation
+ * document: the rules only authorize a missing-document probe for the buyer
+ * side (via the id suffix), not for the seller.
+ */
+export async function openSellerConversation(input: {
+  targetType: ConversationTargetType;
+  targetId: string;
+  targetTitle: string;
+  buyerId: string;
+  sellerId: string;
+}): Promise<{ status: "exists" | "created"; conversationId: string }> {
+  const { targetType, targetId, targetTitle, buyerId, sellerId } = input;
+
+  const snapshot = await getDocs(
+    query(collection(db, "conversations"), where("seller_id", "==", sellerId)),
+  );
+  const existing = snapshot.docs.find((d) => {
+    const data = d.data();
+    return (
+      data.target_type === targetType
+      && data.target_id === targetId
+      && data.buyer_id === buyerId
+    );
+  });
+  if (existing) return { status: "exists", conversationId: existing.id };
+
+  const convId = conversationIdFor(targetType, targetId, buyerId);
+  const now = new Date().toISOString();
+  await setDoc(doc(db, "conversations", convId), {
+    target_type: targetType,
+    target_id: targetId,
+    target_title: String(targetTitle).slice(0, 300),
+    buyer_id: buyerId,
+    seller_id: sellerId,
+    last_message: "",
+    last_at: now,
+    buyer_unread: 0,
+    seller_unread: 0,
+    created_at: now,
+  } satisfies DocumentData);
+  return { status: "created", conversationId: convId };
 }
 
 /** Unread conversations for a user (buyer or seller side), newest activity first. */

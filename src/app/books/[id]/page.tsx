@@ -125,6 +125,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {isSampleListing(listing) ? <span className="cl-chip">Sample listing</span> : null}
                 <span className="cl-chip">{titleCase(listing.condition)}</span>
                 <span className="cl-chip">{campusShortName}</span>
+                {listing.shop_name ? <span className="cl-chip">🏪 {listing.shop_name}</span> : null}
                 {expired ? (
                   <span className="cl-chip">Expired</span>
                 ) : status !== "available" ? (
@@ -210,6 +211,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 <KeyValue label="Subject" value={listing.subject} />
                 <KeyValue label="Kind" value={titleCase(listing.kind)} />
                 {listing.pickup_location ? <KeyValue label="Pickup address" value={listing.pickup_location} /> : null}
+                {listing.shop_name ? <KeyValue label="Shop" value={listing.shop_name} /> : null}
+                {listing.shop_address ? <KeyValue label="Shop address" value={listing.shop_address} /> : null}
               </dl>
             </div>
 

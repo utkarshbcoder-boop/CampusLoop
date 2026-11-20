@@ -7,11 +7,13 @@ import { CloseIcon, MenuIcon, SearchIcon } from "@/components/Icon";
 import { LoginButton } from "@/components/LoginButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/components/AuthProvider";
 import { NAV_MODULES, UTILITY_LINKS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const { isShopkeeper } = useAuth();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -57,6 +59,20 @@ export function SiteHeader() {
                 {m.short}
               </Link>
             ))}
+            {isShopkeeper ? (
+              <Link
+                href="/shop"
+                aria-label="Shop dashboard"
+                className={cn(
+                  "rounded-xl px-3 py-2 text-sm font-semibold transition",
+                  isActive("/shop")
+                    ? "bg-brand-500/18 text-brand-100 ring-1 ring-brand-300/20"
+                    : "text-white/65 hover:bg-white/7 hover:text-white",
+                )}
+              >
+                🏪 Shop
+              </Link>
+            ) : null}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -151,6 +167,14 @@ export function SiteHeader() {
               >
                 🏷️ Create a listing
               </Link>
+              {isShopkeeper ? (
+                <Link
+                  href="/shop"
+                  className={cn("cl-btn justify-start", isActive("/shop") ? "cl-btn-primary" : "cl-btn-ghost")}
+                >
+                  🏪 Shop dashboard
+                </Link>
+              ) : null}
             </div>
             <div className="cl-divider my-4" />
             <div className="grid gap-2">

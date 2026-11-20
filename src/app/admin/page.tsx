@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { deleteField, doc, updateDoc } from "firebase/firestore";
 import { useCollection } from "@/lib/firebase/hooks";
 import { useAuth } from "@/components/AuthProvider";
+import { db } from "@/lib/firebase/config";
 import type { College } from "@/lib/types";
 
 interface CollectionInfo {
@@ -58,10 +61,150 @@ function CollectionCard({
   );
 }
 
+interface AdminProfile {
+  id: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  shop_name?: string;
+  shop_address?: string;
+}
+
+/**
+ * One-click shopkeeper grants. Firestore rules only let an admin write the
+ * `role` field, and revoking removes it entirely — the account falls back to
+ * a regular student with no Shop tab access.
+ */
+function ShopkeepersPanel({ profiles }: { profiles: AdminProfile[] }) {
+  const [query, setQuery] = useState("");
+  const [busyId, setBusyId] = useState("");
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
+  const shopkeepers = useMemo(
+    () => profiles.filter((profile) => profile.role === "shopkeeper"),
+    [profiles],
+  );
+  const term = query.trim().toLowerCase();
+  const matches = useMemo(() => {
+    if (!term) return [];
+    return profiles
+      .filter((profile) => profile.role !== "shopkeeper")
+      .filter((profile) =>
+        `${profile.name ?? ""} ${profile.email ?? ""}`.toLowerCase().includes(term),
+      )
+      .slice(0, 8);
+  }, [profiles, term]);
+
+  async function setRole(profile: AdminProfile, role: "shopkeeper" | null) {
+    setBusyId(profile.id);
+    setNotice("");
+    setError("");
+    try {
+      if (role) {
+        await updateDoc(doc(db, "profiles", profile.id), { role });
+        setNotice(`${profile.name || profile.email || "This account"} can now use the Shop dashboard.`);
+      } else {
+        await updateDoc(doc(db, "profiles", profile.id), { role: deleteField() });
+        setNotice(`Shop access revoked for ${profile.name || profile.email || "this account"}.`);
+      }
+    } catch (cause) {
+      console.error("Failed to update shopkeeper role:", cause);
+      setError("Could not update this account. Only the admin can change roles — check your connection and try again.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  return (
+    <div className="mb-8 rounded-xl border border-brand-400/25 bg-brand-500/8 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-bold text-white">🏪 Shopkeepers</h2>
+        <span className="cl-chip cl-chip-mint">{shopkeepers.length} active</span>
+      </div>
+      <p className="mt-1 text-xs text-white/50">
+        Shopkeepers sign in with their own account, then add books, devices, and homes from the Shop
+        tab — each listing shows their shop name and address. You keep full access; revoke anytime.
+      </p>
+
+      {notice ? <p role="status" className="mt-3 text-xs text-mint-300">{notice}</p> : null}
+      {error ? <p role="alert" className="mt-3 text-xs text-rose-300">{error}</p> : null}
+
+      <div className="mt-4 grid gap-3">
+        {shopkeepers.length === 0 ? (
+          <p className="text-xs text-white/45">No shopkeepers yet — search below to promote an account.</p>
+        ) : (
+          shopkeepers.map((profile) => (
+            <div
+              key={profile.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/4 px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">
+                  {profile.name || profile.email || profile.id}
+                </p>
+                <p className="truncate text-[11px] text-white/45">
+                  {profile.email ?? profile.id}
+                  {profile.shop_name ? ` · 🏪 ${profile.shop_name}` : " · shop identity not set yet"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void setRole(profile, null)}
+                disabled={busyId !== ""}
+                className="cl-btn cl-btn-ghost px-3 py-1 text-xs text-rose-300 disabled:opacity-50"
+              >
+                {busyId === profile.id ? "Revoking…" : "Revoke access"}
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+
+      <label className="mt-4 flex flex-col gap-1.5">
+        <span className="text-[11px] tracking-wider text-white/40 uppercase">Promote an account</span>
+        <input
+          className="cl-input"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search by name or email — e.g. utkarshb207@gmail.com"
+        />
+      </label>
+      {matches.length > 0 ? (
+        <div className="mt-3 grid gap-2">
+          {matches.map((profile) => (
+            <div
+              key={profile.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/4 px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">
+                  {profile.name || profile.email || profile.id}
+                </p>
+                <p className="truncate text-[11px] text-white/45">{profile.email ?? profile.id}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void setRole(profile, "shopkeeper")}
+                disabled={busyId !== ""}
+                className="cl-btn cl-btn-primary px-3 py-1 text-xs disabled:opacity-50"
+              >
+                {busyId === profile.id ? "Granting…" : "Make shopkeeper"}
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : term ? (
+        <p className="mt-3 text-xs text-white/45">No accounts match “{query}”.</p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { data: colleges, loading: collegesLoading } = useCollection<College>("colleges");
-  const { data: profiles, loading: profilesLoading } = useCollection("profiles");
+  const { data: profiles, loading: profilesLoading } = useCollection<AdminProfile>("profiles");
   const { data: listings, loading: listingsLoading } = useCollection("listings");
   const { data: homeListings, loading: homeListingsLoading } = useCollection("home_listings");
   const { data: pgListings, loading: pgListingsLoading } = useCollection("pg_listings");
@@ -179,6 +322,9 @@ export default function AdminDashboard() {
           </div>
         </Link>
       </div>
+
+      {/* Shopkeeper grants */}
+      <ShopkeepersPanel profiles={profiles} />
 
       {/* Collection grid */}
       <h2 className="mb-4 text-lg font-bold text-white">All Collections</h2>

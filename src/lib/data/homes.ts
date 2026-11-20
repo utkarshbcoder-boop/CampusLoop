@@ -15,6 +15,10 @@ export interface Home {
   distanceKm: number;
   available: string;
   owner: string;
+  /** Shop sellers only: business name shown to buyers (see firestore.rules). */
+  shop_name?: string;
+  /** Shop sellers only: physical shop address shown to buyers. */
+  shop_address?: string;
 }
 
 export const HOME_TYPE_LABELS: Record<HomeType, string> = {

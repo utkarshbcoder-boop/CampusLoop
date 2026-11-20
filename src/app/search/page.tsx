@@ -44,6 +44,8 @@ async function loadFirestoreHomes(): Promise<Home[]> {
         distanceKm: row.distanceKm,
         available: row.available,
         owner: row.owner,
+        ...(row.shop_name ? { shop_name: row.shop_name } : {}),
+        ...(row.shop_address ? { shop_address: row.shop_address } : {}),
       };
     });
   } catch (cause) {
@@ -99,14 +101,18 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const term = q.toLowerCase();
   const itemMatches = term
     ? listings.filter((listing) =>
-        [listing.title, listing.author, listing.subject, listing.description, listing.pickup_location ?? "", ...listing.tags]
+        [listing.title, listing.author, listing.subject, listing.description, listing.pickup_location ?? "", listing.shop_name ?? "", listing.shop_address ?? "", ...listing.tags]
           .join(" ")
           .toLowerCase()
           .includes(term),
       )
     : [];
   const homeMatches = term
-    ? homes.filter((home) => `${home.title} ${home.locality} ${home.owner}`.toLowerCase().includes(term))
+    ? homes.filter((home) =>
+        `${home.title} ${home.locality} ${home.owner} ${home.shop_name ?? ""} ${home.shop_address ?? ""}`
+          .toLowerCase()
+          .includes(term),
+      )
     : [];
 
   return (

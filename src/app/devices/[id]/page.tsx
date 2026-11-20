@@ -48,6 +48,7 @@ function DeviceListing({ listing }: { listing: Listing }) {
             <span className="cl-chip cl-chip-brand">{deviceCategory?.label ?? "Second-hand device"}</span>
             <span className="cl-chip">{status === "available" ? "Available" : status === "expired" ? "Expired" : status}</span>
             <span className="cl-chip">{listing.condition.replaceAll("_", " ")}</span>
+            {listing.shop_name ? <span className="cl-chip">🏪 {listing.shop_name}</span> : null}
             {isSampleListing(listing) ? <span className="cl-chip">Sample listing</span> : null}
           </div>
           <h1 className="mt-4 text-2xl font-bold text-white">{listing.title}</h1>
@@ -56,6 +57,8 @@ function DeviceListing({ listing }: { listing: Listing }) {
           <p className="mt-4 text-sm leading-relaxed text-white/60">{listing.description}</p>
           <dl className="mt-5 grid gap-3">
             <KeyValue label="Category / details" value={listing.subject} />
+            {listing.shop_name ? <KeyValue label="Shop" value={listing.shop_name} /> : null}
+            {listing.shop_address ? <KeyValue label="Shop address" value={listing.shop_address} /> : null}
             <KeyValue label="Pickup address" value={listing.pickup_location || "Contact seller"} />
           </dl>
           <div className="mt-6">

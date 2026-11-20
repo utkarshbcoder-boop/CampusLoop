@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
@@ -20,6 +20,7 @@ import {
 import { rupees } from "@/lib/format";
 import { DEVICE_CATEGORIES } from "@/lib/marketplaceCategories";
 import { readSettingsPreferences } from "@/lib/settingsPreferences";
+import { shopFieldsForListing } from "@/lib/shop";
 import type { BookCondition, DeviceCategory, HomeListingMode, HomeListingType } from "@/lib/types";
 
 const CONDITIONS: { value: BookCondition; label: string }[] = [
@@ -32,7 +33,7 @@ const CONDITIONS: { value: BookCondition; label: string }[] = [
 type SellKind = "book" | "device" | "home";
 
 export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
-  const { user, loading, refreshUser } = useAuth();
+  const { user, loading, refreshUser, profile, isShopkeeper } = useAuth();
   const router = useRouter();
   const [kind, setKind] = useState<SellKind>(initialKind === "both" ? "book" : initialKind);
   const [title, setTitle] = useState("");
@@ -57,6 +58,16 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
   const [verifyBusy, setVerifyBusy] = useState<"" | "resend" | "refresh">("");
   const [verifyNotice, setVerifyNotice] = useState("");
   const [createdId, setCreatedId] = useState("");
+
+  // Shopkeepers publish from their shop: default the pickup/locality field to
+  // the saved shop address unless they already typed something else.
+  useEffect(() => {
+    if (!isShopkeeper) return;
+    const shopAddress = profile?.shop_address?.trim();
+    if (shopAddress) {
+      setAddress((current) => (current.trim() ? current : shopAddress));
+    }
+  }, [isShopkeeper, profile]);
 
   const resendVerification = async () => {
     setError("");
@@ -123,6 +134,10 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
     let imageUploadCompleted = false;
     try {
       const now = new Date().toISOString();
+      // Shopkeepers stamp their shop name + address onto every listing so
+      // buyers know exactly where the item lives (null until the shop
+      // identity card on /shop has been filled in).
+      const shopFields = shopFieldsForListing(profile, isShopkeeper) ?? {};
       if (kind === "home") {
         const id = await createHomeMarketplaceListing({
           title: title.trim(),
@@ -141,6 +156,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
           owner_id: user.uid,
           description: homeDescription.trim(),
           created_at: now,
+          ...shopFields,
         });
         setCreatedId(id);
         router.refresh();
@@ -180,6 +196,7 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
         views: 0,
         saves: 0,
         created_at: now,
+        ...shopFields,
       });
       setCreatedId(id);
       uploadedImagePaths = [];
@@ -253,6 +270,15 @@ export function SellForm({ initialKind }: { initialKind: SellKind | "both" }) {
           </button>
         ))}
       </div>
+      {isShopkeeper ? (
+        <p className="rounded-xl border border-brand-400/20 bg-brand-500/8 px-3 py-2 text-xs text-white/60">
+          🏪 This listing will show{" "}
+          {profile?.shop_name?.trim() ? <span className="font-semibold text-white/80">{profile.shop_name}</span> : <span className="font-semibold text-flare-300">your shop name</span>}{" "}
+          ·{" "}
+          {profile?.shop_address?.trim() ? <span className="text-white/70">{profile.shop_address}</span> : <span className="font-semibold text-flare-300">your shop address</span>}{" "}
+          — set them on the <Link href="/shop" className="font-semibold text-brand-300 hover:text-brand-200">Shop dashboard</Link>.
+        </p>
+      ) : null}
       {kind === "device" ? (
         <fieldset className="flex flex-col gap-2">
           <legend className="text-[11px] tracking-wider text-white/40 uppercase">Choose device type</legend>

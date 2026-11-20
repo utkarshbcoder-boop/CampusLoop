@@ -15,6 +15,28 @@ service cloud.firestore {
         && request.auth.token.email_verified == true;
     }
 
+    // Shopkeeper: an admin-promoted seller (`role: "shopkeeper"` on their
+    // profile doc). Fail-safe: a missing role reads as "user" and a missing
+    // profile doc errors — both deny. Admins always qualify (full access).
+    function isShopkeeper() {
+      return isAdmin()
+        || (signedIn()
+          && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('role', 'user') == 'shopkeeper');
+    }
+
+    // Shop fields (on listings, home listings, and profiles): optional, but
+    // when present they must be non-empty strings within the published limits.
+    function validShopFields() {
+      return (!('shop_name' in request.resource.data)
+          || (request.resource.data.shop_name is string
+            && request.resource.data.shop_name.size() > 0
+            && request.resource.data.shop_name.size() <= 120))
+        && (!('shop_address' in request.resource.data)
+          || (request.resource.data.shop_address is string
+            && request.resource.data.shop_address.size() > 0
+            && request.resource.data.shop_address.size() <= 300));
+    }
+
     match /listings/{listingId} {
       allow read: if true;
       allow create: if isAdmin() || (
@@ -66,9 +88,13 @@ service cloud.firestore {
           'branch', 'kind', 'condition', 'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit',
           'seller_id', 'college_id', 'pickup_location', 'status', 'description',
           'highlights', 'tags', 'hue', 'emoji', 'boosted', 'views', 'saves', 'created_at',
-          'device_type', 'image_urls', 'is_sample'
+          'device_type', 'image_urls', 'is_sample', 'shop_name', 'shop_address'
         ])
         && !('is_sample' in request.resource.data)
+        // Shop identity is a shopkeeper-only privilege (admin included).
+        && (!('shop_name' in request.resource.data || 'shop_address' in request.resource.data)
+          || isShopkeeper())
+        && validShopFields()
         && (!('image_urls' in request.resource.data)
           || (request.resource.data.image_urls is list && request.resource.data.image_urls.size() <= 5))
         && (!('device_type' in request.resource.data)
@@ -86,7 +112,7 @@ service cloud.firestore {
           'branch', 'kind', 'condition', 'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit',
           'seller_id', 'college_id', 'pickup_location', 'status', 'description',
           'highlights', 'tags', 'hue', 'emoji', 'boosted', 'views', 'saves', 'created_at',
-          'device_type', 'image_urls', 'is_sample'
+          'device_type', 'image_urls', 'is_sample', 'shop_name', 'shop_address'
         ])
         && !('is_sample' in request.resource.data)
         && request.resource.data.id == resource.data.id
@@ -101,8 +127,12 @@ service cloud.firestore {
           'title', 'author', 'edition', 'subject', 'semester', 'branch', 'condition',
           'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit', 'pickup_location',
           'status', 'description', 'highlights', 'tags', 'hue', 'emoji',
-          'device_type', 'image_urls', 'created_at'
+          'device_type', 'image_urls', 'created_at', 'shop_name', 'shop_address'
         ])
+        // Only shopkeepers (or admin) may add, change, or clear shop identity.
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shop_name', 'shop_address'])
+          || isShopkeeper())
+        && validShopFields()
         && request.resource.data.status in ['available', 'reserved', 'sold']
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
@@ -201,12 +231,17 @@ service cloud.firestore {
         ])
         && request.resource.data.keys().hasOnly([
           'id', 'title', 'locality', 'type', 'mode', 'price', 'beds', 'baths',
-          'furnished', 'distanceKm', 'available', 'owner', 'owner_id', 'created_at', 'description'
+          'furnished', 'distanceKm', 'available', 'owner', 'owner_id', 'created_at',
+          'description', 'shop_name', 'shop_address'
         ])
         && (!('description' in request.resource.data)
           || (request.resource.data.description is string && request.resource.data.description.size() <= 2000))
         && (!('status' in request.resource.data)
           || request.resource.data.status in ['available', 'rented', 'sold', 'withdrawn'])
+        // Shop identity is a shopkeeper-only privilege (admin included).
+        && (!('shop_name' in request.resource.data || 'shop_address' in request.resource.data)
+          || isShopkeeper())
+        && validShopFields()
       );
       // Owner self-service: edit content, change status, renew (created_at).
       allow update: if isAdmin() || (
@@ -215,7 +250,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'id', 'title', 'locality', 'type', 'mode', 'price', 'beds', 'baths',
           'furnished', 'distanceKm', 'available', 'owner', 'owner_id', 'created_at',
-          'description', 'status'
+          'description', 'status', 'shop_name', 'shop_address'
         ])
         && request.resource.data.id == resource.data.id
         && request.resource.data.owner_id == resource.data.owner_id
@@ -223,8 +258,13 @@ service cloud.firestore {
         && request.resource.data.mode == resource.data.mode
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'title', 'locality', 'price', 'beds', 'baths', 'furnished', 'distanceKm',
-          'available', 'owner', 'description', 'created_at', 'status'
+          'available', 'owner', 'description', 'created_at', 'status',
+          'shop_name', 'shop_address'
         ])
+        // Only shopkeepers (or admin) may add, change, or clear shop identity.
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shop_name', 'shop_address'])
+          || isShopkeeper())
+        && validShopFields()
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 300
@@ -307,10 +347,20 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         signedIn()
         && profileId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'college_id'])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'college_id', 'shop_name', 'shop_address'
+        ])
         && request.resource.data.college_id is string
+        // The display name stays a non-empty string whenever it is changing;
+        // a shop-identity-only update must not be blocked by an empty name.
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['name'])
+          || (request.resource.data.name is string && request.resource.data.name.size() > 0))
+        // Shop identity may only be set by an account the admin already
+        // promoted to shopkeeper — `role` itself is never writable here, so
+        // nobody can self-assign shop access.
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shop_name', 'shop_address'])
+          || resource.data.get('role', 'user') == 'shopkeeper')
+        && validShopFields()
       );
       // Owners may delete their own profile (used by account deletion);
       // admin can delete any profile.
@@ -376,9 +426,14 @@ service cloud.firestore {
       );
       allow create: if verified()
         && convId == request.resource.data.target_type + '_' + request.resource.data.target_id + '_' + request.resource.data.buyer_id
-        && request.resource.data.buyer_id == request.auth.uid
+        && request.resource.data.buyer_id is string
         && request.resource.data.seller_id is string
-        && request.resource.data.seller_id != request.auth.uid
+        // Either side may open the thread: the buyer messages the seller, or
+        // the seller (e.g. a shopkeeper) messages an interested buyer.
+        && ((request.resource.data.buyer_id == request.auth.uid
+              && request.resource.data.seller_id != request.auth.uid)
+            || (request.resource.data.seller_id == request.auth.uid
+              && request.resource.data.buyer_id != request.auth.uid))
         && request.resource.data.target_type in ['listing', 'home']
         && request.resource.data.target_id is string
         && request.resource.data.target_title is string

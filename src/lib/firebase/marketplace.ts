@@ -38,6 +38,10 @@ export interface HomeMarketplaceListing {
   description?: string;
   /** Lifecycle status allowed by firestore.rules; documents without it read as "available". */
   status?: HomeListingStatus;
+  /** Shop sellers only: business name shown to buyers (see firestore.rules). */
+  shop_name?: string;
+  /** Shop sellers only: physical shop address shown to buyers. */
+  shop_address?: string;
   created_at: string;
 }
 
@@ -199,13 +203,14 @@ const MUTABLE_LISTING_KEYS = [
   "title", "author", "edition", "subject", "semester", "branch", "condition",
   "price", "mrp", "negotiable", "rent_per_day", "deposit", "pickup_location",
   "status", "description", "highlights", "tags", "hue", "emoji",
-  "device_type", "image_urls", "created_at",
+  "device_type", "image_urls", "created_at", "shop_name", "shop_address",
 ] as const;
 
 /** Mutable home fields — mirrors the `affectedKeys().hasOnly` list in firestore.rules. */
 const MUTABLE_HOME_KEYS = [
   "title", "locality", "price", "beds", "baths", "furnished", "distanceKm",
   "available", "owner", "description", "created_at", "status",
+  "shop_name", "shop_address",
 ] as const;
 
 const MAX_AMOUNT = 1_000_000_000;
@@ -238,6 +243,8 @@ export interface MarketplaceListingPatch {
   device_type?: DeviceCategory;
   image_urls?: string[];
   created_at?: string;
+  shop_name?: string;
+  shop_address?: string;
 }
 
 export interface HomeListingPatch {
@@ -253,6 +260,8 @@ export interface HomeListingPatch {
   description?: string;
   status?: HomeListingStatus;
   created_at?: string;
+  shop_name?: string;
+  shop_address?: string;
 }
 
 function requireText(value: unknown, field: string): void {
@@ -332,6 +341,8 @@ function sanitizeListingPatch(patch: MarketplaceListingPatch): DocumentData {
     }
   }
   if ("created_at" in clean) requireTimestamp(clean.created_at, "Listed date");
+  if ("shop_name" in clean) requireLength(clean.shop_name, "Shop name", 1, 120);
+  if ("shop_address" in clean) requireLength(clean.shop_address, "Shop address", 1, 300);
   return clean;
 }
 
@@ -356,6 +367,8 @@ function sanitizeHomePatch(patch: HomeListingPatch): DocumentData {
   if ("description" in clean) requireMaxText(clean.description, "Description", 2000);
   if ("status" in clean) requireChoice(clean.status, "Status", HOME_STATUS_VALUES);
   if ("created_at" in clean) requireTimestamp(clean.created_at, "Listed date");
+  if ("shop_name" in clean) requireLength(clean.shop_name, "Shop name", 1, 120);
+  if ("shop_address" in clean) requireLength(clean.shop_address, "Shop address", 1, 300);
   return clean;
 }
 

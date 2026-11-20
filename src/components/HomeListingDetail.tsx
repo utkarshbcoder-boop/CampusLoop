@@ -74,6 +74,8 @@ export function HomeListingDetail({ id, sample }: { id: string; sample: Home | u
   const isOwner = Boolean(liveListing && user?.uid === liveListing.owner_id);
   // Expiry is read-time for live homes only — sample fixtures never expire.
   const homeExpired = liveHome ? effectiveHomeStatus(liveHome) === "expired" : false;
+  const shopName = liveListing?.shop_name?.trim() ?? "";
+  const shopAddress = liveListing?.shop_address?.trim() ?? "";
 
   async function registerInterest() {
     if (!user) {
@@ -134,6 +136,7 @@ export function HomeListingDetail({ id, sample }: { id: string; sample: Home | u
             <span className={`cl-chip ${listing.mode === "rent" ? "cl-chip-mint" : "cl-chip-flare"}`}>
               {listing.mode === "rent" ? "For rent" : "For sale"}
             </span>
+            {shopName ? <span className="cl-chip">🏪 {shopName}</span> : null}
           </div>
           <h1 className="mt-5 text-3xl font-black tracking-tight text-white">{listing.title}</h1>
           <p className="mt-3 flex items-center gap-2 text-sm text-white/55">
@@ -151,6 +154,8 @@ export function HomeListingDetail({ id, sample }: { id: string; sample: Home | u
             <Detail label="Furnishing" value={listing.furnished} />
             <Detail label="Available" value={listing.available} />
             <Detail label="Listed by" value={listing.owner} />
+            {shopName ? <Detail label="Shop" value={shopName} /> : null}
+            {shopAddress ? <Detail label="Shop address" value={shopAddress} /> : null}
           </div>
           {"description" in listing && typeof listing.description === "string" && listing.description ? (
             <div className="mt-7 border-t border-white/8 pt-5">
