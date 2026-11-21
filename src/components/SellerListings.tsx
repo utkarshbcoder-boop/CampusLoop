@@ -20,6 +20,20 @@ import {
   type HomeMarketplaceListing,
 } from "@/lib/firebase/marketplace";
 import { openSellerConversation } from "@/lib/firebase/messaging";
+import {
+  AUCTION_DURATIONS,
+  AUCTION_NUDGE_THRESHOLD,
+  auctionPhase,
+  formatTimeLeft,
+  toMs,
+  type AuctionFields,
+} from "@/lib/auction";
+import {
+  cancelAuction,
+  sellToHighestBidder,
+  startAuction,
+  type AuctionTargetType,
+} from "@/lib/firebase/auctions";
 import { ListingEditDialog } from "@/components/ListingEditDialog";
 import {
   HOME_EXPIRY_DAYS,
@@ -66,6 +80,200 @@ function friendlyError(cause: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Timed-auction controls on a seller's own row: start (24h / 48h / 7d),
+ * watch the live countdown, cancel while there are no bids, and — once the
+ * countdown ends — confirm "sell to highest bidder".
+ */
+function SellerAuctionControls({
+  targetType,
+  targetId,
+  title,
+  sellerId,
+  status,
+  interestCount,
+  fields,
+  nowMs,
+}: {
+  targetType: AuctionTargetType;
+  targetId: string;
+  title: string;
+  sellerId: string;
+  status: string;
+  interestCount: number;
+  fields: AuctionFields;
+  nowMs: number;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [hours, setHours] = useState(String(AUCTION_DURATIONS[0].hours));
+
+  const phase = auctionPhase(fields, nowMs);
+  const endsMs = toMs(fields.auction_ends_at);
+  const bidCount = Number(fields.bid_count ?? 0);
+  const highest = Number(fields.highest_bid ?? 0);
+
+  async function start() {
+    if (!window.confirm(`Start a ${hours}-hour auction on "${title}"?`)) return;
+    setBusy(true);
+    setNotice("");
+    setError("");
+    try {
+      await startAuction({ targetType, targetId, sellerId, hours: Number(hours) });
+      setNotice(`Auction started — running for ${AUCTION_DURATIONS.find((d) => d.hours === Number(hours))?.label ?? `${hours} hours`}.`);
+    } catch (cause) {
+      console.error("Failed to start auction:", cause);
+      setError(friendlyError(cause, "Could not start the auction. Please try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancel() {
+    if (!window.confirm("Remove this auction? It has no bids yet.")) return;
+    setBusy(true);
+    setNotice("");
+    setError("");
+    try {
+      await cancelAuction({ targetType, targetId });
+      setNotice("Auction removed.");
+    } catch (cause) {
+      console.error("Failed to cancel auction:", cause);
+      setError(friendlyError(cause, "Could not remove the auction. Please try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sell() {
+    if (!window.confirm(`Sell "${title}" to the highest bidder for ${rupees(highest)}?`)) return;
+    setBusy(true);
+    setNotice("");
+    setError("");
+    try {
+      await sellToHighestBidder({
+        targetType,
+        targetId,
+        sellerId,
+        winnerId: String(fields.highest_bidder ?? ""),
+        amount: highest,
+        title,
+      });
+      setNotice(`Sold for ${rupees(highest)} — the winner has been notified.`);
+    } catch (cause) {
+      console.error("Failed to sell to highest bidder:", cause);
+      setError(friendlyError(cause, "Could not complete the sale. Please try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Nothing to manage: no auction, and nothing to start from.
+  if (phase === "none" && status !== "available") return null;
+
+  return (
+    <div className="mt-3 rounded-lg bg-white/5 p-2.5 text-xs">
+      {phase === "none" ? (
+        <>
+          {interestCount >= AUCTION_NUDGE_THRESHOLD ? (
+            <p className="mb-1.5 text-white/60">
+              🔥 {interestCount} buyers are interested — start a timed auction to spark a bidding war.
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-white/50">🔨 Auction</span>
+            <select
+              className="cl-input w-auto px-2 py-1 text-xs"
+              aria-label={`Auction length for ${title}`}
+              value={hours}
+              disabled={busy}
+              onChange={(event) => setHours(event.target.value)}
+            >
+              {AUCTION_DURATIONS.map((duration) => (
+                <option key={duration.hours} value={duration.hours} className="bg-ink-900">
+                  {duration.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => void start()}
+              disabled={busy}
+              className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs disabled:opacity-50"
+            >
+              {busy ? "Starting…" : "Start auction"}
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      {phase === "live" && endsMs !== null ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="cl-chip cl-chip-flare">🔨 Live · {formatTimeLeft(endsMs, nowMs)}</span>
+          <span className="text-white/50">
+            Ends {new Date(endsMs).toLocaleString("en-IN", {
+              day: "numeric",
+              month: "short",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </span>
+          <span className="text-white/50">
+            {bidCount} {bidCount === 1 ? "bid" : "bids"}
+            {bidCount > 0 ? ` · highest ${rupees(highest)}` : " · no bids yet"}
+          </span>
+          {bidCount === 0 ? (
+            <button
+              type="button"
+              onClick={() => void cancel()}
+              disabled={busy}
+              className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs disabled:opacity-50"
+            >
+              {busy ? "Working…" : "Cancel"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {phase === "ended" ? (
+        bidCount > 0 && status !== "sold" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-white/60">
+              Auction ended — highest bid {rupees(highest)}.
+            </span>
+            <button
+              type="button"
+              onClick={() => void sell()}
+              disabled={busy}
+              className="cl-btn cl-btn-flare px-2.5 py-1 text-xs disabled:opacity-50"
+            >
+              {busy ? "Working…" : "🎉 Sell to highest bidder"}
+            </button>
+          </div>
+        ) : bidCount > 0 ? (
+          <span className="text-white/60">🔨 Sold via auction for {rupees(highest)}.</span>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-white/60">Auction ended — no bids.</span>
+            <button
+              type="button"
+              onClick={() => void cancel()}
+              disabled={busy}
+              className="cl-btn cl-btn-ghost px-2.5 py-1 text-xs disabled:opacity-50"
+            >
+              {busy ? "Working…" : "Remove auction"}
+            </button>
+          </div>
+        )
+      ) : null}
+
+      {notice ? <p role="status" className="mt-1.5 text-mint-300">{notice}</p> : null}
+      {error ? <p role="alert" className="mt-1.5 text-rose-300">{error}</p> : null}
+    </div>
+  );
+}
+
 function ListingRow({
   listing,
   sellerId,
@@ -73,6 +281,7 @@ function ListingRow({
   buyers,
   buyerNames,
   showMessageBuyers,
+  nowMs,
   onDeleted,
 }: {
   listing: Listing;
@@ -82,6 +291,8 @@ function ListingRow({
   buyerNames: Record<string, string>;
   /** Shop dashboard: start a conversation with an interested buyer. */
   showMessageBuyers: boolean;
+  /** Ticker value from the parent so live countdowns refresh. */
+  nowMs: number;
   onDeleted: (message: string) => void;
 }) {
   const router = useRouter();
@@ -215,6 +426,18 @@ function ListingRow({
         {listing.shop_address ? (
           <p className="mt-1 text-xs text-white/40">🏪 {listing.shop_address}</p>
         ) : null}
+        {!sample ? (
+          <SellerAuctionControls
+            targetType="listing"
+            targetId={listing.id}
+            title={listing.title}
+            sellerId={sellerId}
+            status={listing.status ?? "available"}
+            interestCount={interestCount}
+            fields={listing}
+            nowMs={nowMs}
+          />
+        ) : null}
         {notice ? <p role="status" className="mt-2 text-xs text-mint-300">{notice}</p> : null}
         {error ? <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p> : null}
       </div>
@@ -287,6 +510,7 @@ function HomeRow({
   buyers,
   buyerNames,
   showMessageBuyers,
+  nowMs,
   onDeleted,
 }: {
   home: HomeMarketplaceListing;
@@ -296,6 +520,8 @@ function HomeRow({
   buyerNames: Record<string, string>;
   /** Shop dashboard: start a conversation with an interested buyer. */
   showMessageBuyers: boolean;
+  /** Ticker value from the parent so live countdowns refresh. */
+  nowMs: number;
   onDeleted: (message: string) => void;
 }) {
   const router = useRouter();
@@ -415,6 +641,16 @@ function HomeRow({
         {home.shop_address ? (
           <p className="mt-1 text-xs text-white/40">🏪 {home.shop_address}</p>
         ) : null}
+        <SellerAuctionControls
+          targetType="home"
+          targetId={home.id}
+          title={home.title}
+          sellerId={ownerId}
+          status={home.status ?? "available"}
+          interestCount={interestCount}
+          fields={home}
+          nowMs={nowMs}
+        />
         {notice ? <p role="status" className="mt-2 text-xs text-mint-300">{notice}</p> : null}
         {error ? <p role="alert" className="mt-2 text-xs text-rose-300">{error}</p> : null}
       </div>
@@ -512,6 +748,15 @@ export function SellerListings({
   const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
   const [buyerProfileError, setBuyerProfileError] = useState("");
   const [rowNotice, setRowNotice] = useState("");
+  // 15s heartbeat: re-renders rows so live auction countdowns keep ticking
+  // without a subscription per row.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNowMs(Date.now()), 15_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const buyerIdsKey = JSON.stringify([...new Set([
     ...interests.data.map((interest) => interest.buyer_id),
     ...homeInterests.data.map((interest) => interest.buyer_id),
@@ -581,6 +826,7 @@ export function SellerListings({
           buyers={listingBuyers.get(listing.id) ?? []}
           buyerNames={buyerNames}
           showMessageBuyers={showMessageBuyers}
+          nowMs={nowMs}
           onDeleted={(message) => setRowNotice(message)}
         />
       ))}
@@ -593,6 +839,7 @@ export function SellerListings({
           buyers={homeListingBuyers.get(home.id) ?? []}
           buyerNames={buyerNames}
           showMessageBuyers={showMessageBuyers}
+          nowMs={nowMs}
           onDeleted={(message) => setRowNotice(message)}
         />
       ))}

@@ -5,6 +5,7 @@ import {
   setDoc,
   type DocumentData,
   type DocumentReference,
+  type Timestamp,
   type Transaction,
 } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
@@ -42,6 +43,13 @@ export interface HomeMarketplaceListing {
   shop_name?: string;
   /** Shop sellers only: physical shop address shown to buyers. */
   shop_address?: string;
+  /** Auction window (see src/lib/auction.ts): Timestamp in Firestore, epoch ms after the server data layer normalizes it. */
+  auction_started_at?: number | Timestamp;
+  auction_ends_at?: number | Timestamp;
+  /** Server-enforced monotonic standing — every bid must beat this. */
+  highest_bid?: number;
+  highest_bidder?: string;
+  bid_count?: number;
   created_at: string;
 }
 

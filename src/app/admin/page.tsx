@@ -23,6 +23,7 @@ const COLLECTIONS: CollectionInfo[] = [
   { key: "home_listings", label: "Rooms & homes", emoji: "🏠", href: "/admin/home_listings", description: "Rooms, flats & PG listings" },
   { key: "pg_listings", label: "PG & Rooms", emoji: "🏠", href: "/admin/pg_listings", description: "PG & shared flat listings" },
   { key: "listing_interests", label: "Buyer interest", emoji: "🙋", href: "/admin/listing_interests", description: "Interest in item listings" },
+  { key: "bids", label: "Auction bids", emoji: "🔨", href: "/admin/bids", description: "Bids on timed auctions" },
   { key: "reports", label: "Reports", emoji: "🚩", href: "/admin/reports", description: "Flagged listings & reviews" },
 ];
 
@@ -209,6 +210,7 @@ export default function AdminDashboard() {
   const { data: homeListings, loading: homeListingsLoading } = useCollection("home_listings");
   const { data: pgListings, loading: pgListingsLoading } = useCollection("pg_listings");
   const { data: listingInterests, loading: listingInterestsLoading } = useCollection("listing_interests");
+  const { data: bids, loading: bidsLoading } = useCollection("bids");
   const { data: reports, loading: reportsLoading } = useCollection("reports");
 
   // Each collection is subscribed to exactly once; counts are passed down to the cards.
@@ -219,6 +221,7 @@ export default function AdminDashboard() {
     home_listings: { count: homeListings.length, loading: homeListingsLoading },
     pg_listings: { count: pgListings.length, loading: pgListingsLoading },
     listing_interests: { count: listingInterests.length, loading: listingInterestsLoading },
+    bids: { count: bids.length, loading: bidsLoading },
     reports: { count: reports.length, loading: reportsLoading },
   };
 

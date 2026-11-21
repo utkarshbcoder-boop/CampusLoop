@@ -20,6 +20,7 @@ const COLLECTION_META: Record<string, { label: string; emoji: string; keyFields:
   profiles:       { label: "Profiles",       emoji: "👤", keyFields: ["name", "handle", "email", "college_id"] },
   listings:       { label: "Second-hand items", emoji: "🛍️", keyFields: ["title", "item_type", "seller_id", "price", "condition", "status"] },
   listing_interests: { label: "Buyer interest", emoji: "🙋", keyFields: ["listing_id", "buyer_id", "seller_id", "created_at"] },
+  bids:            { label: "Auction bids", emoji: "🔨", keyFields: ["target_type", "target_id", "bidder_id", "seller_id", "amount", "updated_at"] },
   home_listings:  { label: "Home & room listings", emoji: "🏠", keyFields: ["title", "owner_id", "mode", "price", "locality"] },
   pg_listings:   { label: "PG & room listings", emoji: "🏠", keyFields: ["title", "type", "rent", "locality", "college_id", "owner_name"] },
   reports:       { label: "Reports", emoji: "🚩", keyFields: ["target_type", "target_id", "reporter_id", "reason", "status"] },

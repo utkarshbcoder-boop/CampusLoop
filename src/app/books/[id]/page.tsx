@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRightIcon, BookIcon, ClockIcon, ShieldIcon } from "@/components/Icon";
+import { AuctionPanel } from "@/components/AuctionPanel";
 import { BuyButton, RentButton, SaveButton } from "@/components/Actions";
 import { ListingInterestButton } from "@/components/ListingInterestButton";
 import { MessageSellerButton } from "@/components/MessageSellerButton";
@@ -193,6 +194,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 Arrange payment and handover directly with the seller. CampusLoop does not process payments.
               </p>
             </div>
+
+            <AuctionPanel
+              targetType="listing"
+              targetId={listing.id}
+              sample={isSampleListing(listing)}
+            />
 
             <div className="cl-panel p-5">
               <h2 className="text-sm font-semibold text-white">

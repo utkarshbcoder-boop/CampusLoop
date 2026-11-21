@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/components/AuthProvider";
+import { AuctionPanel } from "@/components/AuctionPanel";
 import { SaveButton } from "@/components/Actions";
 import { MessageSellerButton } from "@/components/MessageSellerButton";
 import { ReportButton } from "@/components/ReportButton";
@@ -181,6 +182,7 @@ export function HomeListingDetail({ id, sample }: { id: string; sample: Home | u
               This is a sample listing. Interest requests are available on listings posted by their owners.
             </p>
           )}
+          {liveListing ? <AuctionPanel targetType="home" targetId={id} /> : null}
           {homeExpired ? (
             <p role="status" className="text-xs leading-relaxed text-white/65">
               This listing expired after {HOME_EXPIRY_DAYS} days. Ask the lister to renew it.

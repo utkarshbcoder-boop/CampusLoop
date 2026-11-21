@@ -13,6 +13,8 @@
 /* Primitives                                                          */
 /* ------------------------------------------------------------------ */
 
+import type { Timestamp } from "firebase/firestore";
+
 export type ID = string;
 
 export type ISODate = string;
@@ -144,6 +146,13 @@ export interface Listing {
   shop_name?: string;
   /** Shop sellers only: physical shop address shown to buyers. */
   shop_address?: string;
+  /** Auction window (see src/lib/auction.ts): Timestamp in Firestore, epoch ms after the server data layer normalizes it. */
+  auction_started_at?: number | Timestamp;
+  auction_ends_at?: number | Timestamp;
+  /** Server-enforced monotonic standing — every bid must beat this. */
+  highest_bid?: number;
+  highest_bidder?: string;
+  bid_count?: number;
   status: ListingStatus;
   description: string;
   highlights: string[];

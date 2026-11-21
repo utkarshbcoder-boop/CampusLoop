@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AuctionPanel } from "@/components/AuctionPanel";
 import { ListingInterestButton } from "@/components/ListingInterestButton";
 import { MessageSellerButton } from "@/components/MessageSellerButton";
 import { ReportButton } from "@/components/ReportButton";
@@ -61,6 +62,11 @@ function DeviceListing({ listing }: { listing: Listing }) {
             {listing.shop_address ? <KeyValue label="Shop address" value={listing.shop_address} /> : null}
             <KeyValue label="Pickup address" value={listing.pickup_location || "Contact seller"} />
           </dl>
+          <AuctionPanel
+            targetType="listing"
+            targetId={listing.id}
+            sample={isSampleListing(listing)}
+          />
           <div className="mt-6">
             <ListingInterestButton listingId={listing.id} status={status} />
           </div>

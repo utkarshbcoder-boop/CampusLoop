@@ -69,6 +69,15 @@ function mapDoc<T extends { id: string }>(data: DocumentData, id: string): T {
   for (const field of STRING_DEFAULTS) {
     row[field] = row[field] ?? "";
   }
+  // Auction timestamps are Firestore Timestamps (so rules can compare them
+  // with `request.time`), but server-rendered pages must carry plain epoch
+  // milliseconds across the React server -> client boundary.
+  for (const field of ["auction_started_at", "auction_ends_at"]) {
+    const value = row[field] as { toMillis?: () => number } | undefined;
+    if (value && typeof value === "object" && typeof value.toMillis === "function") {
+      row[field] = value.toMillis();
+    }
+  }
   return row as unknown as T;
 }
 

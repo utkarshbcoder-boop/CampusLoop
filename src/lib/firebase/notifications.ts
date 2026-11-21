@@ -21,7 +21,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./config";
 
-export type NotificationType = "interest" | "message" | "review";
+export type NotificationType = "interest" | "message" | "review" | "bid";
 
 export interface AppNotification {
   id: string;

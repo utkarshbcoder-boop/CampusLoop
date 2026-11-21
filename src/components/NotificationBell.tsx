@@ -18,11 +18,16 @@ const TYPE_EMOJI: Record<AppNotification["type"], string> = {
   interest: "🛍️",
   message: "💬",
   review: "⭐",
+  bid: "🔨",
 };
 
-/** Message notifications point at a conversation; interest/review at a listing (land on My Listings). */
+/** Message notifications point at a conversation; bids at the listing's page; interest/review at My Listings. */
 function notificationPath(notification: AppNotification): string {
   if (notification.type === "message") return `/messages/${notification.target_id}`;
+  if (notification.type === "bid") {
+    // Bid notifications store the deep-link path (`/books/{id}` …) directly.
+    return notification.target_id.startsWith("/") ? notification.target_id : "/marketplace";
+  }
   return "/my-listings";
 }
 

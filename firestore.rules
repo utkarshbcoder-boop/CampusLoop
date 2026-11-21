@@ -37,6 +37,38 @@ service cloud.firestore {
             && request.resource.data.shop_address.size() <= 300));
     }
 
+    // Timed-auction writes by the listing's owner (start / cancel).
+    //  - End time: when newly set or moved it must be a timestamp in the
+    //    future, at most 7 days out; an unchanged end time passes so
+    //    unrelated edits to an already-ended listing still work.
+    //  - Removing the auction (cancel): only while no bid has ever landed —
+    //    bids are final, so a standing auction cannot be withdrawn.
+    //  - The standing may only be reset (start) or cleared (cancel), never
+    //    invented: bid_count goes to 0 or is removed, and the top bid/bidder
+    //    may only be deleted, never written by the seller.
+    function validAuctionTransition() {
+      return (!('auction_ends_at' in request.resource.data)
+          || (('auction_ends_at' in resource.data)
+            && request.resource.data.auction_ends_at == resource.data.auction_ends_at)
+          || (request.resource.data.auction_ends_at is timestamp
+            && request.resource.data.auction_ends_at > request.time
+            && request.resource.data.auction_ends_at <= request.time + duration.value(7, 'd')))
+        && (!('auction_ends_at' in resource.data)
+          || 'auction_ends_at' in request.resource.data
+          || resource.data.get('bid_count', 0) == 0)
+        && (!('bid_count' in request.resource.data.diff(resource.data).affectedKeys())
+          || (!('bid_count' in request.resource.data)
+            ? resource.data.get('bid_count', 0) == 0
+            : (request.resource.data.bid_count == 0
+              && resource.data.get('bid_count', 0) == 0)))
+        && (!('highest_bid' in request.resource.data.diff(resource.data).affectedKeys())
+          || !('highest_bid' in request.resource.data))
+        && (!('highest_bidder' in request.resource.data.diff(resource.data).affectedKeys())
+          || !('highest_bidder' in request.resource.data))
+        && (!('auction_started_at' in request.resource.data)
+          || request.resource.data.auction_started_at is timestamp);
+    }
+
     match /listings/{listingId} {
       allow read: if true;
       allow create: if isAdmin() || (
@@ -112,7 +144,8 @@ service cloud.firestore {
           'branch', 'kind', 'condition', 'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit',
           'seller_id', 'college_id', 'pickup_location', 'status', 'description',
           'highlights', 'tags', 'hue', 'emoji', 'boosted', 'views', 'saves', 'created_at',
-          'device_type', 'image_urls', 'is_sample', 'shop_name', 'shop_address'
+          'device_type', 'image_urls', 'is_sample', 'shop_name', 'shop_address',
+          'auction_started_at', 'auction_ends_at', 'highest_bid', 'highest_bidder', 'bid_count'
         ])
         && !('is_sample' in request.resource.data)
         && request.resource.data.id == resource.data.id
@@ -127,12 +160,14 @@ service cloud.firestore {
           'title', 'author', 'edition', 'subject', 'semester', 'branch', 'condition',
           'price', 'mrp', 'negotiable', 'rent_per_day', 'deposit', 'pickup_location',
           'status', 'description', 'highlights', 'tags', 'hue', 'emoji',
-          'device_type', 'image_urls', 'created_at', 'shop_name', 'shop_address'
+          'device_type', 'image_urls', 'created_at', 'shop_name', 'shop_address',
+          'auction_started_at', 'auction_ends_at', 'highest_bid', 'highest_bidder', 'bid_count'
         ])
         // Only shopkeepers (or admin) may add, change, or clear shop identity.
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shop_name', 'shop_address'])
           || isShopkeeper())
         && validShopFields()
+        && validAuctionTransition()
         && request.resource.data.status in ['available', 'reserved', 'sold']
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
@@ -167,6 +202,22 @@ service cloud.firestore {
           || (request.resource.data.item_type == 'device'
             && request.resource.data.device_type in ['mobile', 'laptop', 'tablet', 'other']))
       );
+      // Bidder: a bid transaction may move ONLY the auction standing, and
+      // only while the auction is live — the amount must beat the current
+      // top, match the new bid count, and land on the caller's own uid.
+      allow update: if verified()
+        && resource.data.seller_id != request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'highest_bid', 'highest_bidder', 'bid_count'
+        ])
+        && request.resource.data.highest_bid is number
+        && request.resource.data.highest_bid > resource.data.get('highest_bid', 0)
+        && request.resource.data.highest_bid >= resource.data.price
+        && request.resource.data.highest_bidder == request.auth.uid
+        && request.resource.data.bid_count == resource.data.get('bid_count', 0) + 1
+        && resource.data.auction_ends_at is timestamp
+        && resource.data.auction_ends_at > request.time
+        && resource.data.status == 'available';
       allow delete: if isAdmin() || (verified() && resource.data.seller_id == request.auth.uid);
     }
 
@@ -250,7 +301,8 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'id', 'title', 'locality', 'type', 'mode', 'price', 'beds', 'baths',
           'furnished', 'distanceKm', 'available', 'owner', 'owner_id', 'created_at',
-          'description', 'status', 'shop_name', 'shop_address'
+          'description', 'status', 'shop_name', 'shop_address',
+          'auction_started_at', 'auction_ends_at', 'highest_bid', 'highest_bidder', 'bid_count'
         ])
         && request.resource.data.id == resource.data.id
         && request.resource.data.owner_id == resource.data.owner_id
@@ -259,12 +311,14 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'title', 'locality', 'price', 'beds', 'baths', 'furnished', 'distanceKm',
           'available', 'owner', 'description', 'created_at', 'status',
-          'shop_name', 'shop_address'
+          'shop_name', 'shop_address',
+          'auction_started_at', 'auction_ends_at', 'highest_bid', 'highest_bidder', 'bid_count'
         ])
         // Only shopkeepers (or admin) may add, change, or clear shop identity.
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['shop_name', 'shop_address'])
           || isShopkeeper())
         && validShopFields()
+        && validAuctionTransition()
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 300
@@ -286,6 +340,22 @@ service cloud.firestore {
         && (!('status' in request.resource.data)
           || request.resource.data.status in ['available', 'rented', 'sold', 'withdrawn'])
       );
+      // Bidder: a bid transaction may move ONLY the auction standing, and
+      // only while the auction is live — the amount must beat the current
+      // top, match the new bid count, and land on the caller's own uid.
+      allow update: if verified()
+        && resource.data.owner_id != request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'highest_bid', 'highest_bidder', 'bid_count'
+        ])
+        && request.resource.data.highest_bid is number
+        && request.resource.data.highest_bid > resource.data.get('highest_bid', 0)
+        && request.resource.data.highest_bid >= resource.data.price
+        && request.resource.data.highest_bidder == request.auth.uid
+        && request.resource.data.bid_count == resource.data.get('bid_count', 0) + 1
+        && resource.data.auction_ends_at is timestamp
+        && resource.data.auction_ends_at > request.time
+        && resource.data.get('status', 'available') == 'available';
       allow delete: if isAdmin() || (verified() && resource.data.owner_id == request.auth.uid);
     }
 
@@ -319,6 +389,61 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/home_listings/$(request.resource.data.home_listing_id)).data.owner_id == request.resource.data.owner_id
         && request.resource.data.owner_id != request.auth.uid;
       allow update, delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------
+    // Auction bids: one standing entry per bidder per auction. The
+    // listing/home document is the source of truth for the standing; these
+    // rows back the public "top bids" board on each listing page.
+    // ------------------------------------------------------------------
+    match /bids/{bidId} {
+      // The board is public: amounts and denormalised display names only.
+      allow read: if true;
+      allow create: if isAdmin() || (
+        verified()
+        && request.resource.data.keys().hasOnly([
+          'target_type', 'target_id', 'bidder_id', 'bidder_name',
+          'seller_id', 'amount', 'created_at', 'updated_at'
+        ])
+        && request.resource.data.target_type in ['listing', 'home']
+        && request.resource.data.bidder_id == request.auth.uid
+        && bidId == request.resource.data.target_type + '_' + request.resource.data.target_id + '_' + request.auth.uid
+        && request.resource.data.bidder_name is string
+        && request.resource.data.bidder_name.size() <= 120
+        && request.resource.data.seller_id is string
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.created_at is string
+        && request.resource.data.updated_at is string
+        // Pre-state of the auction (get() inside a transaction reads before
+        // the transaction): live, the caller isn't the seller, and the amount
+        // is at least the list price and beats the current top bid.
+        && (request.resource.data.target_type == 'listing'
+          ? (get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.seller_id == request.resource.data.seller_id
+            && get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.seller_id != request.auth.uid
+            && get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.status == 'available'
+            && get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.auction_ends_at > request.time
+            && request.resource.data.amount >= get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.price
+            && request.resource.data.amount > get(/databases/$(database)/documents/listings/$(request.resource.data.target_id)).data.get('highest_bid', 0))
+          : (get(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)).data.owner_id == request.resource.data.seller_id
+            && get(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)).data.owner_id != request.auth.uid
+            && get(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)).data.get('status', 'available') == 'available'
+            && get(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)).data.auction_ends_at > request.time
+            && request.resource.data.amount >= get(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)).data.price
+            && request.resource.data.amount > get(/databases/$(database)/documents/home_listings/$(request.resource.data.target_id)).data.get('highest_bid', 0)))
+      );
+      // Raising: only your own row, only upward. The paired listing write in
+      // the same transaction enforces the economics against the live standing.
+      allow update: if isAdmin() || (
+        verified()
+        && resource.data.bidder_id == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['amount', 'updated_at'])
+        && request.resource.data.amount is number
+        && request.resource.data.amount > resource.data.amount
+        && request.resource.data.updated_at is string
+      );
+      // Bids are final — only an admin may remove one.
+      allow delete: if isAdmin();
     }
 
     match /profiles/{profileId} {
@@ -380,11 +505,11 @@ service cloud.firestore {
         signedIn()
         && resource.data.profile_id == request.auth.uid
       );
-      // Users notify each other (interest, message, review) — never yourself.
+      // Users notify each other (interest, message, review, bid) — never yourself.
       allow create: if verified()
         && request.resource.data.profile_id is string
         && request.resource.data.profile_id != request.auth.uid
-        && request.resource.data.type in ['interest', 'message', 'review']
+        && request.resource.data.type in ['interest', 'message', 'review', 'bid']
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 120
